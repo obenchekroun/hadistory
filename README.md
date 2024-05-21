@@ -9,20 +9,70 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
 
 ## Setup
-- Image the SD card with RPi OS, then boot and update the OS
-- Enable I2C and SPI interfaces: `sudo raspi-config`
-- [Install Ollama](https://ollama.com/download/linux)
-- Pull and serve an Ollama model. I find that Mistral and Gemma models work well. `ollama run gemma:7b`
-- [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
-- Download an SD model. I find that [Stable Diffusion XL Turbo 1.0
-](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well.
-- Clone this repository. `git clone https://github.com/tvldz/storybook.git`
-- Create a Python virtual environment: `cd storybook && mkdir .venv && python -m venv .venv`
-- Activate the environment: `source .venv/bin/activate`
-- Install the [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
-- Install requests and pillow: `pip install requests pillow`
-- Modify the constants (paths) at the top of `main.py` to match your own environment.
-- execute main.py: `python main.py`. Execution takes ~5 minutes.
+1. Image the SD card with RPi OS Bookworm 64bit lite, then boot and update the OS
+
+2. Set locale correctly using the following :
+``` bash
+locale #to see locales
+sudo update-locale "LC_ALL=en_GB.UTF-8"
+sudo update-locale "LANGUAGE=en_GB:en"
+```
+then reboot.
+
+3. Go to `sudo raspi-config` and enable the following
+ - `I2C` interface 
+ - `SPI` interface
+ - [OPTIONAL] `ssh`
+ - [OPTIONAL] set up wifi
+
+3. Install required libraries
+``` bash
+sudo apt update
+sudo apt -y upgrade
+sudo apt install cmake
+sudo apt-get install git
+sudo apt-get install python3-dev
+```
+
+4. [Install Ollama](https://ollama.com/download/linux)
+``` bash
+cd ~
+curl -fsSL https://ollama.com/install.sh | sh
+```
+ - Pull and serve an Ollama model. I find that Mistral and Gemma models work well. `ollama run gemma:7b`
+
+5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
+ - First install XNNPACK :
+``` bash
+cd ~
+git clone https://github.com/google/XNNPACK.git
+cd XNNPACK
+git checkout 579de32260742a24166ecd13213d2e60af862675
+mkdir build
+cd build
+cmake -DXNNPACK_BUILD_TESTS=OFF -DXNNPACK_BUILD_BENCHMARKS=OFF ..
+cmake --build . --config Release
+```
+ - and then ONXXSTREAM :
+```bash
+cd ~
+git clone https://github.com/vitoplantamura/OnnxStream.git
+cd OnnxStream
+cd src
+mkdir build
+cd build
+cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK .. #path to be changed for where XNNPACK has been cloned
+cmake --build . --config Release
+```
+ - Download an SD model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
+ 
+6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
+ - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
+ - Activate the environment: `source .venv/bin/activate`
+ - Install the [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
+ - Install requests and pillow: `pip install requests pillow`
+7. Modify the constants (paths) at the top of `main.py` to match your own environment.
+8. execute main.py: `python3 main.py`. Execution takes ~5 minutes.
 
 ## ISSUES/IDEAS/TODO
 - Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.
