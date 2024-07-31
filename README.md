@@ -9,7 +9,7 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
 
 ## Setup
-1. Image the SD card with RPi OS Bookworm 64bit lite, then boot and update the OS
+1. Image the SD card with RPi OS Bookworm 64bit lite, then boot and update the OS.
 
 2. Set locale correctly using the following :
 ``` bash
@@ -69,10 +69,24 @@ cmake --build . --config Release
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
  - Activate the environment: `source .venv/bin/activate`
- - Install the [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
+ - Install the libraries for the screen you want to use :
+  - [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
+  - 
  - Install requests and pillow: `pip install requests pillow`
 7. Modify the constants (paths) at the top of `main.py` to match your own environment.
 8. execute main.py: `python3 main.py`. Execution takes ~5 minutes.
+
+### Connect EPD to Pi
+* CAREFULLY plug EPD into Raspberry Pi, or on top of pijuice HAT, following instructions from the vendor.
+
+In the case of the Waveshare e-paper 5.65inch 7colors display used in this case, the connection is as follows :
+![Pin connection to Raspberry Pi](/img/pin_waveshare_epd.epd5in65f.png?raw=true)
+
+The RPi 5 pin out is as follows : 
+![Pin connection of Raspberry Pi](/img/Raspberry-Pi-5-Pinout.jpg?raw=true)
+
+* Connect power directly to Raspberry Pi (or PiJuice unit) once done.
+
 
 ## ISSUES/IDEAS/TODO
 - Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.
