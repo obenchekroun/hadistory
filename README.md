@@ -1,4 +1,4 @@
-# storybook
+# storybook for Hadi
 A program that uses generative models on a Raspberry Pi to create fantasy storybook pages on the Inky Impression e-ink display
 
 ![Storybook example](https://github.com/tvldz/storybook/blob/main/examples/storybook.png?raw=true)
