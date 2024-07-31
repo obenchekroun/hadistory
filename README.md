@@ -70,8 +70,8 @@ cmake --build . --config Release
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
  - Activate the environment: `source .venv/bin/activate`
  - Install the libraries for the screen you want to use :
-  - [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
-  - [Waveshare 5.65 inch 7 color libraries](https://www.waveshare.com/wiki/5.65inch_e-Paper_Module_(F)_Manual#Working_With_Raspberry_Pi) 
+   - [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
+   - [Waveshare 5.65 inch 7 color libraries](https://www.waveshare.com/wiki/5.65inch_e-Paper_Module_(F)_Manual#Working_With_Raspberry_Pi) 
  - Install requests and pillow: `pip install requests pillow`
 7. Modify the constants (paths) at the top of `main.py` to match your own environment.
 8. execute main.py: `python3 main.py`. Execution takes ~5 minutes.
