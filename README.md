@@ -71,7 +71,16 @@ cmake --build . --config Release
  - Activate the environment: `source .venv/bin/activate`
  - Install the libraries for the screen you want to use :
    - [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
-   - [Waveshare 5.65 inch 7 color libraries](https://www.waveshare.com/wiki/5.65inch_e-Paper_Module_(F)_Manual#Working_With_Raspberry_Pi) 
+   - for [Waveshare 5.65 inch 7 color libraries](https://www.waveshare.com/wiki/5.65inch_e-Paper_Module_(F)_Manual#Working_With_Raspberry_Pi), the project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
+   ```bash
+   pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
+   ```
+     - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm or a Pi 5. One option is to use a drop-in replacement which should work :
+   ```bash
+   sudo apt remove python3-rpi.gpio
+   pip3 install rpi-lgpio
+   ```
+      Ref : (https://forums.raspberrypi.com/viewtopic.php?t=362657) and (https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578)
  - Install requests and pillow: `pip install requests pillow`
 7. Modify the constants (paths) at the top of `main.py` to match your own environment.
 8. execute main.py: `python3 main.py`. Execution takes ~5 minutes.
@@ -87,6 +96,7 @@ The RPi 5 pin out is as follows :
 
 * Connect power directly to Raspberry Pi (or PiJuice unit) once done.
 
+* Enable SPI interface
 
 ## ISSUES/IDEAS/TODO
 - Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.
