@@ -7,7 +7,7 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 
 ## Hardware
 - [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). Certainly possible with other hardware, but may be slower and require simpler models.
-- [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7). Code can be modified to support other resolutions.
+- [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
 
 ## Setup
