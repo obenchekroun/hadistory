@@ -5,6 +5,10 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 |:--:| 
 | *Hadistory !* |
 
+
+## Acknowledgments
+Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). This project has been largely based on storybook with a few tweaks for my needs. All credit goes to them for making this awesome project.
+
 ## Hardware
 - [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). Certainly possible with other hardware, but may be slower and require simpler models.
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
@@ -81,7 +85,7 @@ cmake --build . --config Release
    sudo apt remove python3-rpi.gpio
    pip3 install rpi-lgpio
    ```
-      Ref : (https://forums.raspberrypi.com/viewtopic.php?t=362657) and (https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578)
+      See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
  - Install requests and pillow: `pip install requests pillow`
 7. Modify the constants (paths) at the top of `main.py` to match your own environment.
 8. execute main.py: `python3 main.py`. Execution takes ~5 minutes.

@@ -19,12 +19,16 @@ DISPLAY_RESOLUTION = (448, 600)
 TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'gemma:7b'
-OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. 
-This text should be around 20 words. If you desire, you can include a hero, monster, mythical 
-creature or artifact. You can choose a random mood or theme. Be creative. Do not forget an ending to the story.'''.replace("\n", "")
+# OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
+# This text should be around 20 words. If you desire, you can include a hero, monster, mythical
+# creature or artifact. You can choose a random mood or theme. Be creative. Do not forget an ending to the story.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Créez un texte à partir d'une page d'un livre illustré de fantasy pour enfants.
+Ce texte doit comporter environ 20 mots. Si vous le souhaitez, vous pouvez inclure un héros, un monstre, une créature
+mythique ou un artefact. Vous pouvez choisir une ambiance ou un thème au hasard. Faites preuve de créativité. N'oubliez pas la fin de l'histoire.'''.replace("\n", "")
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
+#SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
+SD_PROMPT = 'une illustration dans un livre pour enfants pour la scène suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
