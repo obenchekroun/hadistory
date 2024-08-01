@@ -28,7 +28,7 @@ mythique ou un artefact. Vous pouvez choisir une ambiance ou un thème au hasard
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
 #SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
-SD_PROMPT = 'une illustration dans un livre pour enfants pour la scène suivante : '
+SD_PROMPT = 'une illustration dans un livre pour enfants pour la scene suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
@@ -100,8 +100,10 @@ def generate_page():
 
     # Generating image
     print("\nCreating the image, may take a while ...")
+    translationTable = str.maketrans("éàèùâêîôûç", "eaeuaeiouc")
+    text_image_prompt = generated_text.translate(translationTable)
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
-                    '--prompt', SD_PROMPT+f'"{generated_text}"',\
+                    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
 
