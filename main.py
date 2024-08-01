@@ -16,19 +16,19 @@ from omni_epd import displayfactory, EPDNotFoundError
 
 GENERATION_INTERVAL = 1800 #seconds
 DISPLAY_RESOLUTION = (448, 600)
-TOTAL_LINES = 6
+TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'gemma:7b'
 OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. 
 This text should be around 20 words. If you desire, you can include a hero, monster, mythical 
-creature or artifact. You can choose a random mood or theme. Be creative.'''.replace("\n", "")
+creature or artifact. You can choose a random mood or theme. Be creative. Do not forget an ending to the story.'''.replace("\n", "")
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
 SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
-FONT_SIZE = 21
+FONT_SIZE = 16
 
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 

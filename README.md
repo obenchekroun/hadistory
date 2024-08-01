@@ -71,12 +71,11 @@ cmake --build . --config Release
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
  - Activate the environment: `source .venv/bin/activate`
- - Install the libraries for the screen you want to use :
-   - [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
-   - for [Waveshare 5.65 inch 7 color libraries](https://www.waveshare.com/wiki/5.65inch_e-Paper_Module_(F)_Manual#Working_With_Raspberry_Pi), the project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
+ - Install the libraries for the screen. The project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
    ```bash
    pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
    ```
+     - Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
      - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm or a Pi 5. One option is to use a drop-in replacement which should work :
    ```bash
    sudo apt remove python3-rpi.gpio
@@ -114,3 +113,7 @@ The RPi 5 pin out is as follows :
 - This would be easily modifiable to create other things like sci-fi stories, weird New Yorker cartoons or off-brand Pokemon.
 - This may be thermally taxing on the RPi. Inferrence consumes all CPUs for many minutes, then sits idle for the set interval.
 - The code isn't very reslilient but seems to work reliably.
+
+## Miscellaneous
+
+Can be used with official libraries from pimoroni : [Inky libraries](https://github.com/pimoroni/inky). Follow these instructions for RPi 5 compatibility: https://github.com/pimoroni/inky/pull/182
