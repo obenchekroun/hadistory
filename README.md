@@ -1,7 +1,9 @@
 # storybook for Hadi
 A program that uses generative models on a Raspberry Pi to create fantasy storybook pages on the Inky Impression e-ink display
 
-![Storybook example](https://github.com/tvldz/storybook/blob/main/examples/storybook.png?raw=true)
+| ![Hadistory !](/img/hadistory.png?raw=true) | 
+|:--:| 
+| *Hadistory !* |
 
 ## Hardware
 - [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). Certainly possible with other hardware, but may be slower and require simpler models.
@@ -97,6 +99,12 @@ The RPi 5 pin out is as follows :
 * Connect power directly to Raspberry Pi (or PiJuice unit) once done.
 
 * Enable SPI interface
+
+### Stablediffusion shell command example
+
+``` bash
+/home/pi/OnnxStream/src/build/sd --xl --turbo --rpi --models-path /home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream --prompt "an illustration in a children's book for the following scene: Luna's moonbeam cloak rustled as she crept through Whispering Wood, the silver moon casting her path in an ethereal glow. The Whispering Flowers whispered secrets of forgotten stars, guiding her towards the obsidian tower where the Moon Weaver resided." --steps 3
+```
 
 ## ISSUES/IDEAS/TODO
 - Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.

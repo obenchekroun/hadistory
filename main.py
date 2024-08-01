@@ -9,9 +9,10 @@ import requests
 import subprocess
 import time
 from PIL import Image, ImageDraw, ImageFont
-from inky.auto import auto
+from omni_epd import displayfactory, EPDNotFoundError
+#from inky.auto import auto #for use of Pimoroni library
 
-display = auto()
+#display = auto() #for use of Pimoroni library
 
 GENERATION_INTERVAL = 1800 #seconds
 DISPLAY_RESOLUTION = (448, 600)
@@ -28,6 +29,8 @@ SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 21
+
+DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 
 def get_story():
     r = requests.post(OLLAMA_API, timeout=600,
@@ -55,13 +58,20 @@ def split_text(text):
     return text
 
 def generate_page():
+    # Generating text
+    print("\nCreating a new story...")
     generated_text = get_story()
-    print(f'text: {generated_text}')
+    print("Here is a story: ")
+    print(f'{generated_text}')
+
+    # Generating image
+    print("\nCreating the image, may take a while ...")
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
                     '--prompt', SD_PROMPT+f'"{generated_text}"',\
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False) 
     generated_text = split_text(generated_text)
 
+    print("\nShowing image ...")
     canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
     im2 = Image.open(TEMP_IMAGE_FILE)
     im2 = im2.resize((448,448))
@@ -72,13 +82,18 @@ def generate_page():
     canvas.show()
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
-    display.set_image(canvas)
-    display.show()
+    epd.prepare()
+    epd.clear()
+    epd.display(canvas)
+    epd.sleep()
+    print("\nThe end.")
+    #display.set_image(canvas) #for use of Pimoroni library
+    #display.show() #for use of Pimoroni library
 
-def main():
-    while True:
-        generate_page()
-        time.sleep(GENERATION_INTERVAL)
 
 if __name__ == '__main__':
-    main()
+    epd = displayfactory.load_display_driver(DISPLAY_TYPE)
+    print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !\n")
+    #while True:
+    generate_page()
+    #time.sleep(GENERATION_INTERVAL)
