@@ -104,6 +104,11 @@ The RPi 5 pin out is as follows :
 
 * Enable SPI interface
 
+### Connect LED and button
+The project uses a LED as a status indicator, and a button to trigger the creation of a story. The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows :
+- *button* : GPIO 16 (pin 36) and Ground (pin 39 for example)
+- *Led* : with a 220 Ohms resistor, to GPIO 26 (pin 37) and Ground (pin 39 for example)
+
 ### Stablediffusion shell command example
 
 ``` bash
