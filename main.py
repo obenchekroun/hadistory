@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-A program that generates storybook pages with Ollama and Stable Diffusion for the Inky Impression
+A program that generates storybook pages with Ollama and Stable Diffusion for the Inky Impression/Waveshare 7 color
 """
 
 import math
@@ -10,9 +10,7 @@ import subprocess
 import time
 from PIL import Image, ImageDraw, ImageFont
 from omni_epd import displayfactory, EPDNotFoundError
-#from inky.auto import auto #for use of Pimoroni library
 
-#display = auto() #for use of Pimoroni library
 
 GENERATION_INTERVAL = 1800 #seconds
 DISPLAY_RESOLUTION = (448, 600)
@@ -48,21 +46,6 @@ def get_story():
     data = r.json()
     return data['response'].lstrip()
 
-# # naive function to replace with newline next space after the offset
-# def replace_next_space_with_newline(text, offset):
-#     next_space = text.find(' ', offset)
-#     if next_space != -1:
-#         return text[:next_space] + '\n' + text[next_space + 1:]
-#     return text
-
-# # naive function to split text into TOTAL_LINES number of lines
-# def split_text(text):
-#     char_total = len(text)
-#     approx_line_len = math.ceil(char_total/TOTAL_LINES)
-#     for i in range(TOTAL_LINES):
-#         text = replace_next_space_with_newline(text,approx_line_len*(i+1))
-#     return text
-
 def wrap_text_display(text, width, font):
     text_lines = []
     text_line = []
@@ -93,17 +76,13 @@ def generate_page():
     #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
     print(f'{generated_text}')
-    #generated_text = split_text(generated_text)
     generated_text = wrap_text_display(generated_text, 448, font)
-    #TOTAL_LINES = len(generated_text)
     text_height = 0
     for line in generated_text:
         left, top, right, bottom = font.getbbox(line)
         text_height = text_height + int((bottom - top)*1.1)
-    #print("\nText Height : " + str(text_height))
     text_height = text_height + 2
-    #left, top, right, bottom = font.getbbox(generated_text[0])
-    #text_height = int((bottom - top)*TOTAL_LINES)
+
     generated_text = "\n".join(generated_text)
 
     # Generating image
@@ -123,16 +102,15 @@ def generate_page():
     else:
         sizing = 600 - text_height
 
-    #im2 = im2.resize((448,448))
+
     im2 = im2.resize((sizing,sizing))
-    #exit()
+
     center_x = int((DISPLAY_RESOLUTION[0]-sizing)/2)
     canvas.paste(im2, (center_x,0))
     im3 = ImageDraw.Draw(canvas)
-    #font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
-    #im3.text((7, 450), generated_text, font=font, fill=(0, 0, 0))
+
     im3.text((7, sizing + 2), generated_text, font=font, fill=(0, 0, 0))
-    #canvas.show()
+
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
     epd.prepare()
@@ -140,13 +118,30 @@ def generate_page():
     epd.display(canvas)
     epd.sleep()
     print("\nThe end.")
-    #display.set_image(canvas) #for use of Pimoroni library
-    #display.show() #for use of Pimoroni library
+
 
 
 if __name__ == '__main__':
-    #font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 18)
     print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
     #while True:
     generate_page()
     #time.sleep(GENERATION_INTERVAL)
+
+
+    #display.set_image(canvas) #for use of Pimoroni library
+    #display.show() #for use of Pimoroni library
+
+# # naive function to replace with newline next space after the offset
+# def replace_next_space_with_newline(text, offset):
+#     next_space = text.find(' ', offset)
+#     if next_space != -1:
+#         return text[:next_space] + '\n' + text[next_space + 1:]
+#     return text
+
+# # naive function to split text into TOTAL_LINES number of lines
+# def split_text(text):
+#     char_total = len(text)
+#     approx_line_len = math.ceil(char_total/TOTAL_LINES)
+#     for i in range(TOTAL_LINES):
+#         text = replace_next_space_with_newline(text,approx_line_len*(i+1))
+#     return text
