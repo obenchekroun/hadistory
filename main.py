@@ -17,15 +17,15 @@ DISPLAY_RESOLUTION = (448, 600)
 #TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'gemma:7b'
-# OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
-# This text should be around 20 words. If you desire, you can include a hero, monster, mythical
-# creature or artifact. You can choose a random mood or theme. Be creative. Do not forget an ending to the story.'''.replace("\n", "")
-OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
-Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
+This text should be around 20 words. If you desire, you can include a hero, monster, mythical
+creature or artifact. You can choose a random mood or theme. Be creative. Do not forget a happy ending to the story.'''.replace("\n", "")
+# OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
+# Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-#SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
-SD_PROMPT = 'une illustration style bande dessinée pour l\'histoire suivante : '
+SD_PROMPT = 'an illustration in a children\'s book for the following story: '
+#SD_PROMPT = 'une illustration style bande dessinée pour l\'histoire suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
@@ -76,6 +76,7 @@ def generate_page():
     #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
     print(f'{generated_text}')
+    generated_text = generated_text.replace("\n", " ")
     generated_text = wrap_text_display(generated_text, 448, font)
     text_height = 0
     for line in generated_text:
@@ -88,7 +89,7 @@ def generate_page():
     # Generating image
     print("\nCreating the image, may take a while ...")
     translationTable = str.maketrans("éàèùâêîôûç", "eaeuaeiouc")
-    text_image_prompt = generated_text.translate(translationTable)
+    text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
                     '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
