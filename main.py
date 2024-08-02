@@ -16,25 +16,27 @@ from omni_epd import displayfactory, EPDNotFoundError
 
 GENERATION_INTERVAL = 1800 #seconds
 DISPLAY_RESOLUTION = (448, 600)
-TOTAL_LINES = 8
+#TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'gemma:7b'
 # OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
 # This text should be around 20 words. If you desire, you can include a hero, monster, mythical
 # creature or artifact. You can choose a random mood or theme. Be creative. Do not forget an ending to the story.'''.replace("\n", "")
-OLLAMA_PROMPT = '''Créez un texte à partir d'une page d'un livre illustré de fantasy pour enfants.
-Ce texte doit comporter environ 20 mots. Si vous le souhaitez, vous pouvez inclure un héros, un monstre, une créature
-mythique ou un artefact. Vous pouvez choisir une ambiance ou un thème au hasard. Faites preuve de créativité. N'oubliez pas la fin de l'histoire.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
+Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
 #SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
-SD_PROMPT = 'une illustration dans un livre pour enfants pour la scene suivante : '
+SD_PROMPT = 'une illustration style bande dessinée pour l\'histoire suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
-
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
+
+
+font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
+epd = displayfactory.load_display_driver(DISPLAY_TYPE)
 
 def get_story():
     r = requests.post(OLLAMA_API, timeout=600,
@@ -46,20 +48,20 @@ def get_story():
     data = r.json()
     return data['response'].lstrip()
 
-# naive function to replace with newline next space after the offset
-def replace_next_space_with_newline(text, offset):
-    next_space = text.find(' ', offset)
-    if next_space != -1:
-        return text[:next_space] + '\n' + text[next_space + 1:]
-    return text
+# # naive function to replace with newline next space after the offset
+# def replace_next_space_with_newline(text, offset):
+#     next_space = text.find(' ', offset)
+#     if next_space != -1:
+#         return text[:next_space] + '\n' + text[next_space + 1:]
+#     return text
 
-# naive function to split text into TOTAL_LINES number of lines
-def split_text(text):
-    char_total = len(text)
-    approx_line_len = math.ceil(char_total/TOTAL_LINES)
-    for i in range(TOTAL_LINES):
-        text = replace_next_space_with_newline(text,approx_line_len*(i+1))
-    return text
+# # naive function to split text into TOTAL_LINES number of lines
+# def split_text(text):
+#     char_total = len(text)
+#     approx_line_len = math.ceil(char_total/TOTAL_LINES)
+#     for i in range(TOTAL_LINES):
+#         text = replace_next_space_with_newline(text,approx_line_len*(i+1))
+#     return text
 
 def wrap_text_display(text, width, font):
     text_lines = []
@@ -88,14 +90,20 @@ def generate_page():
     # Generating text
     print("\nCreating a new story...")
     generated_text = get_story()
-    #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl blalbalbalballblalbalblalablbalabllba lbalballbalbalballbalbalballbalbalbalb al lbalbalbal b allbalb albalballbal ba"
+    #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
     print(f'{generated_text}')
     #generated_text = split_text(generated_text)
     generated_text = wrap_text_display(generated_text, 448, font)
-    TOTAL_LINES = len(generated_text)
-    left, top, right, bottom = font.getbbox(generated_text[0])
-    text_height = int((bottom - top)*TOTAL_LINES)
+    #TOTAL_LINES = len(generated_text)
+    text_height = 0
+    for line in generated_text:
+        left, top, right, bottom = font.getbbox(line)
+        text_height = text_height + int((bottom - top)*1.1)
+    #print("\nText Height : " + str(text_height))
+    text_height = text_height + 2
+    #left, top, right, bottom = font.getbbox(generated_text[0])
+    #text_height = int((bottom - top)*TOTAL_LINES)
     generated_text = "\n".join(generated_text)
 
     # Generating image
@@ -113,7 +121,7 @@ def generate_page():
     if (600 - text_height >=448):
         sizing = 448
     else:
-        sizing = 600 - text_height - int((bottom - top))*2
+        sizing = 600 - text_height
 
     #im2 = im2.resize((448,448))
     im2 = im2.resize((sizing,sizing))
@@ -137,10 +145,8 @@ def generate_page():
 
 
 if __name__ == '__main__':
-    epd = displayfactory.load_display_driver(DISPLAY_TYPE)
-    font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
     #font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 18)
-    print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !\n")
+    print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
     #while True:
     generate_page()
     #time.sleep(GENERATION_INTERVAL)
