@@ -75,6 +75,7 @@ cmake --build . --config Release
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
  - Activate the environment: `source .venv/bin/activate`
+   - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command* 
  - Install the libraries for the screen. The project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
    ```bash
    pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd

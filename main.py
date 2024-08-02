@@ -10,13 +10,15 @@ import subprocess
 import time
 from PIL import Image, ImageDraw, ImageFont
 from omni_epd import displayfactory, EPDNotFoundError
+import RPi.GPIO as GPIO
+from threading import Thread
 
 
 GENERATION_INTERVAL = 1800 #seconds
 DISPLAY_RESOLUTION = (448, 600)
 #TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
-OLLAMA_MODEL = 'gemma:7b'
+OLLAMA_MODEL = 'mistral'
 OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
 This text should be around 20 words. If you desire, you can include a hero, monster, mythical
 creature or artifact. You can choose a random mood or theme. Be creative. Do not forget a happy ending to the story.'''.replace("\n", "")
@@ -32,9 +34,15 @@ FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 
-
 font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
 epd = displayfactory.load_display_driver(DISPLAY_TYPE)
+
+GPIO.setmode(GPIO.BCM)
+button_pin = 16
+GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) #pin for the button
+led_pin = 26
+GPIO.setup(led_pin, GPIO.OUT)
+GPIO.output(led_pin, GPIO.LOW)
 
 def get_story():
     r = requests.post(OLLAMA_API, timeout=600,
@@ -70,6 +78,7 @@ def wrap_text_display(text, width, font):
     return text_lines
 
 def generate_page():
+    global fade_leds_bool
     # Generating text
     print("\nCreating a new story...")
     generated_text = get_story()
@@ -114,18 +123,58 @@ def generate_page():
 
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
+    time.sleep(10)
     epd.prepare()
-    epd.clear()
+    #epd.clear()
     epd.display(canvas)
     epd.sleep()
     print("\nThe end.")
 
+def fade_leds(event):
+    pwm = GPIO.PWM(led_pin, 200)
+
+    event.clear()
+
+    while not event.is_set():
+    #while fade_leds:
+        pwm.start(0)
+        for dc in range(0, 101, 5):
+            pwm.ChangeDutyCycle(dc)
+            time.sleep(0.05)
+        time.sleep(0.75)
+        for dc in range(100, -1, -5):
+            pwm.ChangeDutyCycle(dc)
+            time.sleep(0.05)
+        time.sleep(0.75)
 
 
 if __name__ == '__main__':
     print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
-    #while True:
-    generate_page()
+
+    starting_pic = Image.open("story_creation.png")
+    starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
+    starting_canvas.paste(starting_pic, (0,0))
+
+    print("\nWaiting for button press...")
+
+    while True:
+        input_state = GPIO.input(button_pin)
+        if input_state == False:
+            print("Let's go !")
+
+            GPIO.output(led_pin, GPIO.HIGH)
+
+            epd.prepare()
+            #epd.clear()
+            epd.display(starting_canvas)
+            epd.sleep()
+
+            generate_page()
+
+            GPIO.output(led_pin, GPIO.LOW)
+
+            print("\nWaiting for next button press...")
+        time.sleep(0.1)
     #time.sleep(GENERATION_INTERVAL)
 
 
