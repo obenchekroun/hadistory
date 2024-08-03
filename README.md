@@ -88,8 +88,8 @@ cmake --build . --config Release
    ```
       See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
  - Install requests and pillow: `pip install requests pillow`
-7. Modify the constants (paths) at the top of `main.py` to match your own environment.
-8. execute main.py: `python3 main.py`. Execution takes ~5 minutes.
+7. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
+8. execute main.py: `python3 hadistory.py`. Press the button to generate a story, with execution taking ~5 minutes. The LED is fully lit when waiting for button press, and fading regularly when generating a story.
 
 ### Connect EPD to Pi
 * CAREFULLY plug EPD into Raspberry Pi, or on top of pijuice HAT, following instructions from the vendor.

@@ -82,8 +82,8 @@ def generate_page():
     global fade_leds_bool
     # Generating text
     print("\nCreating a new story...")
-    #generated_text = get_story()
-    generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
+    generated_text = get_story()
+    #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
     print(f'{generated_text}')
     generated_text = generated_text.replace("\n", " ")
@@ -100,9 +100,9 @@ def generate_page():
     print("\nCreating the image, may take a while ...")
     translationTable = str.maketrans("éàèùâêîôûç", "eaeuaeiouc")
     text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
-    # subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
-    #                 '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
-    #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+    subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
+                    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+                    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
 
     print("\nShowing image ...")
