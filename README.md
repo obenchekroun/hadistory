@@ -75,7 +75,7 @@ cmake --build . --config Release
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
  - Activate the environment: `source .venv/bin/activate`
-   - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command* 
+   - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command. If not using a virtual environment, adapt the `autostart/autostart.sh script` by commenting or uncommenting the line `source .venv/bin/activate`* 
  - Install the libraries for the screen. The project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
    ```bash
    pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
@@ -130,6 +130,8 @@ Note that in `/home/pi/hadistory/autostart/` the script with actual commands to 
 ``` bash
 sudo chown pi:pi /home/pi/hadistory/autostart/autostart.sh
 ```
+
+- If not using a virtual environment, adapt the `autostart/autostart.sh` script by commenting or uncommenting the line `source .venv/bin/activate`
 
 NB : The user created is named pi, if another user or project put in another folder, change the `cd /home/pi/hadistory` command in `autostart.sh` and the path in `15-hadistory.sh`.
 
