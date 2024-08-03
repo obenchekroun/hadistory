@@ -45,7 +45,7 @@ sudo apt-get install python3-dev
 cd ~
 curl -fsSL https://ollama.com/install.sh | sh
 ```
- - Pull and serve an Ollama model. I find that Mistral and Gemma models work well. `ollama run gemma:7b`
+ - Pull and serve an Ollama model. I find that Mistral and Gemma models work well : `ollama run gemma:7b` or `ollama run mistral` 
 
 5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
  - First install XNNPACK :
@@ -70,7 +70,7 @@ cd build
 cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK .. #path to be changed for where XNNPACK has been cloned
 cmake --build . --config Release
 ```
- - Download an SD model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
+ - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
  
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
@@ -106,8 +106,8 @@ The RPi 5 pin out is as follows :
 
 ### Connect LED and button
 The project uses a LED as a status indicator, and a button to trigger the creation of a story. The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows :
-- *button* : GPIO 16 (pin 36) and Ground (pin 39 for example)
-- *Led* : with a 220 Ohms resistor, to GPIO 26 (pin 37) and Ground (pin 39 for example)
+- *button* : GPIO 16 (pin 36) and Ground (pin 39) for example
+- *Led* : with a 220 Ohms resistor, to GPIO 26 (pin 37) and Ground (pin 39) for example
 
 ### Running on startup
   - Lastly we just want to make this run at boot :

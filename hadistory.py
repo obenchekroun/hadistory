@@ -11,7 +11,8 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 from omni_epd import displayfactory, EPDNotFoundError
 import RPi.GPIO as GPIO
-from threading import Thread
+import threading
+from threading import Thread, Event
 
 
 GENERATION_INTERVAL = 1800 #seconds
@@ -81,8 +82,8 @@ def generate_page():
     global fade_leds_bool
     # Generating text
     print("\nCreating a new story...")
-    generated_text = get_story()
-    #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
+    #generated_text = get_story()
+    generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
     print(f'{generated_text}')
     generated_text = generated_text.replace("\n", " ")
@@ -99,9 +100,9 @@ def generate_page():
     print("\nCreating the image, may take a while ...")
     translationTable = str.maketrans("éàèùâêîôûç", "eaeuaeiouc")
     text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
-    subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
-                    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
-                    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+    # subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
+    #                 '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+    #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
 
     print("\nShowing image ...")
@@ -128,6 +129,7 @@ def generate_page():
     #epd.clear()
     epd.display(canvas)
     epd.sleep()
+
     print("\nThe end.")
 
 def fade_leds(event):
@@ -136,7 +138,6 @@ def fade_leds(event):
     event.clear()
 
     while not event.is_set():
-    #while fade_leds:
         pwm.start(0)
         for dc in range(0, 101, 5):
             pwm.ChangeDutyCycle(dc)
@@ -149,20 +150,25 @@ def fade_leds(event):
 
 
 if __name__ == '__main__':
+
     print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
 
     starting_pic = Image.open("story_creation.png")
     starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
     starting_canvas.paste(starting_pic, (0,0))
 
+    event = threading.Event()
+
     print("\nWaiting for button press...")
+    GPIO.output(led_pin, GPIO.HIGH)
 
     while True:
         input_state = GPIO.input(button_pin)
         if input_state == False:
             print("Let's go !")
 
-            GPIO.output(led_pin, GPIO.HIGH)
+            t_fade = threading.Thread(target=fade_leds, args=(event,))
+            t_fade.start()
 
             epd.prepare()
             #epd.clear()
@@ -170,8 +176,9 @@ if __name__ == '__main__':
             epd.sleep()
 
             generate_page()
+            event.set()
 
-            GPIO.output(led_pin, GPIO.LOW)
+            GPIO.output(led_pin, GPIO.HIGH)
 
             print("\nWaiting for next button press...")
         time.sleep(0.1)
