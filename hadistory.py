@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-A program that generates storybook pages with Ollama and Stable Diffusion for the Inky Impression/Waveshare 7 color
+A program that generates storybook pages with Ollama and Stable Diffusion for the Inky Impression/Waveshare 7 color, all embedded in a RPi 5
 """
 
 import math
@@ -27,11 +27,12 @@ creature or artifact. You can choose a random mood or theme. Be creative. Do not
 # Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-SD_PROMPT = 'an illustration in a children\'s book for the following story: '
+SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
 #SD_PROMPT = 'une illustration style bande dessinée pour l\'histoire suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
-FONT_FILE = '/home/pi/hadistory/CormorantGaramond-Regular.ttf'
+LOADING_IMAGE_FILE = '/home/pi/hadistory/ressources/story_creation.png' # for loading image while creating story
+FONT_FILE = '/home/pi/hadistory/ressources/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 
@@ -136,8 +137,9 @@ def fade_leds(event):
     pwm = GPIO.PWM(led_pin, 200)
 
     event.clear()
-
+    #GPIO.output(led_pin, GPIO.LOW)
     while not event.is_set():
+        #print("\nfading")
         pwm.start(0)
         for dc in range(0, 101, 5):
             pwm.ChangeDutyCycle(dc)
@@ -153,7 +155,7 @@ if __name__ == '__main__':
 
     print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
 
-    starting_pic = Image.open("story_creation.png")
+    starting_pic = Image.open(LOADING_IMAGE_FILE)
     starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
     starting_canvas.paste(starting_pic, (0,0))
 
@@ -178,11 +180,18 @@ if __name__ == '__main__':
             generate_page()
             event.set()
 
-            GPIO.output(led_pin, GPIO.HIGH)
-
+            time.sleep(3)
             print("\nWaiting for next button press...")
+            GPIO.output(led_pin, GPIO.HIGH)
         time.sleep(0.1)
-    #time.sleep(GENERATION_INTERVAL)
+
+
+################################################################################################
+## END
+## #############################################################################################
+
+
+        #time.sleep(GENERATION_INTERVAL)
 
 
     #display.set_image(canvas) #for use of Pimoroni library
