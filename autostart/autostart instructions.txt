@@ -1,0 +1,8 @@
+# To enabe manually autostart
+sudo raspi-config nonint do_boot_behaviour B2 #enables auto login as command line
+
+# then put corresponding scripts in folders :
+## in /etc/profile.d the script '11-jarvisGPT.sh' that test if not ssh and not x11 and then execute script ...
+sudo cp /home/pi/jarvisGPT/autostart/put_in_etc_profile.d/11-jarvisGPT.sh /etc/profile.d
+## in /home/pi/jarvisGPT/autostart/ with actual commands to be executed after start up 'autostart.sh'
+sudo chown pi:pi /home/pi/jarvisGPT/autostart/autostart.sh #execution script RPi desktop

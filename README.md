@@ -109,7 +109,31 @@ The project uses a LED as a status indicator, and a button to trigger the creati
 - *button* : GPIO 16 (pin 36) and Ground (pin 39 for example)
 - *Led* : with a 220 Ohms resistor, to GPIO 26 (pin 37) and Ground (pin 39 for example)
 
-### Stablediffusion shell command example
+### Running on startup
+  - Lastly we just want to make this run at boot :
+
+``` bash
+sudo raspi-config nonint do_boot_behaviour B2 #enables auto login as command line
+```
+
+- then put corresponding scripts in folders :
+  - in `/etc/profile.d` the script `15-hadistory.sh` that test if not ssh and not x11 and then execute script
+  
+``` bash
+sudo cp /home/pi/hadistory/autostart/put_in_etc_profile.d/15-hadistory.sh /etc/profile.d
+```
+
+Note that in `/home/pi/hadistory/autostart/` the script with actual commands to be executed after start up `autostart.sh`, and called by `15-hadistory.sh`.
+
+- then give correct permissions :
+
+``` bash
+sudo chown pi:pi /home/pi/hadistory/autostart/autostart.sh
+```
+
+NB : The user created is named pi, if another user or project put in another folder, change the `cd /home/pi/hadistory` command in `autostart.sh` and the path in `15-hadistory.sh`.
+
+## Stablediffusion shell command example
 
 ``` bash
 /home/pi/OnnxStream/src/build/sd --xl --turbo --rpi --models-path /home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream --prompt "an illustration in a children's book for the following scene: Luna's moonbeam cloak rustled as she crept through Whispering Wood, the silver moon casting her path in an ethereal glow. The Whispering Flowers whispered secrets of forgotten stars, guiding her towards the obsidian tower where the Moon Weaver resided." --steps 3
