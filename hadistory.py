@@ -13,6 +13,9 @@ from omni_epd import displayfactory, EPDNotFoundError
 import RPi.GPIO as GPIO
 import threading
 from threading import Thread, Event
+from os import listdir
+from os.path import isfile, join
+import random
 
 
 GENERATION_INTERVAL = 1800 #seconds
@@ -20,21 +23,24 @@ DISPLAY_RESOLUTION = (448, 600)
 #TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'mistral'
-OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
-This text should be around 20 words. If you desire, you can include a hero, monster, mythical
-creature or artifact. You can choose a random mood or theme. Be creative. Do not forget a happy ending to the story.'''.replace("\n", "")
-# OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
-# Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
+# OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
+# This text should be around 20 words. If you desire, you can include a hero, monster, mythical
+# creature or artifact. You can choose a random mood or theme. Be creative. Do not forget a happy ending to the story.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
+Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
-#SD_PROMPT = 'une illustration style bande dessinée pour l\'histoire suivante : '
+#SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
+SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinée, pour la scène suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 LOADING_IMAGE_FILE = '/home/pi/hadistory/ressources/story_creation.png' # for loading image while creating story
 FONT_FILE = '/home/pi/hadistory/ressources/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
+MODE = 1 # 0 for new AI generated short story, 0 for browsing a random story from db
+chosen_story = "NON_STORY_CHOSEN"
+current_page = 0
 
 font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
 epd = displayfactory.load_display_driver(DISPLAY_TYPE)
@@ -80,7 +86,7 @@ def wrap_text_display(text, width, font):
     return text_lines
 
 def generate_page():
-    global fade_leds_bool
+    #global fade_leds_bool
     # Generating text
     print("\nCreating a new story...")
     generated_text = get_story()
@@ -125,13 +131,66 @@ def generate_page():
 
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
-    time.sleep(10)
+    #time.sleep(10)
     epd.prepare()
     #epd.clear()
     epd.display(canvas)
     epd.sleep()
 
     print("\nThe end.")
+
+def show_story_page():
+    global chosen_story, current_page, story_length
+
+    text_page_path = "stories/"+ chosen_story + "/txt/p" + str(current_page) + ".txt"
+    image_page_path = "stories/"+ chosen_story + "/img/p" + str(current_page) + ".png"
+
+    with open(text_page_path) as f: story_text = f.read()
+    story_text = story_text.replace("\n", " ")
+    story_text = wrap_text_display(story_text, 448, font)
+    text_height = 0
+    for line in story_text:
+        left, top, right, bottom = font.getbbox(line)
+        text_height = text_height + int((bottom - top)*1.1)
+    text_height = text_height + 2
+    story_text = "\n".join(story_text)
+
+    canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
+    im2 = Image.open(image_page_path)
+    if (600 - text_height >=448):
+        sizing = 448
+    else:
+        sizing = 600 - text_height
+
+    im2 = im2.resize((sizing,sizing))
+
+    center_x = int((DISPLAY_RESOLUTION[0]-sizing)/2)
+    canvas.paste(im2, (center_x,0))
+    im3 = ImageDraw.Draw(canvas)
+
+    im3.text((7, sizing + 2), story_text, font=font, fill=(0, 0, 0))
+
+    page_text = str(current_page) + "/" + str(story_length)
+    left, top, right, bottom = im3.textbbox((5, 5), page_text, font=font)
+    im3.rectangle((left-5, top-5, right+5, bottom+5), fill="white")
+    im3.text((5, 5), page_text, font=font, fill=(0, 0, 0))
+
+    canvas.save('output.png') # save a local copy for closer inspection
+    canvas = canvas.rotate(90,expand=1)
+
+    epd.prepare()
+    #epd.clear()
+    epd.display(canvas)
+    epd.sleep()
+
+    if current_page >= story_length:
+        current_page = 0
+        chosen_story = "NON_STORY_CHOSEN"
+        print("\nThe end.")
+    else:
+        current_page = current_page + 1
+        print("\nTo be continued...")
+
 
 def fade_leds(event):
     pwm = GPIO.PWM(led_pin, 200)
@@ -166,7 +225,7 @@ if __name__ == '__main__':
 
     while True:
         input_state = GPIO.input(button_pin)
-        if input_state == False:
+        if input_state == False and MODE == 0:
             print("Let's go !")
 
             t_fade = threading.Thread(target=fade_leds, args=(event,))
@@ -183,6 +242,33 @@ if __name__ == '__main__':
             time.sleep(3)
             print("\nWaiting for next button press...")
             GPIO.output(led_pin, GPIO.HIGH)
+        elif input_state == False and MODE == 1:
+            print("Let's go !")
+
+
+            t_fade = threading.Thread(target=fade_leds, args=(event,))
+            t_fade.start()
+
+            if chosen_story == "NON_STORY_CHOSEN":
+                stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
+                chosen_story = random.choice(stories)
+
+            if current_page == 0:
+                current_page = 1
+
+            story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+
+            print("\nLet's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
+
+            show_story_page()
+
+            event.set()
+
+            time.sleep(3)
+            print("\nWaiting for next button press...")
+            GPIO.output(led_pin, GPIO.HIGH)
+
+
         time.sleep(0.1)
 
 
