@@ -251,7 +251,8 @@ if __name__ == '__main__':
 
             if chosen_story == "NON_STORY_CHOSEN":
                 stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
-                chosen_story = random.choice(stories)
+                sys_random = random.SystemRandom()
+                chosen_story = sys_random.choice(stories)
 
             if current_page == 0:
                 current_page = 1
