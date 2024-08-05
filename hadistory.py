@@ -38,17 +38,24 @@ LOADING_IMAGE_FILE = '/home/pi/hadistory/ressources/story_creation.png' # for lo
 FONT_FILE = '/home/pi/hadistory/ressources/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
-MODE = 1 # 0 for new AI generated short story, 0 for browsing a random story from db
 chosen_story = "NON_STORY_CHOSEN"
 current_page = 0
 
 font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
 epd = displayfactory.load_display_driver(DISPLAY_TYPE)
 
-GPIO.setmode(GPIO.BCM)
-button_pin = 16
-GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) #pin for the button
-led_pin = 26
+GPIO.setmode(GPIO.BCM) # use GPIO numbering for buttons
+
+execute_pin = 16 #pin for the button execute
+GPIO.setup(execute_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+reset_pin = 12 #pin for the button reset
+GPIO.setup(reset_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+switch_pin = 21 #pin for the switch
+GPIO.setup(switch_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+led_pin = 26 #pin for the led execute
 GPIO.setup(led_pin, GPIO.OUT)
 GPIO.output(led_pin, GPIO.LOW)
 
@@ -88,7 +95,7 @@ def wrap_text_display(text, width, font):
 def generate_page():
     #global fade_leds_bool
     # Generating text
-    print("\nCreating a new story...")
+    print("Creating a new story...")
     generated_text = get_story()
     #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
@@ -104,7 +111,7 @@ def generate_page():
     generated_text = "\n".join(generated_text)
 
     # Generating image
-    print("\nCreating the image, may take a while ...")
+    print("Creating the image, may take a while ...")
     translationTable = str.maketrans("éàèùâêîôûç", "eaeuaeiouc")
     text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
@@ -112,7 +119,7 @@ def generate_page():
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
 
-    print("\nShowing image ...")
+    print("Showing image ...")
     canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
     im2 = Image.open(TEMP_IMAGE_FILE)
     if (600 - text_height >=448):
@@ -137,7 +144,7 @@ def generate_page():
     epd.display(canvas)
     epd.sleep()
 
-    print("\nThe end.")
+    print("The end.")
 
 def show_story_page():
     global chosen_story, current_page, story_length
@@ -186,19 +193,18 @@ def show_story_page():
     if current_page >= story_length:
         current_page = 0
         chosen_story = "NON_STORY_CHOSEN"
-        print("\nThe end.")
+        print("The end.")
     else:
         current_page = current_page + 1
-        print("\nTo be continued...")
+        print("To be continued...")
 
 
 def fade_leds(event):
     pwm = GPIO.PWM(led_pin, 200)
 
     event.clear()
-    #GPIO.output(led_pin, GPIO.LOW)
+
     while not event.is_set():
-        #print("\nfading")
         pwm.start(0)
         for dc in range(0, 101, 5):
             pwm.ChangeDutyCycle(dc)
@@ -224,9 +230,13 @@ if __name__ == '__main__':
     GPIO.output(led_pin, GPIO.HIGH)
 
     while True:
-        input_state = GPIO.input(button_pin)
-        if input_state == False and MODE == 0:
-            print("Let's go !")
+        input_state_execute = GPIO.input(execute_pin)
+        input_state_reset = GPIO.input(reset_pin)
+        switch_state = GPIO.input(switch_pin)
+        #switch_state = False # False for AI, True for Story mode
+
+        if input_state_execute == False and switch_state == False: # AI Mode
+            print("\nLet's go !")
 
             t_fade = threading.Thread(target=fade_leds, args=(event,))
             t_fade.start()
@@ -242,9 +252,8 @@ if __name__ == '__main__':
             time.sleep(3)
             print("\nWaiting for next button press...")
             GPIO.output(led_pin, GPIO.HIGH)
-        elif input_state == False and MODE == 1:
-            print("Let's go !")
-
+        elif input_state_execute == False and switch_state == True: # Story Mode
+            print("\nLet's go !")
 
             t_fade = threading.Thread(target=fade_leds, args=(event,))
             t_fade.start()
@@ -259,7 +268,7 @@ if __name__ == '__main__':
 
             story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
 
-            print("\nLet's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
+            print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
 
             show_story_page()
 
@@ -268,6 +277,10 @@ if __name__ == '__main__':
             time.sleep(3)
             print("\nWaiting for next button press...")
             GPIO.output(led_pin, GPIO.HIGH)
+        elif (input_state_reset == False):
+                current_page = 0
+                chosen_story = "NON_STORY_CHOSEN"
+                print("\nStory reset. Press button to launch a new one")
 
 
         time.sleep(0.1)

@@ -13,6 +13,17 @@ Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). Th
 - [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). Certainly possible with other hardware, but may be slower and require simpler models.
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
+- 2 buttons, 1 switch, 1 LED and a 220 Ohms resistors
+
+## Use
+Execute main.py: `python3 hadistory.py`., or enable autostart of the project.
+The project has two modes : 
+- `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, 
+- `AI mode`, an AI mode where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~10 minutes on a pi5 and 40min on a RPi2. 
+A switch (or simply grounding the switch pin) allows to switch from one mode to the other
+The LED act as a status indicator : the LED is fully lit when waiting for button press, and fading regularly when generating a story. 
+
+There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
 
 ## Setup
 1. Image the SD card with RPi OS Bookworm 64bit lite, then boot and update the OS.
@@ -89,7 +100,10 @@ cmake --build . --config Release
       See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
  - Install requests and pillow: `pip install requests pillow`
 7. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
-8. execute main.py: `python3 hadistory.py`. Press the button to generate a story, with execution taking ~5 minutes. The LED is fully lit when waiting for button press, and fading regularly when generating a story.
+8. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `MODE=0` and make it chose a new one after next execution.
+  - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
+    - `switch_state = False` for AI mode
+    - `switch_state = True` for Story mode
 
 ### Connect EPD to Pi
 * CAREFULLY plug EPD into Raspberry Pi, or on top of pijuice HAT, following instructions from the vendor.
@@ -104,9 +118,11 @@ The RPi 5 pin out is as follows :
 
 * Enable SPI interface
 
-### Connect LED and button
-The project uses a LED as a status indicator, and a button to trigger the creation of a story. The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows :
-- *button* : GPIO 16 (pin 36) and Ground (pin 39) for example
+### Connect LED and buttons
+The project uses a LED as a status indicator, a button to trigger the creation of a story, a button to reset current story and a switch to go form . The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows :
+- *button execute* : GPIO 16 (pin 36) and Ground (pin 39) for example
+- *button reset* : GPIO 12 (pin 32) and Ground (pin 39) for example
+- *switch* : GPIO 21 (pin 40) and 3v3 (pin 1 or 17) for example
 - *Led* : with a 220 Ohms resistor, to GPIO 26 (pin 37) and Ground (pin 39) for example
 
 ### Running on startup
