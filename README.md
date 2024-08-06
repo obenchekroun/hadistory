@@ -25,6 +25,13 @@ The LED act as a status indicator : the LED is fully lit when waiting for button
 
 There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
 
+### Prompt generation
+The prompt system creation uses a specific file  `prompts/prompts.txt` to pick random themes from it, and uses brackets and weight to add possibilites to theme creations :
+- The final prompt is created by appending instructions to a random line from this file, that gives the theme of the (see `hadistory.py` and variables `OLLAMA_PROMPT_INCIPIT` and `OLLAMA_PROMPT_EXCIPIT` for the preamble and ending of the prompt resp.)
+- Thus each line gives the theme of the story
+- A positive integer followed by a colon at the beginnig of a line gives a weigth when randomly choosing a theme (higher number = higher chance to pick this line)
+- each prompt can be personnalised with multiple options using brackets `( | ) or [ | ] or { |  }` and items inside separated by a pipe operator `|`. When choosing a line, the script will also pick randomly from options inside the brackets. Please note that the brackets can be casacading, eg. `(A farmer upset with the speed of his tractor|A happy farmer driving a [sports|foreign|totally {awesome|great}] car)`
+
 ## Setup
 1. Image the SD card with RPi OS Bookworm 64bit lite, then boot and update the OS.
 
@@ -104,6 +111,8 @@ cmake --build . --config Release
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
+    
+9. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
 
 ### Connect EPD to Pi
 * CAREFULLY plug EPD into Raspberry Pi, or on top of pijuice HAT, following instructions from the vendor.

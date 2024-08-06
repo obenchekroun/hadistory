@@ -16,21 +16,22 @@ from threading import Thread, Event
 from os import listdir
 from os.path import isfile, join
 import random
+import re
 
+############## ##############################################################################
+############## Constants
+############## ##############################################################################
 
-GENERATION_INTERVAL = 1800 #seconds
 DISPLAY_RESOLUTION = (448, 600)
-#TOTAL_LINES = 8
 OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'mistral'
-# OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
-# This text should be around 20 words. If you desire, you can include a hero, monster, mythical
-# creature or artifact. You can choose a random mood or theme. Be creative. Do not forget a happy ending to the story.'''.replace("\n", "")
 OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
 Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
+OLLAMA_PROMPT_INCIPIT = '''Peux-tu me créer une histoire issue d'une page d'un livre illustré de fantasy pour enfants. Ce texte doit comporter environ 30 mots. Créer l'histoire basée sur l'instruction suivante : '''.replace("\n", "")
+OLLAMA_PROMPT_EXCIPIT = '''Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
+OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-#SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
 SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinée, pour la scène suivante : '
 SD_STEPS = 3
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
@@ -38,6 +39,14 @@ LOADING_IMAGE_FILE = '/home/pi/hadistory/ressources/story_creation.png' # for lo
 FONT_FILE = '/home/pi/hadistory/ressources/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
+
+TEXT_PARSE_BRACKETS_LIST = ["()", "[]", "{}"]
+CONNECTOR = " "
+
+############## ##############################################################################
+############## Init of variables
+############## ##############################################################################
+
 chosen_story = "NON_STORY_CHOSEN"
 current_page = 0
 
@@ -59,15 +68,13 @@ led_pin = 26 #pin for the led execute
 GPIO.setup(led_pin, GPIO.OUT)
 GPIO.output(led_pin, GPIO.LOW)
 
-def get_story():
-    r = requests.post(OLLAMA_API, timeout=600,
-        json={
-            'model': OLLAMA_MODEL,
-            'prompt': OLLAMA_PROMPT,
-            'stream':False
-                      })
-    data = r.json()
-    return data['response'].lstrip()
+############## ##############################################################################
+############## Functions
+############## ##############################################################################
+
+
+##### Creating and displaying stories
+##### ############## ##############################################################################
 
 def wrap_text_display(text, width, font):
     text_lines = []
@@ -92,11 +99,22 @@ def wrap_text_display(text, width, font):
 
     return text_lines
 
+def get_story(prompt = OLLAMA_PROMPT):
+    r = requests.post(OLLAMA_API, timeout=600,
+        json={
+            'model': OLLAMA_MODEL,
+            'prompt': prompt,
+            'stream':False
+                      })
+    data = r.json()
+    return data['response'].lstrip()
+
 def generate_page():
-    #global fade_leds_bool
     # Generating text
     print("Creating a new story...")
-    generated_text = get_story()
+    prompt = create_prompt(OLLAMA_PROMPT_FILE)
+    print("Here is the prompt : " + prompt)
+    generated_text = get_story(prompt)
     #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
     print("Here is a story: ")
     print(f'{generated_text}')
@@ -198,6 +216,77 @@ def show_story_page():
         current_page = current_page + 1
         print("To be continued...")
 
+##### Parsing files for creating prompt
+##### ############## ##############################################################################
+
+def get_lines(path, encoding='utf-8'):
+    lines = []
+    with open(path, encoding=encoding) as file:
+        for line in file:
+            lines.append(line.strip())
+    return lines
+
+def parse_weighted_lines(weighted_lines):
+    lines = []
+    # Find any colons at the start of the line, use preceding text if it's an integer
+    for line in weighted_lines:
+        amount = 1
+        split = line.split(':', maxsplit=1)
+        # If there is a valid colon, split it on the first one, add it that many times to list
+        if len(split) > 1 and split[0].isdigit():
+            amount = int(split[0])
+            line = split[1]
+        for i in range(amount):
+            lines.append(line)
+    return lines
+
+def get_random_line(path):
+    lines = get_lines(path)
+    lines = parse_weighted_lines(lines)
+    size = len(lines)
+    if size == 0:
+        print(f"\nNo lines to parse found in file {path}")
+        return
+    random.seed()
+    r = random.randint(0, size - 1)
+    return lines[r]
+
+def parse_multiple_brackets(text, bracket_pairs=TEXT_PARSE_BRACKETS_LIST):
+    pairs = bracket_pairs.copy()
+    pairs.reverse()
+    for brackets in pairs:
+        text = parse_text(text, brackets[0], brackets[1])
+    return text
+
+def parse_text(text, bracket_one="(", bracket_two=")"):
+    # Get everything inside brackets
+    regex = fr"\{bracket_one}.*?\{bracket_two}"
+    brackets = re.findall(regex, text)
+    for bracket in brackets:
+        # Get random item
+        bracket = bracket.replace(bracket_one, '').replace(bracket_two, '')
+        random.seed()
+        options = parse_weighted_lines(bracket.split('|'))
+        option = random.choice(options)
+        # Substitute brackets
+        text = re.sub(regex, option, text, 1)
+    return text
+
+def create_prompt(path):
+
+    prompt_text = get_random_line(path)
+    prompt_text = parse_multiple_brackets(prompt_text, TEXT_PARSE_BRACKETS_LIST)
+    prompt_text = re.sub('\s{2,}', ' ', prompt_text)
+    #artist_text = ""
+    #subject_text = ""
+
+    full_prompt = OLLAMA_PROMPT_INCIPIT + prompt_text + CONNECTOR + OLLAMA_PROMPT_EXCIPIT
+
+    return full_prompt
+
+
+##### Led status
+##### ############## ##############################################################################
 
 def fade_leds(event):
     pwm = GPIO.PWM(led_pin, 200)
@@ -215,6 +304,9 @@ def fade_leds(event):
             time.sleep(0.05)
         time.sleep(0.75)
 
+##### ############## ##############################################################################
+##### Main function call
+##### ############## ##############################################################################
 
 if __name__ == '__main__':
 
@@ -254,6 +346,9 @@ if __name__ == '__main__':
             GPIO.output(led_pin, GPIO.HIGH)
         elif input_state_execute == False and switch_state == True: # Story Mode
             print("\nLet's go !")
+
+            current_page = 0
+            chosen_story = "NON_STORY_CHOSEN"
 
             t_fade = threading.Thread(target=fade_leds, args=(event,))
             t_fade.start()
@@ -311,3 +406,13 @@ if __name__ == '__main__':
 #     for i in range(TOTAL_LINES):
 #         text = replace_next_space_with_newline(text,approx_line_len*(i+1))
 #     return text
+
+############## Unused Constants
+
+#GENERATION_INTERVAL = 1800 #seconds
+#TOTAL_LINES = 8
+# OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book.
+# This text should be around 20 words. If you desire, you can include a hero, monster, mythical
+# creature or artifact. You can choose a random mood or theme. Be creative. Do not forget a happy ending to the story.'''.replace("\n", "")
+
+#SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
