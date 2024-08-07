@@ -115,8 +115,14 @@ cmake --build . --config Release
     
 9. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
 
-### Connect EPD to Pi
-* CAREFULLY plug EPD into Raspberry Pi, or on top of pijuice HAT, following instructions from the vendor.
+### Full pinout of project
+
+| ![Schematics](/img/pinout_hadistory.png?raw=true) | 
+|:--:| 
+| Schematics to connect whole project |
+
+#### Details of EPD to Pi connection
+* CAREFULLY plug EPD into Raspberry Pi, or on top of a HAT, following instructions from the vendor.
 
 In the case of the Waveshare e-paper 5.65inch 7colors display used in this case, the connection is as follows :
 ![Pin connection to Raspberry Pi](/img/pin_waveshare_epd.epd5in65f.png?raw=true)
@@ -128,7 +134,7 @@ The RPi 5 pin out is as follows :
 
 * Enable SPI interface
 
-### Connect LED and buttons
+#### Details of LED and buttons connections
 The project uses a LED as a status indicator, a button to trigger the creation of a story, a button to reset current story and a switch to go form . The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows :
 - *button execute* : GPIO 16 (pin 36) and Ground (pin 39) for example
 - *button reset* : GPIO 12 (pin 32) and Ground (pin 39) for example
