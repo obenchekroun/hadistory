@@ -22,30 +22,45 @@ import re
 ############## Constants
 ############## ##############################################################################
 
+# Display
+DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 DISPLAY_RESOLUTION = (448, 600)
+
+# Ollama API
 OLLAMA_API = 'http://localhost:11434/api/generate'
+
+# Ollama model
 OLLAMA_MODEL = 'mistral'
+#OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
+#OLLAMA_MODEL = 'gemma:7b'
+
+# Prompt for story
 OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
 Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 OLLAMA_PROMPT_INCIPIT = '''Peux-tu me créer une histoire issue d'une page d'un livre illustré de fantasy pour enfants. Ce texte doit comporter environ 30 mots. Créer l'histoire basée sur l'instruction suivante : '''.replace("\n", "")
 OLLAMA_PROMPT_EXCIPIT = '''Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
+
+# Stable diffusion
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
 SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinée, pour la scène suivante : '
 SD_STEPS = 3
+
+# Graphics
 TEMP_IMAGE_FILE = '/home/pi/hadistory/image.png' # for temp image storage
 LOADING_IMAGE_FILE = '/home/pi/hadistory/ressources/story_creation.png' # for loading image while creating story
 FONT_FILE = '/home/pi/hadistory/ressources/CormorantGaramond-Regular.ttf'
 FONT_SIZE = 18
-DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 
+# Prompt file parsing
 TEXT_PARSE_BRACKETS_LIST = ["()", "[]", "{}"]
 CONNECTOR = " "
 
 ############## ##############################################################################
 ############## Init of variables
 ############## ##############################################################################
+
 
 chosen_story = "NON_STORY_CHOSEN"
 current_page = 0
@@ -109,13 +124,26 @@ def get_story(prompt = OLLAMA_PROMPT):
     data = r.json()
     return data['response'].lstrip()
 
+def get_story_no_prompt():
+    r = requests.post(OLLAMA_API, timeout=600,
+        json={
+            'model': OLLAMA_MODEL,
+            'prompt': "Once upon a time, ",
+            'stream':False
+                      })
+    data = r.json()
+    return "Once upon a time, " + data['response'].lstrip()
+
 def generate_page():
     # Generating text
     print("Creating a new story...")
+
     prompt = create_prompt(OLLAMA_PROMPT_FILE)
     print("Here is the prompt : " + prompt)
-    generated_text = get_story(prompt)
-    #generated_text = "Luna's moonbeam cloak rustled like whispers as she crept through Whispering Wood. The gnarled branches of the Elder Willow seemed to hold their breath, afraid of disturbing the slumbering Moon Sphinx. The moonstone amulet, passed down through generations, glowed in her palm, guiding her to its rightful place atop the Sphinx's head. With a soft click, the ancient slumber ended, and the woods were filled with the melodious hum of a newly awakened moon. And this is some added text randomly so i can test the dynamic resizing of the text and complete de story randomly. blablalballbalbl Je continue ici mn texte pour voir la capacité de mon script à calculer la bonne hauteur de texte et l'afficher correctement."
+
+    generated_text = get_story(prompt) # COMMENT AND USE NEXT LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+    #generated_text = get_story_no_prompt() # UNCOMMENT AND USE THIS LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+
     print("Here is a story: ")
     print(f'{generated_text}')
     generated_text = generated_text.replace("\n", " ")
@@ -156,7 +184,7 @@ def generate_page():
 
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
-    #time.sleep(10)
+
     epd.prepare()
     #epd.clear()
     epd.display(canvas)

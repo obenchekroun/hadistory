@@ -63,7 +63,10 @@ sudo apt-get install python3-dev
 cd ~
 curl -fsSL https://ollama.com/install.sh | sh
 ```
- - Pull and serve an Ollama model. I find that Mistral and Gemma models work well : `ollama run gemma:7b`,  `ollama run mistral`  or  `ollama run qwen2:0.5b` (really small model for RPi Zero 2W)
+ - Pull and serve an Ollama model. Some examples :
+   - Gemma : `ollama run gemma:7b` 
+   - Mistral : `ollama run mistral` 
+   - Tiny stories : `ollama run gurubot/tinystories-656k-q8`. A really small model that generates a story in english, if given a start. Not very consistent but works on RPI Zero 2W
 
 5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
  - First install XNNPACK :
