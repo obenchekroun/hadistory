@@ -358,6 +358,9 @@ if __name__ == '__main__':
         if input_state_execute == False and switch_state == False: # AI Mode
             print("\nLet's go !")
 
+            current_page = 0
+            chosen_story = "NON_STORY_CHOSEN"
+
             t_fade = threading.Thread(target=fade_leds, args=(event,))
             t_fade.start()
 
@@ -374,9 +377,6 @@ if __name__ == '__main__':
             GPIO.output(led_pin, GPIO.HIGH)
         elif input_state_execute == False and switch_state == True: # Story Mode
             print("\nLet's go !")
-
-            current_page = 0
-            chosen_story = "NON_STORY_CHOSEN"
 
             t_fade = threading.Thread(target=fade_leds, args=(event,))
             t_fade.start()

@@ -55,7 +55,7 @@ sudo apt update
 sudo apt -y upgrade
 sudo apt install cmake
 sudo apt-get install git
-sudo apt-get install python3-dev
+sudo apt-get install python3-dev python3-pip
 ```
 
 4. [Install Ollama](https://ollama.com/download/linux)
@@ -102,8 +102,9 @@ cmake --build . --config Release
    pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
    ```
      - Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
-     - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm or a Pi 5. One option is to use a drop-in replacement which should work :
+     - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi 5. One option is to use a drop-in replacement which should work :
    ```bash
+   # In case installing on RPi 5
    sudo apt remove python3-rpi.gpio
    pip3 install rpi-lgpio
    ```
