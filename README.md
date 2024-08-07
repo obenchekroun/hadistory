@@ -160,11 +160,21 @@ sudo chown pi:pi /home/pi/hadistory/autostart/autostart.sh
 
 NB : The user created is named pi, if another user or project put in another folder, change the `cd /home/pi/hadistory` command in `autostart.sh` and the path in `15-hadistory.sh`.
 
-## Stablediffusion shell command example
+
+## Miscellaneous
+
+### Stablediffusion shell command example
 
 ``` bash
 /home/pi/OnnxStream/src/build/sd --xl --turbo --rpi --models-path /home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream --prompt "an illustration in a children's book for the following scene: Luna's moonbeam cloak rustled as she crept through Whispering Wood, the silver moon casting her path in an ethereal glow. The Whispering Flowers whispered secrets of forgotten stars, guiding her towards the obsidian tower where the Moon Weaver resided." --steps 3
 ```
+
+### ChatGPT prompt example to create a story
+
+``` bash
+Peux-tu s'il te plait créer une histoire pour enfant fantastique qui tient sur 4 pages de 70 mots chacune. Si tu veux tu peux inclure un héros, un artefact magique et un monstre. Tu peux choisir un thème ou une ambiance au hasard. Fais preuve de créativité et n'oublie pas d'inclure une fin heureuse. Créé ensuite 4 illustrations, une pour chaque page, style bande dessinée, en ayant de la cohérence dans les images
+```
+
 
 ## ISSUES/IDEAS/TODO
 - Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.
