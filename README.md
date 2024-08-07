@@ -10,7 +10,7 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). This project has been largely based on storybook with a few tweaks for my needs. All credit goes to them for making this awesome project.
 
 ## Hardware
-- [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). Certainly possible with other hardware, but may be slower and require simpler models.
+- [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). It can also be installed on a [Raspberry Pi Zero 2W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/). but the AI mode takes ~1h to generate a story Certainly possible with other hardware, but may be slower and require simpler AI models. 
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
 - 2 buttons, 1 switch, 1 LED and a 220 Ohms resistors
@@ -63,7 +63,7 @@ sudo apt-get install python3-dev
 cd ~
 curl -fsSL https://ollama.com/install.sh | sh
 ```
- - Pull and serve an Ollama model. I find that Mistral and Gemma models work well : `ollama run gemma:7b` or `ollama run mistral` 
+ - Pull and serve an Ollama model. I find that Mistral and Gemma models work well : `ollama run gemma:7b`,  `ollama run mistral`  or  `ollama run qwen2:0.5b` (really small model for RPi Zero 2W)
 
 5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
  - First install XNNPACK :
@@ -107,7 +107,8 @@ cmake --build . --config Release
       See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
  - Install requests and pillow: `pip install requests pillow`
 7. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
-8. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `MODE=0` and make it chose a new one after next execution.
+8. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
+9. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `MODE=0` and make it chose a new one after next execution.
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
