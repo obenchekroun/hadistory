@@ -109,12 +109,12 @@ sudo reboot # reboot as swap file is created at startup
 htop # to check
 ```
 
-    - In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py`:
-    ```python
+    - In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py` :
+```python
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
                     '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
-    ```
+```
     
   - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
 
@@ -122,7 +122,7 @@ htop # to check
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
   - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
   - Activate the environment: `source .venv/bin/activate`
-  - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command. If not using a virtual environment, adapt the `autostart/autostart.sh script` by commenting or uncommenting the line `source .venv/bin/activate`* 
+  - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command. If not using a virtual environment, adapt the `autostart/autostart.sh` script by commenting or uncommenting the line `source .venv/bin/activate`* 
   - Install the libraries for the screen. The project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
    ```bash
    pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
