@@ -92,7 +92,17 @@ cd build
 cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK ..
 cmake --build . --config Release
 ```
- - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
+  - In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
+  ```bash
+sudo dphys-swapfile swapoff # turn off swap to avoid errors
+sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=500' to increase swap memory
+sudo dphys-swapfile setup # reinitialize swap
+sudo dphys-swapfile swapon # turn swp on
+sudo reboot # reboot as swap file is created at startup
+htop # to check
+```
+  - You might also need to `-DMAX_SPEED=OFF` for building on a RPi Zero 2W, as it needs more memory during build time and can create a non functionnal executable . See [Onxxstream github](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux) for details. 
+  - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
  
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`

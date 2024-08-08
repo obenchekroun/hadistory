@@ -17,10 +17,14 @@ from os import listdir
 from os.path import isfile, join
 import random
 import re
+import json
+import signal
+import sys
 
 ############## ##############################################################################
 ############## Constants
 ############## ##############################################################################
+SETTINGS_FILE = 'currently.json'
 
 # Display
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
@@ -83,10 +87,17 @@ led_pin = 26 #pin for the led execute
 GPIO.setup(led_pin, GPIO.OUT)
 GPIO.output(led_pin, GPIO.LOW)
 
+previous_reset_state = True
+previous_execute_state = True
+
 ############## ##############################################################################
 ############## Functions
 ############## ##############################################################################
 
+def signal_handler(sig, frame):
+    print('Cleaning up before exiting')
+    GPIO.cleanup()
+    sys.exit(0)
 
 ##### Creating and displaying stories
 ##### ############## ##############################################################################
@@ -336,9 +347,26 @@ def fade_leds(event):
 ##### Main function call
 ##### ############## ##############################################################################
 
+# chosen_story = "NON_STORY_CHOSEN"
+# current_page = 0
+
 if __name__ == '__main__':
 
     print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    try:
+        print('Restoring the settings...', end=' ')
+        with open(SETTINGS_FILE, 'r') as f:
+            d = json.loads(f.read())
+    except (OSError, ValueError):
+        print('Error reading settings, reverting to defaults.')
+    else:
+        current_page = d.get('current_page', 0)
+        chosen_story = d.get('chosen_story', 0)
+        print('Settings loaded !')
 
     starting_pic = Image.open(LOADING_IMAGE_FILE)
     starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
@@ -356,56 +384,68 @@ if __name__ == '__main__':
         #switch_state = False # False for AI, True for Story mode
 
         if input_state_execute == False and switch_state == False: # AI Mode
-            print("\nLet's go !")
-
-            current_page = 0
-            chosen_story = "NON_STORY_CHOSEN"
-
-            t_fade = threading.Thread(target=fade_leds, args=(event,))
-            t_fade.start()
-
-            epd.prepare()
-            #epd.clear()
-            epd.display(starting_canvas)
-            epd.sleep()
-
-            generate_page()
-            event.set()
-
-            time.sleep(3)
-            print("\nWaiting for next button press...")
-            GPIO.output(led_pin, GPIO.HIGH)
-        elif input_state_execute == False and switch_state == True: # Story Mode
-            print("\nLet's go !")
-
-            t_fade = threading.Thread(target=fade_leds, args=(event,))
-            t_fade.start()
-
-            if chosen_story == "NON_STORY_CHOSEN":
-                stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
-                sys_random = random.SystemRandom()
-                chosen_story = sys_random.choice(stories)
-
-            if current_page == 0:
-                current_page = 1
-
-            story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
-
-            print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
-
-            show_story_page()
-
-            event.set()
-
-            time.sleep(3)
-            print("\nWaiting for next button press...")
-            GPIO.output(led_pin, GPIO.HIGH)
-        elif (input_state_reset == False):
+            if(previous_execute_state):
                 current_page = 0
                 chosen_story = "NON_STORY_CHOSEN"
-                print("\nStory reset. Press button to launch a new one")
 
+                # Saving where we are in the stories
+                with open(SETTINGS_FILE, 'w') as f:
+                    f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
 
+                t_fade = threading.Thread(target=fade_leds, args=(event,))
+                t_fade.start()
+
+                epd.prepare()
+                #epd.clear()
+                epd.display(starting_canvas)
+                epd.sleep()
+
+                generate_page()
+                event.set()
+
+                time.sleep(3)
+                print("\nWaiting for next button press...")
+                GPIO.output(led_pin, GPIO.HIGH)
+        elif input_state_execute == False and switch_state == True: # Story Mode
+            if(previous_execute_state):
+                t_fade = threading.Thread(target=fade_leds, args=(event,))
+                t_fade.start()
+
+                if chosen_story == "NON_STORY_CHOSEN":
+                    stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
+                    sys_random = random.SystemRandom()
+                    chosen_story = sys_random.choice(stories)
+
+                if current_page == 0:
+                    current_page = 1
+
+                story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+
+                print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
+
+                show_story_page()
+
+                event.set()
+                time.sleep(3)
+
+                # Saving where we are in the stories
+                with open(SETTINGS_FILE, 'w') as f:
+                    f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+
+                print("\nWaiting for next button press...")
+                GPIO.output(led_pin, GPIO.HIGH)
+        elif (input_state_reset == False):
+                if(previous_reset_state):
+                    current_page = 0
+                    chosen_story = "NON_STORY_CHOSEN"
+                    print("Story reset. Press button to launch a new one")
+
+                    # Saving where we are in the stories
+                    with open(SETTINGS_FILE, 'w') as f:
+                        f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+
+        previous_reset_state = input_state_reset
+        previous_execute_state = input_state_execute
         time.sleep(0.1)
 
 
