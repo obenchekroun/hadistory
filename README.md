@@ -10,7 +10,7 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). This project has been largely based on storybook with a few tweaks for my needs. All credit goes to them for making this awesome project.
 
 ## Hardware
-- [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). It can also be installed on a [Raspberry Pi Zero 2W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/). but the AI mode takes ~1h to generate a story Certainly possible with other hardware, but may be slower and require simpler AI models. 
+- [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). It can also be installed on a [Raspberry Pi Zero 2W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/). but the AI mode takes ~1h to generate a story. Certainly possible with other hardware, but may be slower and require simpler AI models. 
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
 - 2 buttons, 1 switch, 1 LED and a 220 Ohms resistors
@@ -20,7 +20,9 @@ Execute main.py: `python3 hadistory.py`, or enable autostart of the project.
 The project has two modes : 
 - `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, 
 - `AI mode`, an AI mode where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~10 minutes on a pi5 and 40min on a RPi2. 
-A switch (or simply grounding the switch pin) allows to switch from one mode to the other
+
+A switch (or simply grounding the switch pin) allows to switch from one mode to the other.
+
 The LED act as a status indicator : the LED is fully lit when waiting for button press, and fading regularly when generating a story. 
 
 There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
@@ -49,7 +51,7 @@ then reboot.
  - [OPTIONAL] `ssh`
  - [OPTIONAL] set up wifi
 
-3. Install required libraries
+4. Install required libraries
 ``` bash
 sudo apt update
 sudo apt -y upgrade
@@ -58,7 +60,7 @@ sudo apt-get install git
 sudo apt-get install python3-dev python3-pip
 ```
 
-4. [Install Ollama](https://ollama.com/download/linux)
+5. [Install Ollama](https://ollama.com/download/linux) : 
 ``` bash
 cd ~
 curl -fsSL https://ollama.com/install.sh | sh
@@ -73,7 +75,7 @@ curl -fsSL https://ollama.com/install.sh | sh
    ```
 
 5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
-  1. First install XNNPACK :
+  - First install XNNPACK :
 ``` bash
 cd ~
 git clone https://github.com/google/XNNPACK.git
@@ -85,7 +87,7 @@ cmake -DXNNPACK_BUILD_TESTS=OFF -DXNNPACK_BUILD_BENCHMARKS=OFF ..
 cmake --build . --config Release
 ```
 Make sure to use instruction on the linked github as the instructions rely on a `git checkout` and you need to be sure that you are using the right commit.
-  2. and then ONXXSTREAM :
+  - and then ONXXSTREAM :
 ```bash
 cd ~
 git clone https://github.com/vitoplantamura/OnnxStream.git
@@ -112,14 +114,14 @@ htop # to check
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
     ```
     
-  3. Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
+  - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
 
   
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
- - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
- - Activate the environment: `source .venv/bin/activate`
-   - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command. If not using a virtual environment, adapt the `autostart/autostart.sh script` by commenting or uncommenting the line `source .venv/bin/activate`* 
- - Install the libraries for the screen. The project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
+  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
+  - Activate the environment: `source .venv/bin/activate`
+  - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command. If not using a virtual environment, adapt the `autostart/autostart.sh script` by commenting or uncommenting the line `source .venv/bin/activate`* 
+  - Install the libraries for the screen. The project uses [omni-epd](https://github.com/robweber/omni-epd). To install :
    ```bash
    pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
    ```
