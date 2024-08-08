@@ -74,12 +74,13 @@ curl -fsSL https://ollama.com/install.sh | sh
 cd ~
 git clone https://github.com/google/XNNPACK.git
 cd XNNPACK
-git checkout 579de32260742a24166ecd13213d2e60af862675
+git checkout 1c8ee1b68f3a3e0847ec3c53c186c5909fa3fbd3
 mkdir build
 cd build
 cmake -DXNNPACK_BUILD_TESTS=OFF -DXNNPACK_BUILD_BENCHMARKS=OFF ..
 cmake --build . --config Release
 ```
+Make sure to use instruction on the linked github as the instructions rely on a `git checkout` and you need to be sure that you are using the right commit.
  - and then ONXXSTREAM :
 ```bash
 cd ~
@@ -88,7 +89,7 @@ cd OnnxStream
 cd src
 mkdir build
 cd build
-cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK .. #path to be changed for where XNNPACK has been cloned
+cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK ..
 cmake --build . --config Release
 ```
  - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
