@@ -127,8 +127,8 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  ```bash
  pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
  ```
-  Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
-  Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi 5. One option is to use a drop-in replacement which should work :
+    - Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
+    - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi 5. One option is to use a drop-in replacement which should work :
  ```bash
  # In case installing on RPi 5
  sudo apt remove python3-rpi.gpio
