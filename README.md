@@ -100,6 +100,7 @@ cmake --build . --config Release
 ```
 
     - In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
+
 ```bash
 sudo dphys-swapfile swapoff # turn off swap to avoid errors
 sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=500' to increase swap memory
@@ -111,9 +112,9 @@ htop # to check
 
     - In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py` :
 ```python
-    subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
-                    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
-                    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
+    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 ```
     
   - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
