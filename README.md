@@ -98,7 +98,7 @@ cd build
 cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK ..
 cmake --build . --config Release
 ```
-
+aaaa
     - In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
 
 ```bash
