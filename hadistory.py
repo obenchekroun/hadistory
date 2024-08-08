@@ -39,8 +39,7 @@ OLLAMA_MODEL = 'mistral'
 #OLLAMA_MODEL = 'gemma:7b'
 
 # Prompt for story
-OLLAMA_PROMPT = '''Peux-tu me créer un texte issue d'une page d'un livre illustré de fantasy pour enfants.
-Ce texte doit comporter environ 20 mots. Si tu le souhaites, tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une conclusion.'''.replace("\n", "")
 # OLLAMA_PROMPT_INCIPIT = '''Peux-tu me créer une histoire issue d'une page d'un livre illustré de fantasy pour enfants. Ce texte doit comporter environ 30 mots. Créer l'histoire basée sur l'instruction suivante : '''.replace("\n", "")
 # OLLAMA_PROMPT_EXCIPIT = '''Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots, selon le thème : '''.replace("\n", "")
