@@ -100,7 +100,7 @@ cmake --build . --config Release
 ```
 
     - In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
-  ```bash
+```bash
 sudo dphys-swapfile swapoff # turn off swap to avoid errors
 sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=500' to increase swap memory
 sudo dphys-swapfile setup # reinitialize swap
