@@ -117,7 +117,6 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
 ```
     
   - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
-
   
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
   - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
@@ -127,18 +126,18 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  ```bash
  pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
  ```
-    - Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
-    - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi 5. One option is to use a drop-in replacement which should work :
+  Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
+  Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi 5. One option is to use a drop-in replacement which should work :
  ```bash
  # In case installing on RPi 5
  sudo apt remove python3-rpi.gpio
  pip3 install rpi-lgpio
  ```
   See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
- - Install requests and pillow: `pip install requests pillow`
+ - Install requests and pillow: `pip3 install requests pillow`
 7. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
 8. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
-9. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `MODE=0` and make it chose a new one after next execution.
+9. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
