@@ -16,7 +16,7 @@ Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). Th
 - 2 buttons, 1 switch, 1 LED and a 220 Ohms resistors
 
 ## Use
-Execute main.py: `python3 hadistory.py`., or enable autostart of the project.
+Execute main.py: `python3 hadistory.py`, or enable autostart of the project.
 The project has two modes : 
 - `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, 
 - `AI mode`, an AI mode where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~10 minutes on a pi5 and 40min on a RPi2. 
@@ -66,10 +66,14 @@ curl -fsSL https://ollama.com/install.sh | sh
  - Pull and serve an Ollama model. Some examples :
    - Gemma : `ollama run gemma:7b` 
    - Mistral : `ollama run mistral` 
-   - Tiny stories : `ollama run gurubot/tinystories-656k-q8`. A really small model that generates a story in english, if given a start. Not very consistent but works on RPI Zero 2W
+   - Tiny stories : `ollama run gurubot/tinystories-656k-q8`. A really small model that generates a story in english, if given a start. Not very consistent but works on RPI Zero 2W. In the case of using `tinystories`, as the prompt doesn't work the same, you have to switch the following lines :
+   ```python
+   #generated_text = get_story(prompt) # COMMENT AND USE NEXT LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+   generated_text = get_story_no_prompt() # UNCOMMENT AND USE THIS LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+   ```
 
 5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
- - First install XNNPACK :
+  1. First install XNNPACK :
 ``` bash
 cd ~
 git clone https://github.com/google/XNNPACK.git
@@ -81,7 +85,7 @@ cmake -DXNNPACK_BUILD_TESTS=OFF -DXNNPACK_BUILD_BENCHMARKS=OFF ..
 cmake --build . --config Release
 ```
 Make sure to use instruction on the linked github as the instructions rely on a `git checkout` and you need to be sure that you are using the right commit.
- - and then ONXXSTREAM :
+  2. and then ONXXSTREAM :
 ```bash
 cd ~
 git clone https://github.com/vitoplantamura/OnnxStream.git
@@ -92,7 +96,7 @@ cd build
 cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK ..
 cmake --build . --config Release
 ```
-  - In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
+    - In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
   ```bash
 sudo dphys-swapfile swapoff # turn off swap to avoid errors
 sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=500' to increase swap memory
@@ -101,9 +105,16 @@ sudo dphys-swapfile swapon # turn swp on
 sudo reboot # reboot as swap file is created at startup
 htop # to check
 ```
-  - You might also need to `-DMAX_SPEED=OFF` for building on a RPi Zero 2W, as it needs more memory during build time and can create a non functionnal executable . See [Onxxstream github](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux) for details. 
-  - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
- 
+    - In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py`:
+    ```python
+    subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
+                    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+                    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+    ```
+    
+  3. Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
+
+  
 6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
  - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
  - Activate the environment: `source .venv/bin/activate`
@@ -128,7 +139,7 @@ htop # to check
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
     
-9. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
+10. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
 
 ### Full pinout of project
 
@@ -182,6 +193,10 @@ sudo chown pi:pi /home/pi/hadistory/autostart/autostart.sh
 
 NB : The user created is named pi, if another user or project put in another folder, change the `cd /home/pi/hadistory` command in `autostart.sh` and the path in `15-hadistory.sh`.
 
+- to disable autostart, simply remove the file in `/etc/profile.d/` :
+``` bash
+sudo rm /etc/profile.d/15-hadistory.sh
+```
 
 ## Miscellaneous
 
@@ -197,6 +212,8 @@ NB : The user created is named pi, if another user or project put in another fol
 Peux-tu s'il te plait créer une histoire pour enfant fantastique qui tient sur 4 pages de 70 mots chacune. Si tu veux tu peux inclure un héros, un artefact magique et un monstre. Tu peux choisir un thème ou une ambiance au hasard. Fais preuve de créativité et n'oublie pas d'inclure une fin heureuse. Créé ensuite 4 illustrations, une pour chaque page, style bande dessinée, en ayant de la cohérence dans les images
 ```
 
+## Troubleshooting
+-   When compiling Onnxstream for RPi Zero 2W, you might also need to `-DMAX_SPEED=OFF`, as it needs more memory during build time and can create a non functionnal executable . See [Onxxstream github](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux) for details. 
 
 ## ISSUES/IDEAS/TODO
 - Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.

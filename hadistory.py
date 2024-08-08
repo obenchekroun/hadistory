@@ -175,6 +175,9 @@ def generate_page():
                     '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
+    # subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path', SD_MODEL_PATH,\
+    #                 '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+    #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
     print("Showing image ...")
     canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
@@ -316,8 +319,6 @@ def create_prompt(path):
     prompt_text = get_random_line(path)
     prompt_text = parse_multiple_brackets(prompt_text, TEXT_PARSE_BRACKETS_LIST)
     prompt_text = re.sub('\s{2,}', ' ', prompt_text)
-    #artist_text = ""
-    #subject_text = ""
 
     full_prompt = OLLAMA_PROMPT_INCIPIT + prompt_text + CONNECTOR + OLLAMA_PROMPT_EXCIPIT
 
