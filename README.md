@@ -18,8 +18,8 @@ Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). Th
 ## Use
 Execute main.py: `python3 hadistory.py`, or enable autostart of the project.
 The project has two modes : 
-- `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, 
-- `AI mode`, an AI mode where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~10 minutes on a pi5 and 40min on a RPi2. 
+- `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, It takes approx. 35s to show an image on RPi5
+- `AI mode`, an AI mode where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~18 minutes on a pi5 and ~40min on a RPi2. 
 
 A switch (or simply grounding the switch pin) allows to switch from one mode to the other.
 

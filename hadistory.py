@@ -25,6 +25,10 @@ import sys
 ############## Constants
 ############## ##############################################################################
 SETTINGS_FILE = 'currently.json'
+total_time = 0
+start_time = 0
+end_time = 0
+elapsed_time = 0
 
 # Display
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
@@ -42,16 +46,16 @@ OLLAMA_MODEL = 'mistral'
 
 
 # Prompt for story
-OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une conclusion.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 70 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
 OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
-OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots, selon le thème : '''.replace("\n", "")
-OLLAMA_PROMPT_EXCIPIT = '''Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une conclusion.'''.replace("\n", "")
+OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 70 mots, selon le thème : '''.replace("\n", "")
+OLLAMA_PROMPT_EXCIPIT = '''Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
 
 # Stable diffusion
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinée, pour la scène suivante : '
+SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinee, pour la scene suivante : '
 SD_STEPS = 3
 
 # Graphics
@@ -139,8 +143,10 @@ def get_story(prompt = OLLAMA_PROMPT):
     return data['response'].lstrip()
 
 def generate_page():
+    global total_time
     # Generating text
     print("Creating a new story...")
+    start_time = time.time()
 
     # Keep uncommented what you want to use as a prompt
     prompt = create_prompt(OLLAMA_PROMPT_FILE)
@@ -149,9 +155,15 @@ def generate_page():
     print("Here is the prompt : " + prompt)
 
     generated_text = get_story(prompt) # COMMENT AND USE NEXT LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+    end_time = time.time()
+    elapsed_time = round(end_time - start_time)
+    readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
+    total_time = round(total_time + elapsed_time)
 
     print("Here is a story: ")
     print(f'{generated_text}')
+    print(f'Story generated in {readable_time}')
+
     generated_text = generated_text.replace("\n", " ")
     generated_text = wrap_text_display(generated_text, 448, font)
     text_height = 0
@@ -164,8 +176,9 @@ def generate_page():
 
     # Generating image
     print("Creating the image, may take a while ...")
-    translationTable = str.maketrans("éàèùâêîôûç", "eaeuaeiouc")
+    translationTable = str.maketrans("éàèùâêîôûçÉÈÀïÎ", "eaeuaeioucEEaii")
     text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
+    start_time = time.time()
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
                     '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
                     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
@@ -173,15 +186,22 @@ def generate_page():
     # subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path', SD_MODEL_PATH,\
     #                 '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
     #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+    end_time = time.time()
+    elapsed_time = round(end_time - start_time)
+    readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
+    total_time = round(total_time + elapsed_time)
+
+    print(f'Image generated in {readable_time}')
 
     print("Showing image ...")
+    start_time = time.time()
+
     canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
     im2 = Image.open(TEMP_IMAGE_FILE)
     if (600 - text_height >=448):
         sizing = 448
     else:
         sizing = 600 - text_height
-
 
     im2 = im2.resize((sizing,sizing))
 
@@ -199,10 +219,21 @@ def generate_page():
     epd.display(canvas)
     epd.sleep()
 
+    end_time = time.time()
+    elapsed_time = round(end_time - start_time)
+    readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
+    total_time = round(total_time + elapsed_time)
+    print(f'Image shown in {readable_time}')
+
     print("The end.")
+
+    readable_time = '{:02}h{:02}m{:02}s'.format(total_time//3600, total_time%3600//60, total_time%60)
+    print(f'Full story took in {readable_time}')
 
 def show_story_page():
     global chosen_story, current_page, story_length
+
+    start_time = time.time()
 
     text_page_path = "stories/"+ chosen_story + "/txt/p" + str(current_page) + ".txt"
     image_page_path = "stories/"+ chosen_story + "/img/p" + str(current_page) + ".png"
@@ -252,6 +283,11 @@ def show_story_page():
     else:
         current_page = current_page + 1
         print("To be continued...")
+
+    end_time = time.time()
+    elapsed_time = round(end_time - start_time)
+    readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
+    print(f'Story shown in {readable_time}')
 
 ##### Parsing files for creating prompt
 ##### ############## ##############################################################################
