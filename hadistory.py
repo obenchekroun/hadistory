@@ -36,8 +36,10 @@ OLLAMA_TIMEOUT = 600 # in seconds
 
 # Ollama model
 OLLAMA_MODEL = 'mistral'
-#OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
 #OLLAMA_MODEL = 'gemma:7b'
+#OLLAMA_MODEL = 'qwen2:0.5b' # Works with RPI Zero 2W
+#OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
+
 
 # Prompt for story
 OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une conclusion.'''.replace("\n", "")

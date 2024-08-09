@@ -78,6 +78,7 @@ curl -fsSL https://ollama.com/install.sh | sh
  - Pull and serve an Ollama model. Some examples :
    - Gemma : `ollama run gemma:7b` 
    - Mistral : `ollama run mistral` 
+   - Qwen2 : `ollama run qwen2:0.5b`. A really small model working on RPi Zero 2W.
    - Tiny stories : `ollama run gurubot/tinystories-656k-q8`. A really small model that generates a story in english, if given a start. Not very consistent as it creates mostly gibberish but is really quick even on RPI Zero 2W. 
    
    In the case of using `tinystories` or `qwen2:0.5b` on Rpi Zero 2W, choose appropriate prompt by uncommenting in the `generate_page()` function :
@@ -208,6 +209,15 @@ sudo rm /etc/profile.d/15-hadistory.sh
 
 ## Specific code adaptation for RPi Zero 2W
 
+- Choose a small model :
+``` python
+# Ollama model
+OLLAMA_MODEL = 'mistral'
+#OLLAMA_MODEL = 'gemma:7b'
+#OLLAMA_MODEL = 'qwen2:0.5b' # Works with RPI Zero 2W
+#OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
+```
+
 - In order to build and use on RPI Zero 2W, you might need to increase swap memory size for build time : 
 ```bash
 sudo dphys-swapfile swapoff # turn off swap to avoid errors
@@ -220,6 +230,8 @@ htop # to check
 
 - In the case of using `tinystories` or `qwen2:0.5b` on Rpi Zero 2W, choose appropriate prompt by uncommenting:
    ```python
+   # Keep uncommented what you want to use as a prompt
+   prompt = create_prompt(OLLAMA_PROMPT_FILE)
    #prompt = OLLAMA_PROMPT # uncomment to use standard prompt (especially with qwen2:0.5b on RPi Zero 2W)
    #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
    ```
@@ -231,6 +243,7 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path',
     '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 ```
 
+- On Rpi Zero 2W, you might need to increase timeout time on ollama api, by modifying the following constant  : `OLLAMA_TIMEOUT = 3600`
 
 ## Miscellaneous
 
