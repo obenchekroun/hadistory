@@ -230,12 +230,12 @@ htop # to check
 ```
 
 - In the case of using `tinystories` or `qwen2:0.5b` on Rpi Zero 2W, choose appropriate prompt by uncommenting:
-   ```python
-   # Keep uncommented what you want to use as a prompt
-   prompt = create_prompt(OLLAMA_PROMPT_FILE)
-   #prompt = OLLAMA_PROMPT # uncomment to use standard prompt (especially with qwen2:0.5b on RPi Zero 2W)
-   #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
-   ```
+```python
+# Keep uncommented what you want to use as a prompt
+prompt = create_prompt(OLLAMA_PROMPT_FILE)
+#prompt = OLLAMA_PROMPT # uncomment to use standard prompt (especially with qwen2:0.5b on RPi Zero 2W)
+#prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
+```
 
 - In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py` :
 ```python
