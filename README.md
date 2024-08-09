@@ -142,6 +142,7 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  - Install requests and pillow: `pip3 install requests pillow`
 9. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
   - On Rpi Zero 2W, you might need to increase timeout time on ollama api, by modifying the following constant  : `OLLAMA_TIMEOUT = 3600`
+  - On RPi Zero 2W, you might want to reduce number of steps for Stable diffusion for quicker execution (but less accuracy) : `SD_STEPS = 1`
 10. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
 11. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
@@ -244,6 +245,8 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path',
 ```
 
 - On Rpi Zero 2W, you might need to increase timeout time on ollama api, by modifying the following constant  : `OLLAMA_TIMEOUT = 3600`
+
+- On RPi Zero 2W, you might want to reduce number of steps for Stable diffusion for quicker execution (but less accuracy) : `SD_STEPS = 1`
 
 ## Miscellaneous
 
