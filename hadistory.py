@@ -46,7 +46,7 @@ OLLAMA_MODEL = 'mistral'
 
 
 # Prompt for story
-OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 70 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
+OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
 OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
 OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 70 mots, selon le thème : '''.replace("\n", "")
 OLLAMA_PROMPT_EXCIPIT = '''Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
@@ -55,7 +55,8 @@ OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
 # Stable diffusion
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinee, pour la scene suivante : '
+SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
+#SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinee, pour l\'histoire suivante : '
 SD_STEPS = 3
 
 # Graphics
