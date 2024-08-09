@@ -354,15 +354,15 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        print('Restoring the settings...', end=' ')
+        print('Restoring currently on hadistory...', end=' ')
         with open(SETTINGS_FILE, 'r') as f:
             d = json.loads(f.read())
     except (OSError, ValueError):
-        print('Error reading settings, reverting to defaults.')
+        print('Error getting currently on, reverting to start.')
     else:
         current_page = d.get('current_page', 0)
         chosen_story = d.get('chosen_story', 0)
-        print('Settings loaded !')
+        print('Currently on loaded !')
 
     starting_pic = Image.open(LOADING_IMAGE_FILE)
     starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
