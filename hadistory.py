@@ -32,6 +32,7 @@ DISPLAY_RESOLUTION = (448, 600)
 
 # Ollama API
 OLLAMA_API = 'http://localhost:11434/api/generate'
+OLLAMA_TIMEOUT = 600 # in seconds
 
 # Ollama model
 OLLAMA_MODEL = 'mistral'
@@ -40,6 +41,7 @@ OLLAMA_MODEL = 'mistral'
 
 # Prompt for story
 OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une conclusion.'''.replace("\n", "")
+OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
 # OLLAMA_PROMPT_INCIPIT = '''Peux-tu me créer une histoire issue d'une page d'un livre illustré de fantasy pour enfants. Ce texte doit comporter environ 30 mots. Créer l'histoire basée sur l'instruction suivante : '''.replace("\n", "")
 # OLLAMA_PROMPT_EXCIPIT = '''Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
 OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots, selon le thème : '''.replace("\n", "")
@@ -127,7 +129,7 @@ def wrap_text_display(text, width, font):
     return text_lines
 
 def get_story(prompt = OLLAMA_PROMPT):
-    r = requests.post(OLLAMA_API, timeout=600,
+    r = requests.post(OLLAMA_API, timeout=OLLAMA_TIMEOUT,
         json={
             'model': OLLAMA_MODEL,
             'prompt': prompt,
@@ -136,25 +138,17 @@ def get_story(prompt = OLLAMA_PROMPT):
     data = r.json()
     return data['response'].lstrip()
 
-def get_story_no_prompt():
-    r = requests.post(OLLAMA_API, timeout=600,
-        json={
-            'model': OLLAMA_MODEL,
-            'prompt': "Once upon a time, ",
-            'stream':False
-                      })
-    data = r.json()
-    return "Once upon a time, " + data['response'].lstrip()
-
 def generate_page():
     # Generating text
     print("Creating a new story...")
 
+    # Keep uncommented what you want to use as a prompt
     prompt = create_prompt(OLLAMA_PROMPT_FILE)
+    #prompt = OLLAMA_PROMPT # uncomment to use standard prompt (especially with qwen2:0.5b on RPi Zero 2W)
+    #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
     print("Here is the prompt : " + prompt)
 
     generated_text = get_story(prompt) # COMMENT AND USE NEXT LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
-    #generated_text = get_story_no_prompt() # UNCOMMENT AND USE THIS LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
 
     print("Here is a story: ")
     print(f'{generated_text}')

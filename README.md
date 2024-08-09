@@ -60,7 +60,17 @@ sudo apt-get install git
 sudo apt-get install python3-dev python3-pip
 ```
 
-5. [Install Ollama](https://ollama.com/download/linux) : 
+5. In order to build and use on RPI Zero 2W, you might need to increase swap memory size : 
+```bash
+sudo dphys-swapfile swapoff # turn off swap to avoid errors
+sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=1000' to increase swap memory to 1000 MB
+sudo dphys-swapfile setup # reinitialize swap
+sudo dphys-swapfile swapon # turn swp on
+sudo reboot # reboot as swap file is created at startup
+htop # to check
+```
+
+6. [Install Ollama](https://ollama.com/download/linux) : 
 ``` bash
 cd ~
 curl -fsSL https://ollama.com/install.sh | sh
@@ -68,13 +78,17 @@ curl -fsSL https://ollama.com/install.sh | sh
  - Pull and serve an Ollama model. Some examples :
    - Gemma : `ollama run gemma:7b` 
    - Mistral : `ollama run mistral` 
-   - Tiny stories : `ollama run gurubot/tinystories-656k-q8`. A really small model that generates a story in english, if given a start. Not very consistent but works on RPI Zero 2W. In the case of using `tinystories`, as the prompt doesn't work the same, you have to switch the following lines :
+   - Tiny stories : `ollama run gurubot/tinystories-656k-q8`. A really small model that generates a story in english, if given a start. Not very consistent as it creates mostly gibberish but is really quick even on RPI Zero 2W. 
+   
+   In the case of using `tinystories` or `qwen2:0.5b` on Rpi Zero 2W, choose appropriate prompt by uncommenting in the `generate_page()` function :
    ```python
-   #generated_text = get_story(prompt) # COMMENT AND USE NEXT LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
-   generated_text = get_story_no_prompt() # UNCOMMENT AND USE THIS LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+   # Keep uncommented what you want to use as a prompt
+   prompt = create_prompt(OLLAMA_PROMPT_FILE)
+   #prompt = OLLAMA_PROMPT # uncomment to use standard prompt (especially with qwen2:0.5b on RPi Zero 2W)
+   #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
    ```
 
-5. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
+7. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
   - First install XNNPACK :
 ``` bash
 cd ~
@@ -99,16 +113,6 @@ cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=/home/pi/XNNPACK .
 cmake --build . --config Release
 ```
 
-In order to build for RPI Zero 2W, you might need to increase swap memory size for build time : 
-```bash
-sudo dphys-swapfile swapoff # turn off swap to avoid errors
-sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=1000' to increase swap memory to 1000 MB
-sudo dphys-swapfile setup # reinitialize swap
-sudo dphys-swapfile swapon # turn swp on
-sudo reboot # reboot as swap file is created at startup
-htop # to check
-```
-
 In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py` :
 ```python
 subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
@@ -118,7 +122,7 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
     
   - Download a Stable Diffusion model. I find that [Stable Diffusion XL Turbo 1.0](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#stable-diffusion-xl-turbo-10) works well. First launch should download the model so running `./sd --turbo --rpi should download the XL Turbo 1.0`
   
-6. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
+8. Clone this repository. `git clone https://github.com/obenchekroun/hadistory.git`
   - Create a Python virtual environment: `cd hadistory && mkdir .venv && python -m venv .venv`
   - Activate the environment: `source .venv/bin/activate`
   - *NB: you can proceeed without a virtual environnment by using `--break-system-packages` argument for every pip install command. If not using a virtual environment, adapt the `autostart/autostart.sh` script by commenting or uncommenting the line `source .venv/bin/activate`* 
@@ -135,14 +139,15 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  ```
   See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
  - Install requests and pillow: `pip3 install requests pillow`
-7. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
-8. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
-9. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
+9. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
+  - On Rpi Zero 2W, you might need to increase timeout time on ollama api, by modifying the following constant  : `OLLAMA_TIMEOUT = 3600`
+10. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
+11. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
     
-10. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
+12. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
 
 ### Full pinout of project
 
@@ -200,6 +205,32 @@ NB : The user created is named pi, if another user or project put in another fol
 ``` bash
 sudo rm /etc/profile.d/15-hadistory.sh
 ```
+
+## Specific code adaptation for RPi Zero 2W
+
+- In order to build and use on RPI Zero 2W, you might need to increase swap memory size for build time : 
+```bash
+sudo dphys-swapfile swapoff # turn off swap to avoid errors
+sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=1000' to increase swap memory to 1000 MB
+sudo dphys-swapfile setup # reinitialize swap
+sudo dphys-swapfile swapon # turn swp on
+sudo reboot # reboot as swap file is created at startup
+htop # to check
+```
+
+- In the case of using `tinystories` or `qwen2:0.5b` on Rpi Zero 2W, choose appropriate prompt by uncommenting:
+   ```python
+   #prompt = OLLAMA_PROMPT # uncomment to use standard prompt (especially with qwen2:0.5b on RPi Zero 2W)
+   #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
+   ```
+
+- In case of using Stable DIffusion on RPi Zero 2W, use the `--rpi-lowmem` instead of `--rpi` in the command calling stable diffusion in `hadistory.py` :
+```python
+subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path', SD_MODEL_PATH,\
+    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+```
+
 
 ## Miscellaneous
 
