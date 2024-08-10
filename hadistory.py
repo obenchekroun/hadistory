@@ -48,7 +48,7 @@ OLLAMA_MODEL = 'mistral'
 # Prompt for story
 OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
 OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
-OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 70 mots, selon le thème : '''.replace("\n", "")
+OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 50 mots, selon le thème : '''.replace("\n", "")
 OLLAMA_PROMPT_EXCIPIT = '''Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
 
@@ -147,6 +147,7 @@ def generate_page():
     global total_time
     # Generating text
     print("Creating a new story...")
+    total_time = 0
     start_time = time.time()
 
     # Keep uncommented what you want to use as a prompt
