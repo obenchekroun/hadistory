@@ -180,6 +180,7 @@ def generate_page():
     print("Creating the image, may take a while ...")
     translationTable = str.maketrans("éàèùâêîôûçÉÈÀïÎ", "eaeuaeioucEEaii")
     text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
+    text_image_prompt = get_n_sentences(text_image_prompt, 1)
     start_time = time.time()
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
                     '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
@@ -357,6 +358,8 @@ def create_prompt(path):
 
     return full_prompt
 
+def get_n_sentences(text = "Lorem ipsum, dolor sit amet. consectetur adipisicing elit; sed do eiusmod tempor.", n = 2):
+    return ' '.join(re.split(r'(?<=[.:;])\s', text)[:n])
 
 ##### Led status
 ##### ############## ##############################################################################
