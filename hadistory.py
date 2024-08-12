@@ -39,24 +39,30 @@ OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_TIMEOUT = 600 # in seconds
 
 # Ollama model
-OLLAMA_MODEL = 'mistral'
-#OLLAMA_MODEL = 'gemma:7b'
+#OLLAMA_MODEL = 'mistral'
+#OLLAMA_MODEL = 'llama2:7b'
+OLLAMA_MODEL = 'gemma:7b'
 #OLLAMA_MODEL = 'qwen2:0.5b' # Works with RPI Zero 2W
 #OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
 
 
 # Prompt for story
-OLLAMA_PROMPT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
-OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
-OLLAMA_PROMPT_INCIPIT = '''Créer une histoire d'un livre fantasy pour enfant, d'environ 50 mots, selon le thème : '''.replace("\n", "")
-OLLAMA_PROMPT_EXCIPIT = '''Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
+#OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words. If you desire, you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme. Be creative. Include a happy ending.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
+
+# OLLAMA_PROMPT_INCIPIT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words with the following theme: '''.replace("\n", "")
+# OLLAMA_PROMPT_EXCIPIT = '''Be creative. Include a happy ending. No title'''.replace("\n", "")
+OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire environ 40 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
+OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
+
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
+
+OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
 
 # Stable diffusion
 SD_LOCATION = '/home/pi/OnnxStream/src/build/sd'
 SD_MODEL_PATH = '/home/pi/OnnxStream/src/build/stable-diffusion-xl-turbo-1.0-onnxstream'
-SD_PROMPT = 'an illustration in a children\'s book for the following scene: '
-#SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinee, pour l\'histoire suivante : '
+SD_PROMPT = 'an illustration in a comic book for the following scene: '
 SD_STEPS = 3
 
 # Graphics
@@ -143,6 +149,20 @@ def get_story(prompt = OLLAMA_PROMPT):
     data = r.json()
     return data['response'].lstrip()
 
+def get_translation(text, lang_in = "french", lang_out = "english", summarize = False):
+    if (summarize):
+        prompt = f'Translate the following text from {lang_in} to {lang_out} and summarize it : {text}. No preamble.'
+    else:
+        prompt = prompt = f'Translate the following text from {lang_in} to {lang_out} : {text}. No preamble.'
+    r = requests.post(OLLAMA_API, timeout=OLLAMA_TIMEOUT,
+        json={
+            'model': OLLAMA_MODEL,
+            'prompt': prompt,
+            'stream':False
+                      })
+    data = r.json()
+    return data['response'].lstrip()
+
 def generate_page():
     global total_time
     # Generating text
@@ -156,7 +176,7 @@ def generate_page():
     #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
     print("Here is the prompt : " + prompt)
 
-    generated_text = get_story(prompt) # COMMENT AND USE NEXT LINE FOR RPI ZERO 2W USING TINYSTORIES MODEL
+    generated_text = get_story(prompt)
     end_time = time.time()
     elapsed_time = round(end_time - start_time)
     readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
@@ -178,9 +198,21 @@ def generate_page():
 
     # Generating image
     print("Creating the image, may take a while ...")
-    translationTable = str.maketrans("éàèùâêîôûçÉÈÀïÎ", "eaeuaeioucEEaii")
-    text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
-    text_image_prompt = get_n_sentences(text_image_prompt, 1)
+    #translationTable = str.maketrans("éàèùâêîôûçÉÈÀïÎ", "eaeuaeioucEEaii")
+    #text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
+    text_image_prompt = generated_text.replace('\n',' ')
+    text_image_prompt = get_n_sentences(text_image_prompt, 2, joined=True)
+
+    start_time = time.time()
+    text_image_prompt = get_translation(text_image_prompt, lang_in="french", lang_out="english", summarize = True)
+    end_time = time.time()
+    elapsed_time = round(end_time - start_time)
+    readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
+    total_time = round(total_time + elapsed_time)
+    print("Here is the translated story into a prompt for Stable Diffusion: ")
+    print(f'{text_image_prompt}')
+    print(f'Translation generated in {readable_time}')
+
     start_time = time.time()
     subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
                     '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
@@ -358,8 +390,11 @@ def create_prompt(path):
 
     return full_prompt
 
-def get_n_sentences(text = "Lorem ipsum, dolor sit amet. consectetur adipisicing elit; sed do eiusmod tempor.", n = 2):
-    return ' '.join(re.split(r'(?<=[.:;])\s', text)[:n])
+def get_n_sentences(text = "Lorem ipsum, dolor sit amet. consectetur adipisicing elit; sed do eiusmod tempor.", n = 2, joined = True):
+    if (joined):
+        return ' '.join(re.split(r'(?<=[.:;])\s', text)[:n])
+    else:
+        return re.split(r'(?<=[.:;])\s', text)[:n]
 
 ##### Led status
 ##### ############## ##############################################################################
@@ -524,3 +559,12 @@ if __name__ == '__main__':
 
 # OLLAMA_PROMPT_INCIPIT = '''Peux-tu me créer une histoire issue d'une page d'un livre illustré de fantasy pour enfants. Ce texte doit comporter environ 30 mots. Créer l'histoire basée sur l'instruction suivante : '''.replace("\n", "")
 # OLLAMA_PROMPT_EXCIPIT = '''Tu peux choisir une ambiance ou un thème au hasard. N'oublie pas d'inclure une conclusion à l'histoire. Fais preuve de créativité.'''.replace("\n", "")
+
+
+# Prompt for story
+# OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
+# OLLAMA_PROMPT_TINYSTORIES = '''Once upon a time, '''.replace("\n", "")
+# OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire environ 50 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
+# OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
+
+#SD_PROMPT = 'une illustration issu d\'un livre pour enfant, style bande dessinee, pour l\'histoire suivante : '
