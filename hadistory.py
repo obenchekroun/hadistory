@@ -151,7 +151,7 @@ def get_story(prompt = OLLAMA_PROMPT):
 
 def get_translation(text, lang_in = "french", lang_out = "english", summarize = False):
     if (summarize):
-        prompt = f'Translate the following text from {lang_in} to {lang_out} and summarize it : {text}. No preamble.'
+        prompt = f'Translate the following text from {lang_in} to {lang_out} and summarize it in 2 sentences : {text}. No preamble. Give me only the summary.'
     else:
         prompt = prompt = f'Translate the following text from {lang_in} to {lang_out} : {text}. No preamble.'
     r = requests.post(OLLAMA_API, timeout=OLLAMA_TIMEOUT,
@@ -201,7 +201,7 @@ def generate_page():
     #translationTable = str.maketrans("éàèùâêîôûçÉÈÀïÎ", "eaeuaeioucEEaii")
     #text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
     text_image_prompt = generated_text.replace('\n',' ')
-    text_image_prompt = get_n_sentences(text_image_prompt, 2, joined=True)
+    #text_image_prompt = get_n_sentences(text_image_prompt, 2, joined=True)
 
     start_time = time.time()
     text_image_prompt = get_translation(text_image_prompt, lang_in="french", lang_out="english", summarize = True)
