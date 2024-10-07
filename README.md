@@ -1,5 +1,5 @@
 # storybook for Hadi
-A program that uses generative models on a Raspberry Pi to create fantasy storybook pages on the Inky Impression e-ink display
+A program that uses generative models on a Raspberry Pi to create fantasy storybook pages on the Inky Impression e-ink display. The generative model is either embarked in the Pi or it uses OpenAI (requires an internet connection)
 
 | ![Hadistory !](/img/hadistory.png?raw=true) | 
 |:--:| 
@@ -58,6 +58,7 @@ sudo apt -y upgrade
 sudo apt install cmake
 sudo apt-get install git
 sudo apt-get install python3-dev python3-pip
+pip3 install --upgrade openai # for online mode
 ```
 
 5. In order to build and use on RPI Zero 2W, you might need to increase swap memory size : 
@@ -70,7 +71,7 @@ sudo reboot # reboot as swap file is created at startup
 htop # to check
 ```
 
-6. [Install Ollama](https://ollama.com/download/linux) : 
+6. *OPTIONAL : only if running embarked mode* [Install Ollama](https://ollama.com/download/linux) : 
 ``` bash
 cd ~
 curl -fsSL https://ollama.com/install.sh | sh
@@ -89,7 +90,7 @@ curl -fsSL https://ollama.com/install.sh | sh
    #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
    ```
 
-7. [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
+7. *OPTIONAL : only if running embarked mode* [Build/install XNNPACK and Onnxstream](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux)
   - First install XNNPACK :
 ``` bash
 cd ~
@@ -140,16 +141,18 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  ```
   See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
  - Install requests and pillow: `pip3 install requests pillow`
-9. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
+9. Choose online or offline mode by setting `ONLINE_MODE = True` if you want to use OpenAI ChatGPT and DALL-E for generation
+  - if that case you need to supply your openai api key in `openai.api_key` and choose your gpt model in `GPT_model`
+10. Modify the constants (paths) at the top of `hadistory.py` to match your own environment.
   - On Rpi Zero 2W, you might need to increase timeout time on ollama api, by modifying the following constant  : `OLLAMA_TIMEOUT = 3600`
   - On RPi Zero 2W, you might want to reduce number of steps for Stable diffusion for quicker execution (but less accuracy) : `SD_STEPS = 1`
-10. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
-11. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
+11. Set AI model to be used with the variable `OLLAMA_MODEL = 'mistral'` 
+12. Execute main.py: `python3 hadistory.py`. The project has two modes : `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, and an `AI mode` where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~5 minute. The LED is fully lit when waiting for button press, and fading regularly when generating a story. There is also a reset button to reset the current story in `Story mode` and make it chose a new one after next execution.
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
     
-12. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
+13. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
 
 ### Full pinout of project
 

@@ -21,14 +21,23 @@ import json
 import signal
 import sys
 
+import openai
+from openai import OpenAI
+
 ############## ##############################################################################
 ############## Constants
 ############## ##############################################################################
+# Constants
 SETTINGS_FILE = 'currently.json'
 total_time = 0
 start_time = 0
 end_time = 0
 elapsed_time = 0
+
+# OpenAI or local mode
+ONLINE_MODE = False
+GPT_model = "gpt-4o-mini" # most capable GPT model and optimized for chat.  You can substitute with gpt-3.5-turbo for lower cost and latency.
+openai.api_key = "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"
 
 # Display
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
@@ -39,16 +48,16 @@ OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_TIMEOUT = 600 # in seconds
 
 # Ollama model
-#OLLAMA_MODEL = 'mistral'
+OLLAMA_MODEL = 'mistral'
 #OLLAMA_MODEL = 'llama2:7b'
-OLLAMA_MODEL = 'gemma:7b'
+#OLLAMA_MODEL = 'gemma:7b'
 #OLLAMA_MODEL = 'qwen2:0.5b' # Works with RPI Zero 2W
 #OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
 
 
 # Prompt for story
 #OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words. If you desire, you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme. Be creative. Include a happy ending.'''.replace("\n", "")
-OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 30 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
+OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 60 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
 
 # OLLAMA_PROMPT_INCIPIT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words with the following theme: '''.replace("\n", "")
 # OLLAMA_PROMPT_EXCIPIT = '''Be creative. Include a happy ending. No title'''.replace("\n", "")
@@ -139,15 +148,28 @@ def wrap_text_display(text, width, font):
 
     return text_lines
 
-def get_story(prompt = OLLAMA_PROMPT):
-    r = requests.post(OLLAMA_API, timeout=OLLAMA_TIMEOUT,
-        json={
-            'model': OLLAMA_MODEL,
-            'prompt': prompt,
-            'stream':False
-                      })
-    data = r.json()
-    return data['response'].lstrip()
+def get_story(prompt = OLLAMA_PROMPT, online = False):
+    if (not online):
+        r = requests.post(OLLAMA_API, timeout=OLLAMA_TIMEOUT,
+            json={
+                'model': OLLAMA_MODEL,
+                'prompt': prompt,
+                'stream':False
+                          })
+        data = r.json()
+        return data['response'].lstrip()
+    else:
+        user_query = [
+            {"role": "user", "content": prompt},
+        ]
+        send_query = (user_query)
+        response = client.chat.completions.create(
+            model=GPT_model,
+            messages=send_query
+        )
+        answer = response.choices[0].message.content
+        #chat_log.append({"role": "assistant", "content": answer})
+    return answer
 
 def get_translation(text, lang_in = "french", lang_out = "english", summarize = False):
     if (summarize):
@@ -176,7 +198,7 @@ def generate_page():
     #prompt = OLLAMA_PROMPT_TINYSTORIES # uncomment to use tinystories prompt
     print("Here is the prompt : " + prompt)
 
-    generated_text = get_story(prompt)
+    generated_text = get_story(prompt, ONLINE_MODE)
     end_time = time.time()
     elapsed_time = round(end_time - start_time)
     readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
@@ -203,24 +225,45 @@ def generate_page():
     text_image_prompt = generated_text.replace('\n',' ')
     #text_image_prompt = get_n_sentences(text_image_prompt, 2, joined=True)
 
-    start_time = time.time()
-    text_image_prompt = get_translation(text_image_prompt, lang_in="french", lang_out="english", summarize = True)
-    end_time = time.time()
-    elapsed_time = round(end_time - start_time)
-    readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
-    total_time = round(total_time + elapsed_time)
-    print("Here is the translated story into a prompt for Stable Diffusion: ")
-    print(f'{text_image_prompt}')
-    print(f'Translation generated in {readable_time}')
+    if (not ONLINE_MODE):
+        start_time = time.time()
+        text_image_prompt = get_translation(text_image_prompt, lang_in="french", lang_out="english", summarize = True)
+        end_time = time.time()
+        elapsed_time = round(end_time - start_time)
+        readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
+        total_time = round(total_time + elapsed_time)
+        print("Here is the translated story into a prompt for Stable Diffusion: ")
+        print(f'{text_image_prompt}')
+        print(f'Translation generated in {readable_time}')
 
     start_time = time.time()
-    subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
-                    '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
-                    '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+    if (not ONLINE_MODE):
+        subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MODEL_PATH,\
+                        '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+                        '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
 
-    # subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path', SD_MODEL_PATH,\
-    #                 '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
-    #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+        # subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi-lowmem', '--models-path', SD_MODEL_PATH,\
+        #                 '--prompt', SD_PROMPT+f'"{text_image_prompt}"',\
+        #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
+    else:
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=text_image_prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+        image_url = response.data[0].url
+        image_response = requests.get(image_url)
+
+        # Save the image to a file
+        if image_response.status_code == 200:
+            with open(TEMP_IMAGE_FILE, 'wb') as f:
+                f.write(image_response.content)
+            print(f'Image downloaded and saved as {TEMP_IMAGE_FILE}')
+        else:
+            print("Failed to download the image")
+
     end_time = time.time()
     elapsed_time = round(end_time - start_time)
     readable_time = '{:02}h{:02}m{:02}s'.format(elapsed_time//3600, elapsed_time%3600//60, elapsed_time%60)
@@ -446,6 +489,9 @@ if __name__ == '__main__':
 
     event = threading.Event()
 
+    if (ONLINE_MODE):
+        client = OpenAI(api_key=openai.api_key)
+
     print("\nWaiting for button press...")
     GPIO.output(led_pin, GPIO.HIGH)
 
@@ -467,10 +513,10 @@ if __name__ == '__main__':
                 t_fade = threading.Thread(target=fade_leds, args=(event,))
                 t_fade.start()
 
-                epd.prepare()
+                #epd.prepare()
                 #epd.clear()
-                epd.display(starting_canvas)
-                epd.sleep()
+                #epd.display(starting_canvas)
+                #epd.sleep()
 
                 generate_page()
                 event.set()
