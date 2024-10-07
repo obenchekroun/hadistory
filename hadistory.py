@@ -35,9 +35,9 @@ end_time = 0
 elapsed_time = 0
 
 # OpenAI or local mode
-ONLINE_MODE = False
+ONLINE_MODE = True
 GPT_model = "gpt-4o-mini" # most capable GPT model and optimized for chat.  You can substitute with gpt-3.5-turbo for lower cost and latency.
-openai.api_key = "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"
+openai.api_key = ""
 
 # Display
 DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
@@ -56,13 +56,13 @@ OLLAMA_MODEL = 'mistral'
 
 
 # Prompt for story
-#OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words. If you desire, you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme. Be creative. Include a happy ending.'''.replace("\n", "")
-OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 60 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse.'''.replace("\n", "")
+#OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words. If you desire, you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme. Be creative. Include a happy ending. No text in the image'''.replace("\n", "")
+OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 80 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de texte dans l'image'''.replace("\n", "")
 
-# OLLAMA_PROMPT_INCIPIT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words with the following theme: '''.replace("\n", "")
-# OLLAMA_PROMPT_EXCIPIT = '''Be creative. Include a happy ending. No title'''.replace("\n", "")
-OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire environ 40 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
-OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre'''.replace("\n", "")
+# OLLAMA_PROMPT_INCIPIT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 80 words with the following theme: '''.replace("\n", "")
+# OLLAMA_PROMPT_EXCIPIT = '''Be creative. Include a happy ending. No title. Image with no text'''.replace("\n", "")
+OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire environ 80 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
+OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre. Image sans texte'''.replace("\n", "")
 
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
 
@@ -458,6 +458,17 @@ def fade_leds(event):
             time.sleep(0.05)
         time.sleep(0.75)
 
+def rapid_blink():
+    for i in range(1, 20):
+        GPIO.output(led_pin, GPIO.HIGH)
+        time.sleep(0.1)
+        GPIO.output(led_pin, GPIO.LOW)
+        time.sleep(0.1)
+        i = i+1
+
+
+
+
 ##### ############## ##############################################################################
 ##### Main function call
 ##### ############## ##############################################################################
@@ -467,104 +478,161 @@ def fade_leds(event):
 
 if __name__ == '__main__':
 
-    print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     try:
-        print('Restoring currently on hadistory...', end=' ')
-        with open(SETTINGS_FILE, 'r') as f:
-            d = json.loads(f.read())
-    except (OSError, ValueError):
-        print('Error getting currently on, reverting to start.')
-    else:
-        current_page = d.get('current_page', 0)
-        chosen_story = d.get('chosen_story', 0)
-        print('Currently on loaded !')
+        print("Welcome to 𝕙𝕒𝕕𝕚𝕤𝕥𝕠𝕣𝕪 !")
 
-    starting_pic = Image.open(LOADING_IMAGE_FILE)
-    starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
-    starting_canvas.paste(starting_pic, (0,0))
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
 
-    event = threading.Event()
+        try:
+            print('Restoring currently on hadistory...', end=' ')
+            with open(SETTINGS_FILE, 'r') as f:
+                d = json.loads(f.read())
+        except (OSError, ValueError):
+            print('Error getting currently on, reverting to start.')
+        else:
+            current_page = d.get('current_page', 0)
+            chosen_story = d.get('chosen_story', 0)
+            print('Currently on loaded !')
 
-    if (ONLINE_MODE):
-        client = OpenAI(api_key=openai.api_key)
+        starting_pic = Image.open(LOADING_IMAGE_FILE)
+        starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
+        starting_canvas.paste(starting_pic, (0,0))
 
-    print("\nWaiting for button press...")
-    GPIO.output(led_pin, GPIO.HIGH)
+        event = threading.Event()
 
-    while True:
-        input_state_execute = GPIO.input(execute_pin)
-        input_state_reset = GPIO.input(reset_pin)
-        switch_state = GPIO.input(switch_pin)
-        #switch_state = False # False for AI, True for Story mode
+        if (ONLINE_MODE):
+            client = OpenAI(api_key=openai.api_key)
 
-        if input_state_execute == False and switch_state == False: # AI Mode
-            if(previous_execute_state):
-                current_page = 0
-                chosen_story = "NON_STORY_CHOSEN"
+        print("\nWaiting for button press...")
+        GPIO.output(led_pin, GPIO.HIGH)
 
-                # Saving where we are in the stories
-                with open(SETTINGS_FILE, 'w') as f:
-                    f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+        while True:
+            try:
+                input_state_execute = GPIO.input(execute_pin)
+                input_state_reset = GPIO.input(reset_pin)
+                switch_state = GPIO.input(switch_pin)
+                #switch_state = False # False for AI, True for Story mode
 
-                t_fade = threading.Thread(target=fade_leds, args=(event,))
-                t_fade.start()
+                if input_state_execute == False and switch_state == False: # AI Mode
+                    if(previous_execute_state):
+                        current_page = 0
+                        chosen_story = "NON_STORY_CHOSEN"
 
-                #epd.prepare()
-                #epd.clear()
-                #epd.display(starting_canvas)
-                #epd.sleep()
+                        # Saving where we are in the stories
+                        with open(SETTINGS_FILE, 'w') as f:
+                            f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
 
-                generate_page()
+                        t_fade = threading.Thread(target=fade_leds, args=(event,))
+                        t_fade.start()
+
+                        #epd.prepare()
+                        #epd.clear()
+                        #epd.display(starting_canvas)
+                        #epd.sleep()
+
+                        generate_page()
+                        event.set()
+
+                        time.sleep(3)
+                        print("\nWaiting for next button press...")
+                        GPIO.output(led_pin, GPIO.HIGH)
+                elif input_state_execute == False and switch_state == True: # Story Mode
+                    if(previous_execute_state):
+                        t_fade = threading.Thread(target=fade_leds, args=(event,))
+                        t_fade.start()
+
+                        if chosen_story == "NON_STORY_CHOSEN":
+                            stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
+                            sys_random = random.SystemRandom()
+                            chosen_story = sys_random.choice(stories)
+
+                        if current_page == 0:
+                            current_page = 1
+
+                        story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+
+                        print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
+
+                        show_story_page()
+
+                        event.set()
+                        time.sleep(3)
+
+                        # Saving where we are in the stories
+                        with open(SETTINGS_FILE, 'w') as f:
+                            f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+
+                        print("\nWaiting for next button press...")
+                        GPIO.output(led_pin, GPIO.HIGH)
+                elif (input_state_reset == False):
+                        if(previous_reset_state):
+                            current_page = 0
+                            chosen_story = "NON_STORY_CHOSEN"
+                            print("Story reset. Press button to launch a new one")
+
+                            # Saving where we are in the stories
+                            with open(SETTINGS_FILE, 'w') as f:
+                                f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+
+                previous_reset_state = input_state_reset
+                previous_execute_state = input_state_execute
+                time.sleep(0.1)
+
+            except openai.APIError as e:
+                print("\nThere was an API error.  Please try again in a few minutes.")
+                #voice(API_ERROR[lang])
                 event.set()
-
                 time.sleep(3)
-                print("\nWaiting for next button press...")
-                GPIO.output(led_pin, GPIO.HIGH)
-        elif input_state_execute == False and switch_state == True: # Story Mode
-            if(previous_execute_state):
-                t_fade = threading.Thread(target=fade_leds, args=(event,))
-                t_fade.start()
+                rapid_blink()
+                #recorder.stop()
+                #o.delete
+                #recorder = None
+                time.sleep(1)
 
-                if chosen_story == "NON_STORY_CHOSEN":
-                    stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
-                    sys_random = random.SystemRandom()
-                    chosen_story = sys_random.choice(stories)
-
-                if current_page == 0:
-                    current_page = 1
-
-                story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
-
-                print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
-
-                show_story_page()
-
+            except openai.RateLimitError as e:
+                print("\nYou have hit your assigned rate limit.")
+                #voice(RATE_LIMIT_ERROR[lang])
                 event.set()
                 time.sleep(3)
+                rapid_blink()
+                #GPIO.output(led1_pin, GPIO.LOW)
+                #GPIO.output(led2_pin, GPIO.LOW)
+                #recorder.stop()
+                #o.delete
+                #recorder = None
+                break
 
-                # Saving where we are in the stories
-                with open(SETTINGS_FILE, 'w') as f:
-                    f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+            except openai.APIConnectionError as e:
+                print("\nI am having trouble connecting to the API.  Please check your network connection and then try again.")
+                #voice(API_CONNECTION_ERROR[lang])
+                event.set()
+                time.sleep(3)
+                rapid_blink()
+                #GPIO.output(led1_pin, GPIO.LOW)
+                #GPIO.output(led2_pin, GPIO.LOW)
+                #recorder.stop()
+                #o.delete
+                #recorder = None
+                time.sleep(1)
 
-                print("\nWaiting for next button press...")
-                GPIO.output(led_pin, GPIO.HIGH)
-        elif (input_state_reset == False):
-                if(previous_reset_state):
-                    current_page = 0
-                    chosen_story = "NON_STORY_CHOSEN"
-                    print("Story reset. Press button to launch a new one")
+            except openai.AuthenticationError as e:
+                print("\nYour OpenAI API key or token is invalid, expired, or revoked.  Please fix this issue and then restart my program.")
+                #voice(API_AUTHENTICATION_ERROR[lang])
+                event.set()
+                time.sleep(3)
+                rapid_blink()
+                #GPIO.output(led1_pin, GPIO.LOW)
+                #GPIO.output(led2_pin, GPIO.LOW)
+                #recorder.stop()
+                #o.delete
+                #recorder = None
+                break
 
-                    # Saving where we are in the stories
-                    with open(SETTINGS_FILE, 'w') as f:
-                        f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+    except KeyboardInterrupt:
+        print("\nExiting Hadistory")
+        GPIO.cleanup()
 
-        previous_reset_state = input_state_reset
-        previous_execute_state = input_state_execute
-        time.sleep(0.1)
 
 
 ################################################################################################
