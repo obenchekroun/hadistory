@@ -61,7 +61,7 @@ sudo apt-get install python3-dev python3-pip
 pip3 install --upgrade openai # for online mode
 ```
 
-5. In order to build and use on RPI Zero 2W, you might need to increase swap memory size : 
+5. *OPTIONAL : only if running embarked mode* In order to build and use on RPI Zero 2W, you might need to increase swap memory size : 
 ```bash
 sudo dphys-swapfile swapoff # turn off swap to avoid errors
 sudo nano /etc/dphys-swapfile # edit the variable 'CONF_SWAPSIZE=1000' to increase swap memory to 1000 MB
