@@ -10,7 +10,8 @@ A program that uses generative models on a Raspberry Pi to create fantasy storyb
 Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). This project has been largely based on storybook with a few tweaks for my needs. All credit goes to them for making this awesome project.
 
 ## Hardware
-- [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). It can also be installed on a [Raspberry Pi Zero 2W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/). but the AI mode takes ~1h to generate a story. Certainly possible with other hardware, but may be slower and require simpler AI models. 
+- [Raspberry Pi 5 8GB](https://www.raspberrypi.com/products/raspberry-pi-5/). It can also be installed on a [Raspberry Pi Zero 2W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/). but the AI mode takes ~1h to generate a story. Certainly possible with other hardware, but may be slower and require simpler AI models.
+  - The OpenAI version works really well on RPi Zero 2W with a nice form factor. Adding an UPS makes it a good travelling companion, especially with pre-savec stories in case of no internet connection
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
 - 2 buttons, 1 switch, 1 LED and a 220 Ohms resistors
@@ -134,9 +135,7 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  ```
   Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
   
-  Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi 
-  
-  5. One option is to use a drop-in replacement which should work :
+  - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi. One option is to use a drop-in replacement which should work :
  ```bash
  # In case installing on RPi 5
  sudo apt remove python3-rpi.gpio
@@ -272,13 +271,8 @@ Peux-tu s'il te plait créer une histoire pour enfant fantastique qui tient sur 
 -   When compiling Onnxstream for RPi Zero 2W, you might also need to `-DMAX_SPEED=OFF`, as it needs more memory during build time and can create a non functionnal executable . See [Onxxstream github](https://github.com/vitoplantamura/OnnxStream?tab=readme-ov-file#how-to-build-the-stable-diffusion-example-on-linuxmacwindowstermux) for details. 
 
 ## ISSUES/IDEAS/TODO
-- Currently, the program just renders a single page at a set interval. It would certainly possible to ask Ollama to generate multiple pages for a complete "story", and then generate illustrations for each page. The entire "story" could be saved locally and "flipped" through more rapidly than discrete page generation.
-- The output lacks some diversity, with many of the same characters and themes. This may be improved with a higher quality prompt, modifying the model temperature, or creating a prompt generator that randomly generates prompts from a set of themes, characters, creatures, artifacts, etc.
-- The current font doesn't look great on the display. Finding a better font, or perhaps rendering the page horizontally instead of rotating it might have a better result.
-- Fitting the text on the screen doesn't always work, since I'm requesting that the model limit itself and naively splitting the output programmatically.
 - This would be easily modifiable to create other things like sci-fi stories, weird New Yorker cartoons or off-brand Pokemon.
 - This may be thermally taxing on the RPi. Inferrence consumes all CPUs for many minutes, then sits idle for the set interval.
-- The code isn't very reslilient but seems to work reliably.
 
 ## Miscellaneous
 
