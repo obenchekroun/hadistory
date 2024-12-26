@@ -40,7 +40,8 @@ GPT_model = "gpt-4o-mini" # most capable GPT model and optimized for chat.  You 
 openai.api_key = ""
 
 # Display
-DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
+#DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
+DISPLAY_TYPE = "inky.impression"
 DISPLAY_RESOLUTION = (448, 600)
 
 # Ollama API
@@ -97,14 +98,16 @@ epd = displayfactory.load_display_driver(DISPLAY_TYPE)
 
 GPIO.setmode(GPIO.BCM) # use GPIO numbering for buttons
 
-execute_pin = 16 #pin for the button execute
+execute_pin = 5 #pin for the button execute
 GPIO.setup(execute_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-reset_pin = 12 #pin for the button reset
+reset_pin = 6 #pin for the button reset
 GPIO.setup(reset_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-switch_pin = 21 #pin for the switch
-GPIO.setup(switch_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+#switch_pin = 21 #pin for the switch
+#GPIO.setup(switch_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+change_mode_pin = 16 #pin for the change_mode_button
+GPIO.setup(change_mode_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 led_pin = 26 #pin for the led execute
 GPIO.setup(led_pin, GPIO.OUT)
@@ -112,6 +115,7 @@ GPIO.output(led_pin, GPIO.LOW)
 
 previous_reset_state = True
 previous_execute_state = True
+previous_switch_mode_state = True
 
 ############## ##############################################################################
 ############## Functions
@@ -466,7 +470,21 @@ def rapid_blink():
         time.sleep(0.1)
         i = i+1
 
+def five_short_burst():
+    for i in range(1, 5):
+        GPIO.output(led_pin, GPIO.HIGH)
+        time.sleep(0.4)
+        GPIO.output(led_pin, GPIO.LOW)
+        time.sleep(0.4)
+        i = i+1
 
+def three_long_burst():
+    for i in range(1, 3):
+        GPIO.output(led_pin, GPIO.HIGH)
+        time.sleep(1)
+        GPIO.output(led_pin, GPIO.LOW)
+        time.sleep(1)
+        i = i+1
 
 
 ##### ############## ##############################################################################
@@ -504,6 +522,7 @@ if __name__ == '__main__':
         if (ONLINE_MODE):
             client = OpenAI(api_key=openai.api_key)
 
+        switch_state = False #Start with AI mode
         print("\nWaiting for button press...")
         GPIO.output(led_pin, GPIO.HIGH)
 
@@ -511,8 +530,9 @@ if __name__ == '__main__':
             try:
                 input_state_execute = GPIO.input(execute_pin)
                 input_state_reset = GPIO.input(reset_pin)
-                switch_state = GPIO.input(switch_pin)
+                #switch_state = GPIO.input(switch_pin)
                 #switch_state = False # False for AI, True for Story mode
+                input_state_switch_mode = GPIO.input(change_mode_pin)
 
                 if input_state_execute == False and switch_state == False: # AI Mode
                     if(previous_execute_state):
@@ -574,9 +594,21 @@ if __name__ == '__main__':
                             # Saving where we are in the stories
                             with open(SETTINGS_FILE, 'w') as f:
                                 f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+                elif (input_state_switch_mode == False):
+                    if(previous_switch_mode_state):
+                        switch_state = not switch_state
+                        if (switch_state == True):
+                            print("Switching to local story mode.")
+                            five_short_burst()
+                        else:
+                            print("Switching to local AI mode.")
+                            three_long_burst()
+                        GPIO.output(led_pin, GPIO.HIGH)
+
 
                 previous_reset_state = input_state_reset
                 previous_execute_state = input_state_execute
+                previous_switch_mode_state = input_state_switch_mode
                 time.sleep(0.1)
 
             except openai.APIError as e:
@@ -592,41 +624,23 @@ if __name__ == '__main__':
 
             except openai.RateLimitError as e:
                 print("\nYou have hit your assigned rate limit.")
-                #voice(RATE_LIMIT_ERROR[lang])
                 event.set()
                 time.sleep(3)
                 rapid_blink()
-                #GPIO.output(led1_pin, GPIO.LOW)
-                #GPIO.output(led2_pin, GPIO.LOW)
-                #recorder.stop()
-                #o.delete
-                #recorder = None
                 break
 
             except openai.APIConnectionError as e:
                 print("\nI am having trouble connecting to the API.  Please check your network connection and then try again.")
-                #voice(API_CONNECTION_ERROR[lang])
                 event.set()
                 time.sleep(3)
                 rapid_blink()
-                #GPIO.output(led1_pin, GPIO.LOW)
-                #GPIO.output(led2_pin, GPIO.LOW)
-                #recorder.stop()
-                #o.delete
-                #recorder = None
                 time.sleep(1)
 
             except openai.AuthenticationError as e:
                 print("\nYour OpenAI API key or token is invalid, expired, or revoked.  Please fix this issue and then restart my program.")
-                #voice(API_AUTHENTICATION_ERROR[lang])
                 event.set()
                 time.sleep(3)
                 rapid_blink()
-                #GPIO.output(led1_pin, GPIO.LOW)
-                #GPIO.output(led2_pin, GPIO.LOW)
-                #recorder.stop()
-                #o.delete
-                #recorder = None
                 break
 
     except KeyboardInterrupt:

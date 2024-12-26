@@ -14,7 +14,8 @@ Based on storybook : [tvldz's storybook](https://github.com/tvldz/storybook). Th
   - The OpenAI version works really well on RPi Zero 2W with a nice form factor. Adding an UPS makes it a good travelling companion, especially with pre-savec stories in case of no internet connection
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) or [Waveshare 7 color 5.65"](https://www.waveshare.com/5.65inch-e-paper-module-f.htm). Code can be modified to support other resolutions. 
 - SD Card. 32GB is probably the minimum. Use a bigger one to support experimenting with multiple models and installing desktop components if desired.
-- 2 buttons, 1 switch, 1 LED and a 220 Ohms resistors
+- 3 buttons, 1 LED and a 220 Ohms resistors
+  - the project makes use of the InkyImpression buttons embedded in the display (pre-configured pins for buttons are those of the InkyImpression screen)
 
 ## Use
 Execute main.py: `python3 hadistory.py`, or enable autostart of the project.
@@ -22,7 +23,7 @@ The project has two modes :
 - `Story mode` where the script will chose a story from `stories/` subfolders at random and goes through each page in order, after each press, It takes approx. 35s to show an image on RPi5
 - `AI mode`, an AI mode where the script will use stable diffusion and ollma-infered model to creat a one page novel story, with execution taking ~18 minutes on a pi5 and ~40min on a RPi2. 
 
-A switch (or simply grounding the switch pin) allows to switch from one mode to the other.
+A button allows to switch from one mode to the other.
 
 The LED act as a status indicator : the LED is fully lit when waiting for button press, and fading regularly when generating a story. 
 
@@ -134,6 +135,7 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
  pip3 install git+https://github.com/robweber/omni-epd.git#egg=omni-epd
  ```
   Configure screen in `main.py`, with the variable `DISPLAY_TYPE`. Note that omni-epd uses `omni-epd.ini` as a config file, see its contents for options
+    - if using the InkyImpression, you might need to add `dtoverlay=spi0-0cs` to  `/boot/firmware/config.txt`, to avoid the following error `Chip Select: (line 8, GPIO8) currently claimed by spi0 CS0`. See this link : [Github pimoroni inky #202](https://github.com/pimoroni/inky/issues/202)
   
   - Note that there is an issue with the RPi.GPIO library required by omni-epd or waveshare libraries on the **RPi 5**. Raspberry Pi OS Bookworm includes a pre-installed 'RPi.GPIO' which is not compatible with Bookworm on a Pi. One option is to use a drop-in replacement which should work :
  ```bash
@@ -153,8 +155,23 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
   - In order to force only one mode, change the line `switch_state = GPIO.input(switch_pin)`, to either :
     - `switch_state = False` for AI mode
     - `switch_state = True` for Story mode
-    
-13. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
+    and commenting the code block managing the mode switching :
+    ```python
+        elif (input_state_switch_mode == False):
+            if(previous_switch_mode_state):
+                switch_state = not switch_state
+                if (switch_state == True):
+                    print("Switching to local story mode.")
+                    five_short_burst()
+                else:
+                        print("Switching to local AI mode.")
+                        three_long_burst()
+                GPIO.output(led_pin, GPIO.HIGH)
+    ```
+13. When switching, the led will show the current mode depending on how it blinks :
+   - Five short burst : Story mode
+   - Three long burst : AI mode
+14. Personnalize prompts used to generate stories by modifying `prompts/prompts.txt` as explained in the previous section.
 
 ### Full pinout of project
 
@@ -176,10 +193,10 @@ The RPi 5 pin out is as follows :
 * Enable SPI interface
 
 #### Details of LED and buttons connections
-The project uses a LED as a status indicator, a button to trigger the creation of a story, a button to reset current story and a switch to go form . The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows :
-- *button execute* : GPIO 16 (pin 36) and Ground (pin 39) for example
-- *button reset* : GPIO 12 (pin 32) and Ground (pin 39) for example
-- *switch* : GPIO 21 (pin 40) and 3v3 (pin 1 or 17) for example
+The project uses a LED as a status indicator, a button to trigger the creation of a story, a button to reset current story and a switch to go from local or Ai mode . The corresponding GPIO pin can be customised in `main.py` with the variables `button_pin` and `led_pin`. By default they are to be wired as follows, which corresponds to the InkyImpre :
+- *button execute* : GPIO 5 (pin 29) and Ground (pin 30) for example
+- *button reset* : GPIO 6 (pin 31) and Ground (pin 30) for example
+- *button switch mode* : GPIO 16 (pin 36) and Ground pin (pin 34) for example
 - *Led* : with a 220 Ohms resistor, to GPIO 26 (pin 37) and Ground (pin 39) for example
 
 ### Running on startup
