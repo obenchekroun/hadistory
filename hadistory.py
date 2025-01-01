@@ -507,11 +507,25 @@ if __name__ == '__main__':
             with open(SETTINGS_FILE, 'r') as f:
                 d = json.loads(f.read())
         except (OSError, ValueError):
-            print('Error getting currently on, reverting to start.')
+            print('Error getting currently on, reverting to start, and local mode.')
+            current_mode = "local"
         else:
             current_page = d.get('current_page', 0)
             chosen_story = d.get('chosen_story', 0)
+            current_mode = d.get('current_mode', 0)
             print('Currently on loaded !')
+
+        if (current_mode == "local"):
+            print("Starting on local story mode.")
+            switch_state = True #local mode
+            five_short_burst()
+        elif (current_mode == "AI"):
+            print("Starting on AI mode.")
+            switch_state = False #local mode
+            three_long_burst()
+        else:
+            print("Reverting to local story mode.")
+            switch_state = True #local mode
 
         starting_pic = Image.open(LOADING_IMAGE_FILE)
         starting_canvas = Image.new(mode="RGB", size=DISPLAY_RESOLUTION, color="white")
@@ -522,7 +536,7 @@ if __name__ == '__main__':
         if (ONLINE_MODE):
             client = OpenAI(api_key=openai.api_key)
 
-        switch_state = False #Start with AI mode
+        #switch_state = False #Start with AI mode
         print("\nWaiting for button press...")
         GPIO.output(led_pin, GPIO.HIGH)
 
@@ -538,10 +552,11 @@ if __name__ == '__main__':
                     if(previous_execute_state):
                         current_page = 0
                         chosen_story = "NON_STORY_CHOSEN"
+                        current_mode = "AI"
 
                         # Saving where we are in the stories
                         with open(SETTINGS_FILE, 'w') as f:
-                            f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+                            f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story, 'current_mode':current_mode}))
 
                         t_fade = threading.Thread(target=fade_leds, args=(event,))
                         t_fade.start()
@@ -570,6 +585,8 @@ if __name__ == '__main__':
                         if current_page == 0:
                             current_page = 1
 
+                        current_mode = "local"
+
                         story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
 
                         print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
@@ -581,7 +598,7 @@ if __name__ == '__main__':
 
                         # Saving where we are in the stories
                         with open(SETTINGS_FILE, 'w') as f:
-                            f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+                            f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story, 'current_mode': current_mode}))
 
                         print("\nWaiting for next button press...")
                         GPIO.output(led_pin, GPIO.HIGH)
@@ -593,16 +610,20 @@ if __name__ == '__main__':
 
                             # Saving where we are in the stories
                             with open(SETTINGS_FILE, 'w') as f:
-                                f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story}))
+                                f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story, 'current_mode':current_mode}))
                 elif (input_state_switch_mode == False):
                     if(previous_switch_mode_state):
                         switch_state = not switch_state
                         if (switch_state == True):
                             print("Switching to local story mode.")
+                            current_mode = "local"
                             five_short_burst()
                         else:
-                            print("Switching to local AI mode.")
+                            print("Switching to AI mode.")
+                            current_mode = "AI"
                             three_long_burst()
+                        with open(SETTINGS_FILE, 'w') as f:
+                                f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story, 'current_mode':current_mode}))
                         GPIO.output(led_pin, GPIO.HIGH)
 
 
