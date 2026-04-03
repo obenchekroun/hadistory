@@ -146,7 +146,7 @@ subprocess.run([SD_LOCATION, '--xl', '--turbo', '--rpi', '--models-path', SD_MOD
   See the following links for reference : https://forums.raspberrypi.com/viewtopic.php?t=362657 and https://forums.raspberrypi.com/viewtopic.php?p=2160578#p2160578.
   -  If you encounter the error `Exception: Could not determine Jetson model`, remove Jetson.GPIO
 ```bash
-sudo pip3 uninstall --break-system-packages Jetson.GPIO
+pip3 uninstall --break-system-packages Jetson.GPIO
 ```
  - Install requests and pillow: `pip3 install requests pillow`
 9. Choose online or offline mode by setting `ONLINE_MODE = True` if you want to use OpenAI ChatGPT and DALL-E for generation

@@ -92,6 +92,7 @@ CONNECTOR = " "
 
 chosen_story = "NON_STORY_CHOSEN"
 current_page = 0
+story_length = 0
 
 font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
 epd = displayfactory.load_display_driver(DISPLAY_TYPE)
@@ -109,6 +110,9 @@ GPIO.setup(reset_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 change_mode_pin = 16 #pin for the change_mode_button
 GPIO.setup(change_mode_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+go_back_pin = 24 #pin for the button go back
+GPIO.setup(go_back_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 led_pin = 26 #pin for the led execute
 GPIO.setup(led_pin, GPIO.OUT)
 GPIO.output(led_pin, GPIO.LOW)
@@ -116,6 +120,7 @@ GPIO.output(led_pin, GPIO.LOW)
 previous_reset_state = True
 previous_execute_state = True
 previous_switch_mode_state = True
+previous_go_back_state = True
 
 ############## ##############################################################################
 ############## Functions
@@ -358,13 +363,13 @@ def show_story_page():
     epd.display(canvas)
     epd.sleep()
 
-    if current_page >= story_length:
-        current_page = 0
-        chosen_story = "NON_STORY_CHOSEN"
-        print("The end.")
-    else:
-        current_page = current_page + 1
-        print("To be continued...")
+    # if current_page >= story_length:
+    #     current_page = 0
+    #     chosen_story = "NON_STORY_CHOSEN"
+    #     print("The end.")
+    # else:
+    #     current_page = current_page + 1
+    #     print("To be continued...")
 
     end_time = time.time()
     elapsed_time = round(end_time - start_time)
@@ -513,6 +518,7 @@ if __name__ == '__main__':
             current_page = d.get('current_page', 0)
             chosen_story = d.get('chosen_story', 0)
             current_mode = d.get('current_mode', 0)
+            story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
             print('Currently on loaded !')
 
         if (current_mode == "local"):
@@ -543,12 +549,16 @@ if __name__ == '__main__':
         while True:
             try:
                 input_state_execute = GPIO.input(execute_pin)
+                
                 input_state_reset = GPIO.input(reset_pin)
-                #switch_state = GPIO.input(switch_pin)
+                
+                #switch_state = GPIO.input(switch_pin) # If using a physical switch
                 #switch_state = False # False for AI, True for Story mode
                 input_state_switch_mode = GPIO.input(change_mode_pin)
+                
+                input_state_go_back = GPIO.input(go_back_pin)
 
-                if input_state_execute == False and switch_state == False: # AI Mode
+                if input_state_execute == False and switch_state == False: # Execute in AI Mode
                     if(previous_execute_state):
                         current_page = 0
                         chosen_story = "NON_STORY_CHOSEN"
@@ -561,40 +571,44 @@ if __name__ == '__main__':
                         t_fade = threading.Thread(target=fade_leds, args=(event,))
                         t_fade.start()
 
-                        #epd.prepare()
-                        #epd.clear()
-                        #epd.display(starting_canvas)
-                        #epd.sleep()
-
                         generate_page()
                         event.set()
 
-                        time.sleep(3)
+                        time.sleep(1)
                         print("\nWaiting for next button press...")
                         GPIO.output(led_pin, GPIO.HIGH)
-                elif input_state_execute == False and switch_state == True: # Story Mode
+                elif input_state_execute == False and switch_state == True: # Execute in Story Mode
                     if(previous_execute_state):
                         t_fade = threading.Thread(target=fade_leds, args=(event,))
                         t_fade.start()
 
+                        if current_page >= story_length:
+                            chosen_story = "NON_STORY_CHOSEN"
+                            current_page = 0
+                        
                         if chosen_story == "NON_STORY_CHOSEN":
                             stories = [f for f in listdir("stories/") if not isfile(join("stories/", f))]
                             sys_random = random.SystemRandom()
                             chosen_story = sys_random.choice(stories)
 
-                        if current_page == 0:
-                            current_page = 1
-
                         current_mode = "local"
-
                         story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+
+                        # Increment the page to show
+                        current_page += 1
+
 
                         print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
 
                         show_story_page()
 
+                        if current_page >= story_length:
+                            print("The end.")
+                        else:
+                            print("To be continued...")
+
                         event.set()
-                        time.sleep(3)
+                        time.sleep(1)
 
                         # Saving where we are in the stories
                         with open(SETTINGS_FILE, 'w') as f:
@@ -602,6 +616,34 @@ if __name__ == '__main__':
 
                         print("\nWaiting for next button press...")
                         GPIO.output(led_pin, GPIO.HIGH)
+                elif input_state_go_back == False and switch_state == True: # go back in story Mode
+                    if(previous_go_back_state):
+                        if chosen_story == "NON_STORY_CHOSEN" or current_page <= 1:
+                            print("\nNothing to show, skipping ...")
+                        else:
+                            t_fade = threading.Thread(target=fade_leds, args=(event,))
+                            t_fade.start()
+
+                            current_mode = "local"
+                            current_page -= 1
+
+                            story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+
+                            print("Let's show the following story : " + chosen_story + ", on page " + str(current_page) + "/" + str(story_length))
+
+                            show_story_page()
+
+                            print("To be continued...")
+
+                            event.set()
+                            time.sleep(1)
+
+                            # Saving where we are in the stories
+                            with open(SETTINGS_FILE, 'w') as f:
+                                f.write(json.dumps({'current_page': current_page, 'chosen_story': chosen_story, 'current_mode': current_mode}))
+
+                            print("\nWaiting for next button press...")
+                            GPIO.output(led_pin, GPIO.HIGH)
                 elif (input_state_reset == False):
                         if(previous_reset_state):
                             current_page = 0
@@ -630,10 +672,12 @@ if __name__ == '__main__':
                 previous_reset_state = input_state_reset
                 previous_execute_state = input_state_execute
                 previous_switch_mode_state = input_state_switch_mode
+                previous_go_back_state = input_state_go_back
                 time.sleep(0.1)
 
             except openai.APIError as e:
                 print("\nThere was an API error.  Please try again in a few minutes.")
+                print(f"\nERROR : {e}")
                 #voice(API_ERROR[lang])
                 event.set()
                 time.sleep(3)

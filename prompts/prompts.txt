@@ -21,3 +21,5 @@ Un (chat | renard) parlant guide le héros à travers une forêt enchantée. Ils
 Une (tour | forteresse) abandonnée est hantée par des (esprits | ombres). Le héros doit y entrer pour découvrir un (secret | trésor) caché.
 Un (pays | royaume) est figé dans le temps. Le héros doit retrouver une horloge magique pour remettre le temps en (marche | mouvement).
 Un (pont | portail) apparaît seulement la nuit. Le héros doit traverser pour atteindre une ville invisible et y récupérer un (objet | artefact) avant l'aube.
+30:un (engin de construction | camion benne | tractopelle | bétonnière) vit une aventure avec ses copains magiques.
+30:une (coccinelle | giraffe | scarabée) vit une aventure dans (la ville | la forêt | la jungle) avec ses amis.
