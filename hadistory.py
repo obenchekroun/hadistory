@@ -518,7 +518,10 @@ if __name__ == '__main__':
             current_page = d.get('current_page', 0)
             chosen_story = d.get('chosen_story', 0)
             current_mode = d.get('current_mode', 0)
-            story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+            if chosen_story != "NON_STORY_CHOSEN":
+                story_length = len([f for f in listdir("stories/"+ chosen_story + "/txt") if isfile(join("stories/"+ chosen_story + "/txt", f))])
+            else:
+                story_length = 0
             print('Currently on loaded !')
 
         if (current_mode == "local"):
