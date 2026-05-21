@@ -61,11 +61,11 @@ OLLAMA_MODEL = 'mistral'
 
 # Prompt for story
 #OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words. If you desire, you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme. Be creative. Include a happy ending. No text in the image'''.replace("\n", "")
-OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 80 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de texte dans l'image'''.replace("\n", "")
+OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 60 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de texte dans l'image'''.replace("\n", "")
 
 # OLLAMA_PROMPT_INCIPIT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 80 words with the following theme: '''.replace("\n", "")
 # OLLAMA_PROMPT_EXCIPIT = '''Be creative. Include a happy ending. No title. Image with no text'''.replace("\n", "")
-OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire environ 80 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
+OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire maximum 60 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
 OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre. Image sans texte'''.replace("\n", "")
 
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
@@ -365,9 +365,9 @@ def show_story_page():
     im3.text((7, sizing + 2), story_text, font=font, fill=(0, 0, 0))
 
     page_text = str(current_page) + "/" + str(story_length)
-    left, top, right, bottom = im3.textbbox((5, 5), page_text, font=font)
+    left, top, right, bottom = im3.textbbox((20, 20), page_text, font=font)
     im3.rectangle((left-5, top-5, right+5, bottom+5), fill="white")
-    im3.text((5, 10), page_text, font=font, fill=(0, 0, 0))
+    im3.text((20, 20), page_text, font=font, fill=(0, 0, 0))
 
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
@@ -490,20 +490,96 @@ def rapid_blink():
         i = i+1
 
 def five_short_burst():
-    for i in range(1, 6):
-        GPIO.output(led_pin, GPIO.HIGH)
-        time.sleep(0.4)
-        GPIO.output(led_pin, GPIO.LOW)
-        time.sleep(0.4)
-        i = i+1
+    # for i in range(1, 6):
+    #     GPIO.output(led_pin, GPIO.HIGH)
+    #     time.sleep(0.25)
+    #     GPIO.output(led_pin, GPIO.LOW)
+    #     time.sleep(0.25)
+    #     i = i+1
+    
+    GPIO.output(led_pin, GPIO.LOW)
+
+    #L
+    time.sleep(0.25)
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(0.3)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+    
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(1)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+    
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(0.3)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+    
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(0.3)
+
+    GPIO.output(led_pin, GPIO.LOW)
+
+    time.sleep(2) # entre lettres
+
+    #O
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(1)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(1)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(1)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+
 
 def three_long_burst():
-    for i in range(1, 4):
-        GPIO.output(led_pin, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(led_pin, GPIO.LOW)
-        time.sleep(1)
-        i = i+1
+    # for i in range(1, 4):
+    #     GPIO.output(led_pin, GPIO.HIGH)
+    #     time.sleep(0.8)
+    #     GPIO.output(led_pin, GPIO.LOW)
+    #     time.sleep(0.8)
+    #     i = i+1
+    GPIO.output(led_pin, GPIO.LOW)
+    # A
+    time.sleep(0.25)
+
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(0.3)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+    
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(1)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    
+    time.sleep(2) # entre lettres
+
+    #I
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(0.3)
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+    GPIO.output(led_pin, GPIO.HIGH)
+    time.sleep(0.3)
+    GPIO.output(led_pin, GPIO.LOW)
+    time.sleep(0.25)
+    
 
 
 ##### ############## ##############################################################################
@@ -591,7 +667,7 @@ if __name__ == '__main__':
                         generate_page()
                         event.set()
 
-                        time.sleep(1)
+                        time.sleep(3)
                         print("\nWaiting for next button press...")
                         GPIO.output(led_pin, GPIO.HIGH)
                 elif input_state_execute == False and switch_state == True: # Execute in Story Mode

@@ -1,25 +1,21 @@
 un(e princesse| prince) sauvant son (royaume | village) d'un (monstre | sorcier | dragon | troll) en utilsant un(e baguette magique | parchemin) qui a été découvert dans (des ruines magiques | temple d'une ancienne civilisation | forêt enchantée).
 5:une histoire dans laquelle tu peux inclure un héros, un monstre, une créature mythique ou un artefact au hasard.
 Un (enfant | jeune explorateur | petit héros) découvre un château caché dans la forêt où chaque pièce réalise les rêves de celui qui entre. Le héros doit sauver un rêve (enfermé | capturé | piégé) par un (monstre | sorcier | esprit maléfique).
-Un arbre (parlant | magique | sage) dans une clairière donne des conseils sages. Le héros doit trouver un artefact magique pour réveiller l'arbre (endormi | ensorcelé | pétrifié) par un maléfice.
-Une aventure dans un volcan où des pierres précieuses en forme de cœur sont gardées par un (dragon | géant de lave | serpent de feu). Le héros doit ramener une de ces pierres pour sauver son (village | royaume | peuple).
-Une forêt où les ombres prennent vie la nuit. Le héros doit retrouver un talisman perdu qui (contrôle | calme | maîtrise) les ombres pour restaurer la (paix | lumière | tranquillité).
-Un océan (magique | mystérieux | enchanté) où chaque vague est d'une couleur différente. Le héros part en quête d'une perle mystique qui se trouve dans les profondeurs, gardée par une (créature | bête | entité) mystérieuse.
-Un jardin où chaque fleur (raconte | murmure | dévoile) une histoire. Le héros doit trouver la fleur la plus ancienne qui détient un secret pour résoudre un (mystère | énigme | casse-tête).
-Un endroit où les étoiles filantes (atterrissent | tombent | se posent). Le héros doit faire un vœu avec une étoile spéciale pour (vaincre | arrêter | neutraliser) un (monstre | géant | titan).
-Un monde caché dans les nuages où les habitants (créent | fabriquent | tissent) des arcs-en-ciel. Le héros doit protéger le royaume d'une tempête (maléfique | destructrice | sombre).
-Un village où tous les animaux (parlent | communiquent | conversent). Le héros doit résoudre un conflit entre les animaux en trouvant un ancien parchemin qui (révèle | montre | contient) un secret.
-Un labyrinthe souterrain où coule de l'eau (lumineuse | brillante | éclatante).
-Le héros doit (naviguer | se frayer un chemin | explorer) à travers le labyrinthe pour trouver un cristal qui (illumine | éclaire | brille pour) son village.
-Un (enfant | aventurier) trouve une clé (magique | ancienne) qui ouvre une porte vers un monde caché. Il doit résoudre une énigme pour (libérer | sauver) ce monde.
-Un (oiseau | papillon) géant emmène un héros dans un pays lointain. Ils doivent trouver un (trésor | artefact) pour sauver leur (maison | village).
-Un (garçon | fille) reçoit une cape (invisible | volante) qui lui permet de se faufiler dans un château. Il doit récupérer un objet volé par un (fantôme | sorcier).
-Une rivière (magique | scintillante) mène à un royaume sous-marin. Le héros doit aider une (sirène | créature) à retrouver son (trône | trésor).
-Une (montagne | colline) cache une grotte pleine de cristaux (lumineux | brillants). Le héros doit en récupérer un pour guérir un (village | ami).
 Un (livre | parchemin) mystérieux parle d'une île flottante. Le héros doit y voyager pour (découvrir | protéger) un secret ancien.
-Un (chat | renard) parlant guide le héros à travers une forêt enchantée. Ils doivent trouver un (joyau | talisman) pour briser une (malédiction | ensorcellement).
-Une (tour | forteresse) abandonnée est hantée par des (esprits | ombres). Le héros doit y entrer pour découvrir un (secret | trésor) caché.
-Un (pays | royaume) est figé dans le temps. Le héros doit retrouver une horloge magique pour remettre le temps en (marche | mouvement).
 Un (pont | portail) apparaît seulement la nuit. Le héros doit traverser pour atteindre une ville invisible et y récupérer un (objet | artefact) avant l'aube.
-30:un (engin de construction | camion benne | tractopelle | bétonnière) vit une aventure avec ses copains magiques.
-30:une (coccinelle | giraffe | scarabée) vit une aventure dans (la ville | la forêt | la jungle) avec ses amis.
+Un royaume de fleurs (géantes | colorées | enchantées) est figé dans le temps. Une petite coccinelle (courageuse | intrépide | aventurière) doit retrouver une horloge magique cachée au cœur d'une (rose | pivoine | fleur) enchantée pour remettre le temps en (marche | mouvement).
+Un pays de champignons (colorés | géants | lumineux) est figé dans le temps. Un escargot (intrépide | courageux | déterminé) doit retrouver une horloge magique enfouie sous une (vieille souche | grande feuille | pierre mousseuse) pour remettre le temps en (marche | mouvement).
+Un royaume de (parcs | jardins | prairies) est figé dans le temps. Boule et son chien Bill doivent retrouver une horloge magique (disparue | cachée | perdue) dans leur quartier pour remettre le temps en (marche | mouvement).
+Un pays de (grues | pelleteuses | camions-bennes) est figé dans le temps. Un petit bulldozer (jaune | courageux | intrépide) doit retrouver une horloge magique enfouie sous un (tas de sable | tas de graviers | gros rocher) pour remettre le temps en (marche | mouvement).
+Un (jardin | parc | pré) secret est figé dans le temps. Une coccinelle et un escargot, meilleurs amis, doivent retrouver une horloge magique cachée sous une (grande feuille | vieille pierre | fleur géante) pour remettre le temps en (marche | mouvement).
+Un pays en pleine (construction | chantier | transformation) est figé dans le temps. Une petite coccinelle (perchée | installée | cachée) sur le casque d'un grand bulldozer doit retrouver une horloge magique pour remettre le temps en (marche | mouvement).
+Une petite coccinelle (timide | solitaire | renfermée) ne veut jamais demander de l'aide. Quand elle se perd dans un (grand jardin | champ immense | forêt de fleurs), elle doit apprendre à (faire confiance | s'ouvrir | parler) aux autres pour retrouver son chemin.
+Un escargot (impatient | pressé | agité) veut toujours aller plus vite que les autres. Il découvre qu'en (prenant son temps | ralentissant | soufflant), il remarque des (trésors | merveilles | détails) que personne d'autre n'avait vus.
+Boule ne veut pas (partager | prêter | donner) ses jouets avec ses amis. Quand Bill (cache | perd | abîme) son jouet préféré, il comprend que l'amitié est plus (précieuse | importante | belle) que n'importe quel objet.
+Un grand bulldozer (fier | orgueilleux | arrogant) pense qu'il peut tout faire (seul | sans aide | tout seul). Quand il se retrouve (coincé | bloqué | enlisé) dans la boue, il apprend que chaque (engin | machine | ami) a ses points forts et que travailler ensemble va plus vite.
+Une coccinelle (jalouse | envieuse | triste) trouve que les papillons sont bien plus (beaux | colorés | admirés) qu'elle. En aidant une fleur à (pousser | fleurir | grandir), elle découvre que sa (différence | singularité | beauté) à elle est unique.
+Un escargot et une coccinelle se (disputent | chamaillent | querellent) pour savoir qui est le plus (utile | important | courageux). Une grosse (pluie | tempête | averse) arrive et ils réalisent qu'ensemble ils sont bien plus (forts | efficaces | malins) que chacun de son côté.
+Un petit camion-benne (menteur | vantard | fanfaron) dit toujours qu'il a (tout fait | tout soulevé | tout transporté) seul. Quand il doit (avouer | confesser | admettre) une (erreur | bêtise | maladresse), il apprend que la (vérité | sincérité | honnêteté) rend les amis encore plus proches.
+Bill le chien (désobéit | fait des bêtises | ignore) toujours Boule. Un jour il se retrouve (perdu | seul | en danger) et comprend que (respecter | écouter | faire confiance à) ceux qui nous aiment nous protège vraiment.
+Une petite pelleteuse (découragée | triste | fatiguée) abandonne toujours quand quelque chose est trop (difficile | dur | compliqué). En voyant un escargot traverser un (long chemin | grand obstacle | grosse pierre) sans jamais s'arrêter, elle trouve le courage de (continuer | persévérer | recommencer).
+Un escargot (égoïste | indifférent | distant) ne salue jamais ses voisins du jardin. Un jour il tombe sur le (dos | côté | flanc) et reste (bloqué | coincé | immobile) jusqu'à ce qu'un voisin qu'il n'avait jamais (salué | remarqué | aidé) vienne le secourir.
