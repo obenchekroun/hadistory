@@ -21,6 +21,8 @@ import json
 import signal
 import sys
 
+import base64
+
 import openai
 from openai import OpenAI
 
@@ -37,6 +39,7 @@ elapsed_time = 0
 # OpenAI or local mode
 ONLINE_MODE = True
 GPT_model = "gpt-4o-mini" # most capable GPT model and optimized for chat.  You can substitute with gpt-3.5-turbo for lower cost and latency.
+IMAGE_model = "gpt-image-2" # most capable for image generation.
 openai.api_key = ""
 
 # Display
@@ -256,22 +259,33 @@ def generate_page():
         #                 '--steps', f'{SD_STEPS}', '--output', TEMP_IMAGE_FILE], check=False)
     else:
         response = client.images.generate(
-            model="dall-e-3",
+            model=IMAGE_model,
             prompt=text_image_prompt,
             size="1024x1024",
-            quality="standard",
+            quality="auto",
             n=1,
         )
-        image_url = response.data[0].url
-        image_response = requests.get(image_url)
+        # image_url = response.data[0].url
+        # image_response = requests.get(image_url)
 
-        # Save the image to a file
-        if image_response.status_code == 200:
+        # # Save the image to a file
+        # if image_response.status_code == 200:
+        #     with open(TEMP_IMAGE_FILE, 'wb') as f:
+        #         f.write(image_response.content)
+        #     print(f'Image downloaded and saved as {TEMP_IMAGE_FILE}')
+        # else:
+        #     print("Failed to download the image")
+
+        if response.data[0].b64_json:
+            image_base64 = response.data[0].b64_json
+            image_bytes = base64.b64decode(image_base64)
+
+            # Save the image to a file 
             with open(TEMP_IMAGE_FILE, 'wb') as f:
-                f.write(image_response.content)
-            print(f'Image downloaded and saved as {TEMP_IMAGE_FILE}')
+                f.write(image_bytes)
+                print(f'Image downloaded and saved as {TEMP_IMAGE_FILE}')
         else:
-            print("Failed to download the image")
+             print("Failed to download the image")
 
     end_time = time.time()
     elapsed_time = round(end_time - start_time)
@@ -353,7 +367,7 @@ def show_story_page():
     page_text = str(current_page) + "/" + str(story_length)
     left, top, right, bottom = im3.textbbox((5, 5), page_text, font=font)
     im3.rectangle((left-5, top-5, right+5, bottom+5), fill="white")
-    im3.text((5, 5), page_text, font=font, fill=(0, 0, 0))
+    im3.text((5, 10), page_text, font=font, fill=(0, 0, 0))
 
     canvas.save('output.png') # save a local copy for closer inspection
     canvas = canvas.rotate(90,expand=1)
@@ -476,7 +490,7 @@ def rapid_blink():
         i = i+1
 
 def five_short_burst():
-    for i in range(1, 5):
+    for i in range(1, 6):
         GPIO.output(led_pin, GPIO.HIGH)
         time.sleep(0.4)
         GPIO.output(led_pin, GPIO.LOW)
@@ -484,7 +498,7 @@ def five_short_burst():
         i = i+1
 
 def three_long_burst():
-    for i in range(1, 3):
+    for i in range(1, 4):
         GPIO.output(led_pin, GPIO.HIGH)
         time.sleep(1)
         GPIO.output(led_pin, GPIO.LOW)
