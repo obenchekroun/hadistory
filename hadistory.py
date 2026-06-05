@@ -472,95 +472,95 @@ def rapid_blink():
         i = i+1
 
 def five_short_burst():
-    # for i in range(1, 6):
-    #     GPIO.output(led_pin, GPIO.HIGH)
-    #     time.sleep(0.25)
-    #     GPIO.output(led_pin, GPIO.LOW)
-    #     time.sleep(0.25)
-    #     i = i+1
+    for i in range(1, 6):
+        GPIO.output(led_pin, GPIO.HIGH)
+        time.sleep(0.25)
+        GPIO.output(led_pin, GPIO.LOW)
+        time.sleep(0.25)
+        i = i+1
     
-    GPIO.output(led_pin, GPIO.LOW)
+    # GPIO.output(led_pin, GPIO.LOW)
 
-    #L
-    time.sleep(0.25)
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(0.3)
+    # #L
+    # time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(0.3)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
     
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(1)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(1)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
     
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(0.3)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(0.3)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
     
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(0.3)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(0.3)
 
-    GPIO.output(led_pin, GPIO.LOW)
+    # GPIO.output(led_pin, GPIO.LOW)
 
-    time.sleep(2) # entre lettres
+    # time.sleep(2) # entre lettres
 
-    #O
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(1)
+    # #O
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(1)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
 
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(1)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(1)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
 
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(1)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(1)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
 
 
 def three_long_burst():
-    # for i in range(1, 4):
-    #     GPIO.output(led_pin, GPIO.HIGH)
-    #     time.sleep(0.8)
-    #     GPIO.output(led_pin, GPIO.LOW)
-    #     time.sleep(0.8)
-    #     i = i+1
-    GPIO.output(led_pin, GPIO.LOW)
-    # A
-    time.sleep(0.25)
+    for i in range(1, 4):
+        GPIO.output(led_pin, GPIO.HIGH)
+        time.sleep(0.8)
+        GPIO.output(led_pin, GPIO.LOW)
+        time.sleep(0.8)
+        i = i+1
+    # GPIO.output(led_pin, GPIO.LOW)
+    # # A
+    # time.sleep(0.25)
 
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(0.3)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(0.3)
     
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
     
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(1)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(1)
     
-    GPIO.output(led_pin, GPIO.LOW)
+    # GPIO.output(led_pin, GPIO.LOW)
     
-    time.sleep(2) # entre lettres
+    # time.sleep(2) # entre lettres
 
-    #I
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(0.3)
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
-    GPIO.output(led_pin, GPIO.HIGH)
-    time.sleep(0.3)
-    GPIO.output(led_pin, GPIO.LOW)
-    time.sleep(0.25)
+    # #I
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(0.3)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
+    # GPIO.output(led_pin, GPIO.HIGH)
+    # time.sleep(0.3)
+    # GPIO.output(led_pin, GPIO.LOW)
+    # time.sleep(0.25)
     
 
 
@@ -683,7 +683,7 @@ if __name__ == '__main__':
                             print("To be continued...")
 
                         event.set()
-                        time.sleep(1)
+                        time.sleep(3)
 
                         # Saving where we are in the stories
                         with open(SETTINGS_FILE, 'w') as f:
@@ -711,7 +711,7 @@ if __name__ == '__main__':
                             print("To be continued...")
 
                             event.set()
-                            time.sleep(1)
+                            time.sleep(3)
 
                             # Saving where we are in the stories
                             with open(SETTINGS_FILE, 'w') as f:
