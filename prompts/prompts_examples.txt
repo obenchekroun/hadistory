@@ -24,3 +24,9 @@ Un (pont | portail) apparaît seulement la nuit. Le héros doit traverser pour a
 30:un (engin de construction | camion benne | tractopelle | bétonnière) vit une aventure avec ses copains magiques.
 30:une (coccinelle | giraffe | scarabée) vit une aventure dans (la ville | la forêt | la jungle) avec ses amis.
 5:a story in which you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme.
+un(e princesse| prince) sauvant son (royaume | village) d'un (monstre | sorcier | dragon | troll) en utilsant un(e baguette magique | parchemin) qui a été découvert dans (des ruines magiques | temple d'une ancienne civilisation | forêt enchantée).
+Un (livre | parchemin) mystérieux parle d'une île flottante. Le héros doit y voyager pour (découvrir | protéger) un secret ancien.
+Un (pont | portail) apparaît seulement la nuit. Le héros doit traverser pour atteindre une ville invisible et y récupérer un (objet | artefact) avant l'aube.
+Un royaume de fleurs (géantes | colorées | enchantées) est figé dans le temps. Une petite coccinelle (courageuse | intrépide | aventurière) doit retrouver une horloge magique cachée au cœur d'une (rose | pivoine | fleur) enchantée pour remettre le temps en (marche | mouvement).
+Un pays de champignons (colorés | géants | lumineux) est figé dans le temps. Un escargot (intrépide | courageux | déterminé) doit retrouver une horloge magique enfouie sous une (vieille souche | grande feuille | pierre mousseuse) pour remettre le temps en (marche | mouvement).
+Un (enfant | jeune explorateur | petit héros) découvre un château caché dans la forêt où chaque pièce réalise les rêves de celui qui entre. Le héros doit sauver un rêve (enfermé | capturé | piégé) par un (monstre | sorcier | esprit maléfique).

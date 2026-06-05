@@ -43,7 +43,6 @@ IMAGE_model = "gpt-image-2" # most capable for image generation.
 openai.api_key = ""
 
 # Display
-#DISPLAY_TYPE = "waveshare_epd.epd5in65f" # Set to the name of your e-ink device (https://github.com/robweber/omni-epd#displays-implemented)
 DISPLAY_TYPE = "inky.impression"
 DISPLAY_RESOLUTION = (448, 600)
 
@@ -52,21 +51,15 @@ OLLAMA_API = 'http://localhost:11434/api/generate'
 OLLAMA_TIMEOUT = 600 # in seconds
 
 # Ollama model
-OLLAMA_MODEL = 'mistral'
-#OLLAMA_MODEL = 'llama2:7b'
-#OLLAMA_MODEL = 'gemma:7b'
-#OLLAMA_MODEL = 'qwen2:0.5b' # Works with RPI Zero 2W
-#OLLAMA_MODEL = 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
-
+OLLAMA_MODEL = 'mistral' # 'llama2:7b' 'gemma:7b''qwen2:0.5b' # Works with RPI Zero 2W 'gurubot/tinystories-656k-q8' # Works with RPI Zero 2W
 
 # Prompt for story
-#OLLAMA_PROMPT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 40 words. If you desire, you can include a hero, monster, mythical creature or artifact. You can choose a random mood or theme. Be creative. Include a happy ending. No text in the image'''.replace("\n", "")
 OLLAMA_PROMPT = '''Crée une histoire d'un livre fantasy pour enfant, d'environ 60 mots. Tu peux inclure un héros, un monstre, une créature mythique ou un artefact. Choisis une ambiance ou un thème au hasard. Sois créatif. Inclus une fin heureuse. Pas de texte dans l'image'''.replace("\n", "")
 
-# OLLAMA_PROMPT_INCIPIT = '''Create text from the page of an illustrated children\'s fantasy book. This text should be around 80 words with the following theme: '''.replace("\n", "")
-# OLLAMA_PROMPT_EXCIPIT = '''Be creative. Include a happy ending. No title. Image with no text'''.replace("\n", "")
 OLLAMA_PROMPT_INCIPIT = '''Crée un texte issu d'une page d'un livre illustré pour enfant. Ce texte doit faire maximum 60 mots. Il doit suivre le thème suivant : '''.replace("\n", "")
-OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre. Image sans texte'''.replace("\n", "")
+OLLAMA_PROMPT_EXCIPIT = '''Sois créatif. Inclus une fin heureuse. Pas de titre.'''.replace("\n", "")
+
+OLLAMA_PROMPT_IMAGE_INCIPIT = '''Crée une illustration pour l'histoire suivante. Evite une illustration en cases de bande dessinée, crée une seule image pour toute l'histoire. N'inclut pas de texte dans l'image générée. Utilise un style graphique ghibli, comic book ou livre d'enfant, au hasard. Soit créatif. Voici l'histoire : '''.replace("\n", "")
 
 OLLAMA_PROMPT_FILE = "prompts/prompts.txt"
 
@@ -232,10 +225,9 @@ def generate_page():
 
     # Generating image
     print("Creating the image, may take a while ...")
-    #translationTable = str.maketrans("éàèùâêîôûçÉÈÀïÎ", "eaeuaeioucEEaii")
-    #text_image_prompt = generated_text.replace('\n',' ').translate(translationTable)
-    text_image_prompt = generated_text.replace('\n',' ')
-    #text_image_prompt = get_n_sentences(text_image_prompt, 2, joined=True)
+
+    text_image_prompt = OLLAMA_PROMPT_IMAGE_INCIPIT + generated_text.replace('\n',' ')
+    print(f"\n\nHere is the prompt for the image generation : {text_image_prompt}")
 
     if (not ONLINE_MODE):
         start_time = time.time()
@@ -265,16 +257,6 @@ def generate_page():
             quality="auto",
             n=1,
         )
-        # image_url = response.data[0].url
-        # image_response = requests.get(image_url)
-
-        # # Save the image to a file
-        # if image_response.status_code == 200:
-        #     with open(TEMP_IMAGE_FILE, 'wb') as f:
-        #         f.write(image_response.content)
-        #     print(f'Image downloaded and saved as {TEMP_IMAGE_FILE}')
-        # else:
-        #     print("Failed to download the image")
 
         if response.data[0].b64_json:
             image_base64 = response.data[0].b64_json
