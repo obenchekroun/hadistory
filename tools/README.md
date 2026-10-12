@@ -2,7 +2,7 @@
 
 Scripts that run on a computer (not on the device), mainly to prepare content for the Pico version.
 
-## `render_pages.py` — pre-render story pages for the Pico SD card
+## `render_pages.py` — pre-render story pages for the Pico version
 
 Reads the shared stories in `stories/` and produces one 4-bit BMP per page, laid out exactly like the Pi version (illustration on top, text below in Cormorant Garamond 18, page counter top-left), dithered to the 7 colours of the Inky Impression 5.7".
 
@@ -12,10 +12,11 @@ Requirements: Python 3, Pillow, numpy.
 python3 tools/render_pages.py                  # all stories -> tools/out/
 python3 tools/render_pages.py --story story_3  # a single story (repeatable)
 python3 tools/render_pages.py --saturation 0.5 --sharpness 1.2
+python3 tools/render_pages.py --embed DIR      # also write the files for the flash variant (see below)
 python3 tools/render_pages.py --help
 ```
 
-Then copy `tools/out/stories/` to the root of the microSD card.
+For the microSD variant of the firmware (`STORAGE=SDCARD`), copy `tools/out/stories/` to the root of the card.
 
 Rendering takes about 6 seconds for 97 pages on a laptop. `tools/out/` is ignored by git; it is rebuilt from `stories/`. The files open in any image viewer (Preview, Finder thumbnails), which is the only preview needed.
 
@@ -45,6 +46,15 @@ Pixel values are UC8159 colour indices:
 Index 7 ("clean") is never used.
 
 On the Pico, loading a page is `fseek(118)` then one `fread` of 134 400 bytes straight into the frame buffer.
+
+### Flash variant (`--embed DIR`)
+
+For the firmware variant with the stories embedded in flash (`STORAGE=FLASH`), `--embed DIR` additionally writes into `DIR`:
+
+- `stories_data.S`: one `.incbin` per page, taking only the pixel data of the BMP (offset 118, 134 400 bytes), so the frames end up in flash exactly as the panel expects them.
+- `stories_table.c`: the catalogue of embedded stories (name, page count, page pointers) declared in `pico/src/stories_embedded.h`.
+
+The Pico CMake build calls this itself when `STORAGE=FLASH`; there is no need to run it by hand for that variant.
 
 ### Rendering notes
 
