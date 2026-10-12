@@ -1,0 +1,22 @@
+/* Four active-low buttons with internal pull-ups.
+ * buttons_poll() samples them once; buttons_pressed() reports a falling edge since
+ * the previous poll, which mirrors the previous_*_state logic of hadistory.py.
+ */
+#ifndef HADISTORY_BUTTONS_H
+#define HADISTORY_BUTTONS_H
+
+#include <stdbool.h>
+
+typedef enum {
+    BUTTON_EXECUTE = 0,
+    BUTTON_RESET,
+    BUTTON_MODE,
+    BUTTON_BACK,
+    BUTTON_COUNT
+} button_t;
+
+void buttons_init(void);
+void buttons_poll(void);
+bool buttons_pressed(button_t b);   // true once per press, on the poll where it went down
+
+#endif
