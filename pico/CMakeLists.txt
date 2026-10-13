@@ -37,18 +37,24 @@ pico_sdk_init()
 
 set(REPO_ROOT ${CMAKE_CURRENT_LIST_DIR}/..)
 
+# Pimoroni display stack: PicoGraphics frame buffer and the UC8159 (Inky Impression 5.7") driver
+include(libraries/pico_graphics/pico_graphics)
+include(drivers/uc8159/uc8159)
+
 set(hadistory_SRC
-    main.c
-    src/led.c
-    src/buttons.c
-    src/display.c
-    src/story.c
+    main.cpp
+    src/led.cpp
+    src/buttons.cpp
+    src/display.cpp
+    src/story.cpp
 )
 set(my_lib
     pico_stdlib
     pico_rand
     hardware_spi
     hardware_pwm
+    pico_graphics
+    uc8159
 )
 
 # ---------------------------------------------------------------- storage backend
@@ -56,7 +62,7 @@ if(STORAGE STREQUAL "SDCARD")
     # Pimoroni drivers used from C: SD card over PIO SPI, and ChaN FatFs
     include(drivers/sdcard/sdcard)
     include(drivers/fatfs/fatfs)
-    list(APPEND hadistory_SRC src/storage_sdcard.c)
+    list(APPEND hadistory_SRC src/storage_sdcard.cpp)
     list(APPEND my_lib hardware_pio sdcard fatfs)
     set(STORAGE_DEFINE HADISTORY_STORAGE_SDCARD=1)
 elseif(STORAGE STREQUAL "FLASH")
@@ -73,7 +79,7 @@ elseif(STORAGE STREQUAL "FLASH")
         COMMENT "Rendering stories for embedding in flash"
         VERBATIM
     )
-    list(APPEND hadistory_SRC src/storage_flash.c ${EMBED_DIR}/stories_data.S ${EMBED_DIR}/stories_table.c)
+    list(APPEND hadistory_SRC src/storage_flash.cpp ${EMBED_DIR}/stories_data.S ${EMBED_DIR}/stories_table.c)
     list(APPEND my_lib hardware_flash hardware_sync)
     set(STORAGE_DEFINE HADISTORY_STORAGE_FLASH=1)
 else()
@@ -85,7 +91,7 @@ if(WITH_GPT)
     if(NOT PICO_CYW43_SUPPORTED)
         message(FATAL_ERROR "WITH_GPT=ON needs a board with wireless (e.g. -DPICO_BOARD=pico2_w)")
     endif()
-    list(APPEND hadistory_SRC src/gpt.c)
+    list(APPEND hadistory_SRC src/gpt.cpp)
     list(APPEND my_lib pico_cyw43_arch_lwip_threadsafe_background)
 endif()
 
@@ -95,7 +101,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 # hadistory_config.h is force-included in every translation unit so that the pin
 # definitions it holds also reach the pimoroni sdcard driver (SDCARD_PIN_SPI0_*).
-target_compile_options(${PROJECT_NAME} PRIVATE -include ${CMAKE_CURRENT_LIST_DIR}/src/hadistory_config.h -Wall)
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<COMPILE_LANGUAGE:C,CXX>:-include ${CMAKE_CURRENT_LIST_DIR}/src/hadistory_config.h>
+    -Wall
+)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     HADISTORY_WITH_GPT=$<BOOL:${WITH_GPT}>

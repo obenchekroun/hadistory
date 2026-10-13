@@ -1,6 +1,6 @@
 /********************************************************************************
  * hadistory - Pico version
- * main.c - button loop and mode switching, ported from the main loop of pi/hadistory.py
+ * main.cpp - button loop and mode switching, ported from the main loop of pi/hadistory.py
  *
  * Build options (see CMakeLists.txt):
  *   PICO_BOARD          target board, selects the pin mapping in hadistory_config.h
@@ -21,9 +21,6 @@
 #if HADISTORY_WITH_GPT
 #include "gpt.h"
 #endif
-
-// One frame, 4 bpp, filled from the SD card or by the AI pipeline
-static uint8_t frame[FRAME_BYTES];
 
 static settings_t settings;
 static bool sd_ok = false;
@@ -87,10 +84,10 @@ int main(void) {
 #if HADISTORY_WITH_GPT
                 story_reset(&settings);
                 save_settings();
-                if (!gpt_generate_page(frame)) led_rapid_blink();
+                if (!gpt_generate_page()) led_rapid_blink();
 #endif
             } else {
-                if (!story_next_page(&settings, frame)) led_rapid_blink();
+                if (!story_next_page(&settings)) led_rapid_blink();
                 save_settings();
             }
             led_breathe_stop();
@@ -100,7 +97,7 @@ int main(void) {
         } else if (buttons_pressed(BUTTON_BACK) && !settings.ai_mode) {
             if (settings.story[0] && settings.page > 1) {
                 led_breathe_start();
-                if (!story_previous_page(&settings, frame)) led_rapid_blink();
+                if (!story_previous_page(&settings)) led_rapid_blink();
                 save_settings();
                 led_breathe_stop();
                 sleep_ms(POST_ACTION_PAUSE_MS);

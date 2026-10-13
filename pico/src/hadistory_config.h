@@ -28,8 +28,10 @@
 // ---------------------------------------------------------------------------
 #define DISPLAY_WIDTH        600
 #define DISPLAY_HEIGHT       448
-#define FRAME_BYTES          (DISPLAY_WIDTH * DISPLAY_HEIGHT / 2)   // 4 bpp: 134400
-#define PAGE_BMP_PIXEL_OFFSET 118   // see tools/README.md: pixel data offset in pN.bmp
+// Page files produced by tools/render_pages.py (see tools/README.md): 4 bpp colour indices
+#define DISPLAY_ROW_BYTES    (DISPLAY_WIDTH / 2)                     // 300
+#define FRAME_BYTES          (DISPLAY_ROW_BYTES * DISPLAY_HEIGHT)    // 134400
+#define PAGE_BMP_PIXEL_OFFSET 118
 #define PAGE_BMP_SIZE        (PAGE_BMP_PIXEL_OFFSET + FRAME_BYTES)
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,6 @@
 #include "display.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "pico/rand.h"
 
@@ -19,9 +18,9 @@ static const story_info_t *find(const char *name) {
 
 void story_init(settings_t *settings) {
     catalogue_size = storage_list_stories(catalogue, MAX_STORIES);
-    printf("Stories on card: %d\n", catalogue_size);
+    printf("Stories available: %d\n", catalogue_size);
     if (settings->story[0] && !find(settings->story)) {
-        printf("Saved story %s not on card, starting over\n", settings->story);
+        printf("Saved story %s not available, starting over\n", settings->story);
         story_reset(settings);
     }
 }
@@ -36,7 +35,15 @@ void story_reset(settings_t *settings) {
     settings->page = 0;
 }
 
-bool story_next_page(settings_t *settings, uint8_t *frame) {
+static bool show_current_page(const settings_t *settings) {
+    printf("Let's show the following story : %s, on page %d/%d\n",
+           settings->story, settings->page, story_page_count(settings));
+    if (!storage_load_page(settings->story, settings->page, display_set_row)) return false;
+    display_update();
+    return true;
+}
+
+bool story_next_page(settings_t *settings) {
     if (catalogue_size == 0) return false;
 
     if (settings->page >= story_page_count(settings)) {
@@ -44,28 +51,22 @@ bool story_next_page(settings_t *settings, uint8_t *frame) {
     }
     if (settings->story[0] == '\0') {
         const story_info_t *pick = &catalogue[get_rand_32() % catalogue_size];
-        strncpy(settings->story, pick->name, STORY_NAME_LEN - 1);
+        snprintf(settings->story, STORY_NAME_LEN, "%s", pick->name);
         settings->page = 0;
     }
     settings->page++;
-    printf("Let's show the following story : %s, on page %d/%d\n",
-           settings->story, settings->page, story_page_count(settings));
-    if (!storage_load_page(settings->story, settings->page, frame)) return false;
-    display_show(frame);
+    if (!show_current_page(settings)) return false;
     puts(settings->page >= story_page_count(settings) ? "The end." : "To be continued...");
     return true;
 }
 
-bool story_previous_page(settings_t *settings, uint8_t *frame) {
+bool story_previous_page(settings_t *settings) {
     if (settings->story[0] == '\0' || settings->page <= 1) {
         puts("Nothing to show, skipping ...");
         return false;
     }
     settings->page--;
-    printf("Let's show the following story : %s, on page %d/%d\n",
-           settings->story, settings->page, story_page_count(settings));
-    if (!storage_load_page(settings->story, settings->page, frame)) return false;
-    display_show(frame);
+    if (!show_current_page(settings)) return false;
     puts("To be continued...");
     return true;
 }

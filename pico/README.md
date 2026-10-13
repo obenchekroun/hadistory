@@ -1,6 +1,6 @@
 # hadistory — Raspberry Pi Pico version
 
-Port of hadistory to the RP2350 (Raspberry Pi Pico 2 W, Pimoroni Pico Plus 2 / Pico LiPo 2) driving the Inky Impression 5.7" (600 x 448, 7 colours, UC8159). Written in C on the Pico SDK, with the Pimoroni `sdcard` and `fatfs` drivers.
+Port of hadistory to the RP2350 (Raspberry Pi Pico 2 W, Pimoroni Pico Plus 2 / Pico LiPo 2) driving the Inky Impression 5.7" (600 x 448, 7 colours, UC8159). Written in C++ on the Pico SDK with the Pimoroni libraries: `pico_graphics` and the `uc8159` display driver, `sdcard` and `fatfs` for the microSD variant.
 
 Scope compared to the Pi version:
 - **Story mode**: pre-rendered pages, either on a microSD card (`STORAGE=SDCARD`) or embedded in the firmware for boards with a big flash such as the Pico Plus 2 / Pico LiPo 2 (`STORAGE=FLASH`). Pages are produced by `tools/render_pages.py`, see `tools/README.md`.
@@ -12,25 +12,29 @@ Scope compared to the Pi version:
 ```
 pico/
 ├── CMakeLists.txt          build configuration and options
-├── main.c                  button loop and mode switching (port of the Python main loop)
+├── main.cpp                button loop and mode switching (port of the Python main loop)
 ├── secrets.cmake.example   WiFi / OpenAI credentials template (copy to secrets.cmake, ignored by git)
 └── src/
     ├── hadistory_config.h  pins per board, display geometry, behaviour constants
-    ├── led.c/.h            status LED: solid = waiting, breathing = busy (timer driven), bursts = mode / error
-    ├── buttons.c/.h        4 active-low buttons, edge detection
-    ├── display.c/.h        UC8159 driver, shows a raw 4 bpp frame
-    ├── storage.h           storage interface (stories catalogue, page loading, persisted state)
-    ├── storage_sdcard.c    STORAGE=SDCARD backend: FAT microSD, state in /currently.txt
-    ├── storage_flash.c     STORAGE=FLASH backend: pages embedded in the image, state in the last flash sector
+    ├── led.cpp/.h          status LED: solid = waiting, breathing = busy (timer driven), bursts = mode / error
+    ├── buttons.cpp/.h      4 active-low buttons, edge detection
+    ├── display.cpp/.h      PicoGraphics 3-bit frame buffer + Pimoroni UC8159 driver; the only path to the panel
+    ├── storage.h           storage interface (stories catalogue, pages delivered row by row, persisted state)
+    ├── storage_sdcard.cpp  STORAGE=SDCARD backend: FAT microSD, state in /currently.txt
+    ├── storage_flash.cpp   STORAGE=FLASH backend: pages embedded in the image, state in the last flash sector
     ├── stories_embedded.h  catalogue type for the generated stories_table.c (FLASH)
-    ├── story.c/.h          story mode logic
-    ├── gpt.c/.h            AI mode (built only with WITH_GPT=ON)
+    ├── story.cpp/.h        story mode logic
+    ├── gpt.cpp/.h          AI mode (built only with WITH_GPT=ON)
     └── lwipopts.h          lwIP configuration for the AI mode
 ```
 
+## Display path
+
+Everything that reaches the panel goes through `display.cpp`: a `PicoGraphics_Pen3Bit` frame buffer (100 KB, allocated once) and the Pimoroni `UC8159` driver, which converts it to the panel format on the fly. Pages from the storage are 4 bpp colour indices (the BMP pixel data, see `tools/README.md`) and are pushed one row at a time with `set_pen(index)` / `set_pixel()`, so no second full-frame buffer exists. The AI mode will draw into the same PicoGraphics object (jpegdec, fonts). Changing to another Pimoroni panel means swapping the driver class and the geometry in `display.cpp` / `hadistory_config.h`, and re-rendering the pages for it.
+
 ## Build
 
-Requirements: Pico SDK 2.x with `PICO_SDK_PATH` set, `pimoroni-pico` checked out next to it, `cmake`, `arm-none-eabi-gcc`, `picotool`.
+Requirements: Pico SDK 2.x with `PICO_SDK_PATH` set, [`pimoroni-pico`](https://github.com/pimoroni/pimoroni-pico) checked out next to it (the CMake finds it there), `cmake`, `arm-none-eabi-gcc`, `picotool`.
 
 ```bash
 # Story mode, pages on microSD, Pico 2 W

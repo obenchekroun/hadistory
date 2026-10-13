@@ -35,11 +35,14 @@ int storage_list_stories(story_info_t *out, int max) {
     return count;
 }
 
-bool storage_load_page(const char *story, int page, uint8_t *frame) {
+bool storage_load_page(const char *story, int page, row_sink_t sink) {
     for (int i = 0; i < embedded_story_count; i++) {
         if (strcmp(embedded_stories[i].name, story) != 0) continue;
         if (page < 1 || page > embedded_stories[i].page_count) return false;
-        memcpy(frame, embedded_stories[i].pages[page - 1], FRAME_BYTES);
+        const uint8_t *data = embedded_stories[i].pages[page - 1];   // read in place from XIP flash
+        for (int y = 0; y < DISPLAY_HEIGHT; y++) {
+            sink(y, data + y * DISPLAY_ROW_BYTES);
+        }
         return true;
     }
     printf("Flash storage: story %s not found\n", story);
@@ -58,8 +61,12 @@ bool storage_load_settings(settings_t *s) {
 
 bool storage_save_settings(const settings_t *s) {
     static uint8_t buf[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
-    settings_record_t rec = { .magic = SETTINGS_MAGIC, .page = s->page, .ai_mode = s->ai_mode };
+    settings_record_t rec;
+    memset(&rec, 0, sizeof rec);
+    rec.magic = SETTINGS_MAGIC;
     snprintf(rec.story, STORY_NAME_LEN, "%s", s->story);
+    rec.page = s->page;
+    rec.ai_mode = s->ai_mode ? 1 : 0;
     memset(buf, 0xFF, sizeof buf);
     memcpy(buf, &rec, sizeof rec);
 

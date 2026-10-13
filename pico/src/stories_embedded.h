@@ -7,6 +7,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     const char *name;
     int page_count;
@@ -15,5 +19,9 @@ typedef struct {
 
 extern const embedded_story_t embedded_stories[];
 extern const int embedded_story_count;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

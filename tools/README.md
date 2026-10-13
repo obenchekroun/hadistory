@@ -45,7 +45,7 @@ Pixel values are UC8159 colour indices:
 
 Index 7 ("clean") is never used.
 
-On the Pico, loading a page is `fseek(118)` then one `fread` of 134 400 bytes straight into the frame buffer.
+On the Pico, a page is read from offset 118 row by row (300 bytes per row) and pushed into the PicoGraphics frame buffer as colour indices.
 
 ### Flash variant (`--embed DIR`)
 

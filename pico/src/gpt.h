@@ -5,9 +5,8 @@
 #define HADISTORY_GPT_H
 
 #include <stdbool.h>
-#include <stdint.h>
 
-bool gpt_init(void);                      // WiFi connection
-bool gpt_generate_page(uint8_t *frame);   // full pipeline, then display
+bool gpt_init(void);            // WiFi connection
+bool gpt_generate_page(void);   // full pipeline, drawn into display_graphics(), then shown
 
 #endif

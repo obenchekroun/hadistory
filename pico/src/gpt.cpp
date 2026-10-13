@@ -1,9 +1,10 @@
 /* Skeleton. Planned pipeline, mirroring generate_page() in hadistory.py:
  *   1. build the prompt from prompts/prompts.txt (weighted lines, bracket choices)
  *   2. POST /v1/chat/completions (gpt-4o-mini) -> story text
- *   3. POST /v1/images/generations (jpeg output) -> stream to SD
- *   4. decode JPEG at 1/2 scale, dither to 7 colours, render text with a bitmap font
- *   5. display_show()
+ *   3. POST /v1/images/generations (jpeg output) -> stream to storage
+ *   4. jpegdec into display_graphics() (PicoGraphics dithers to the 7 colours),
+ *      text with a PicoGraphics font
+ *   5. display_update()
  */
 #include "gpt.h"
 #include "hadistory_config.h"
@@ -27,8 +28,7 @@ bool gpt_init(void) {
     return true;
 }
 
-bool gpt_generate_page(uint8_t *frame) {
-    (void)frame;
+bool gpt_generate_page(void) {
     puts("AI mode: not implemented yet");
     return false;
 }

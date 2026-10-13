@@ -42,8 +42,7 @@ int storage_list_stories(story_info_t *out, int max) {
     }
     while (count < max && f_readdir(&dir, &fi) == FR_OK && fi.fname[0] != '\0') {
         if (!(fi.fattrib & AM_DIR) || fi.fname[0] == '.') continue;
-        strncpy(out[count].name, fi.fname, STORY_NAME_LEN - 1);
-        out[count].name[STORY_NAME_LEN - 1] = '\0';
+        snprintf(out[count].name, STORY_NAME_LEN, "%.*s", STORY_NAME_LEN - 1, fi.fname);
         out[count].page_count = count_pages(out[count].name);
         if (out[count].page_count > 0) count++;
     }
@@ -51,19 +50,21 @@ int storage_list_stories(story_info_t *out, int max) {
     return count;
 }
 
-bool storage_load_page(const char *story, int page, uint8_t *frame) {
+bool storage_load_page(const char *story, int page, row_sink_t sink) {
     char path[64];
     FIL f;
-    UINT read = 0;
+    static uint8_t row[DISPLAY_ROW_BYTES];
     snprintf(path, sizeof path, STORIES_DIR "/%s/p%d.bmp", story, page);
     if (f_open(&f, path, FA_READ) != FR_OK) {
         printf("SD card: cannot open %s\n", path);
         return false;
     }
-    bool ok = f_size(&f) == PAGE_BMP_SIZE
-           && f_lseek(&f, PAGE_BMP_PIXEL_OFFSET) == FR_OK
-           && f_read(&f, frame, FRAME_BYTES, &read) == FR_OK
-           && read == FRAME_BYTES;
+    bool ok = f_size(&f) == PAGE_BMP_SIZE && f_lseek(&f, PAGE_BMP_PIXEL_OFFSET) == FR_OK;
+    for (int y = 0; ok && y < DISPLAY_HEIGHT; y++) {
+        UINT read = 0;
+        ok = f_read(&f, row, DISPLAY_ROW_BYTES, &read) == FR_OK && read == DISPLAY_ROW_BYTES;
+        if (ok) sink(y, row);
+    }
     f_close(&f);
     if (!ok) printf("SD card: %s is not a valid page file\n", path);
     return ok;
