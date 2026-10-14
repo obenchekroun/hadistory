@@ -25,6 +25,9 @@
 #ifndef HADISTORY_LED_ONBOARD
 #define HADISTORY_LED_ONBOARD 0   // -DSTATUS_LED=ONBOARD sets it to 1
 #endif
+#ifndef HADISTORY_DEEP_SLEEP
+#define HADISTORY_DEEP_SLEEP 0    // -DDEEP_SLEEP=ON sets it to 1
+#endif
 
 // ---------------------------------------------------------------------------
 // Display: Inky Impression 5.7" (UC8159, 600 x 448, 7 colours)
@@ -34,11 +37,9 @@
 // Panel orientation, done in hardware by the UC8159 scan directions: ROTATE_0 or
 // ROTATE_180 (pimoroni::Rotation). 180 puts the HAT buttons at the top.
 #define DISPLAY_ROTATION     ROTATE_180
-// Page files produced by tools/render_pages.py (see tools/README.md): 4 bpp colour indices
-#define DISPLAY_ROW_BYTES    (DISPLAY_WIDTH / 2)                     // 300
-#define FRAME_BYTES          (DISPLAY_ROW_BYTES * DISPLAY_HEIGHT)    // 134400
-#define PAGE_BMP_PIXEL_OFFSET 118
-#define PAGE_BMP_SIZE        (PAGE_BMP_PIXEL_OFFSET + FRAME_BYTES)
+// Pages: a JPEG illustration (any size, fitted into a 448 px square) and a text
+#define IMAGE_MAX_BYTES      (160 * 1024)   // JPEG buffer: SD card pages and OpenAI images
+#define PAGE_TEXT_MAX        1024
 
 // ---------------------------------------------------------------------------
 // Pins
@@ -109,9 +110,26 @@
 // ---------------------------------------------------------------------------
 #define BUTTON_POLL_MS       100     // main loop period, as the 0.1 s sleep in hadistory.py
 #define POST_ACTION_PAUSE_MS 3000    // pause after a page is shown, as in hadistory.py
+#define IDLE_BEFORE_SLEEP_MS 20000   // DEEP_SLEEP: power the core off after this long without a button press
 #define STORIES_DIR          "/stories"        // SDCARD backend
 #define SETTINGS_FILE        "/currently.txt"  // SDCARD backend
 #define MAX_STORIES          64
 #define STORY_NAME_LEN       32
+
+// ---------------------------------------------------------------------------
+// AI mode (WITH_GPT=ON), same models as pi/hadistory.py
+// ---------------------------------------------------------------------------
+#define OPENAI_HOST          "api.openai.com"
+#define GPT_MODEL            "gpt-4o-mini"
+#define IMAGE_MODEL          "gpt-image-2"
+#define IMAGE_QUALITY        "low"   // gpt-image quality: low, medium, high, auto (time, cost and size)
+#define IMAGE_COMPRESSION    40      // JPEG compression 0-100 asked to the API, keeps the image in IMAGE_MAX_BYTES
+#define WIFI_CONNECT_TIMEOUT_MS 30000 // give up joining the network after this
+#define GPT_TIMEOUT_S        60      // idle timeout of the chat request
+#define IMAGE_TIMEOUT_S      120     // idle timeout of the image request (127 s max, lwIP poll limit)
+#define STORY_MAX_LEN        PAGE_TEXT_MAX
+#ifndef HADISTORY_TLS_NO_VERIFY
+#define HADISTORY_TLS_NO_VERIFY 0    // -DTLS_NO_VERIFY=ON sets it to 1
+#endif
 
 #endif // HADISTORY_CONFIG_H

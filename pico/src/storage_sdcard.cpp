@@ -1,11 +1,12 @@
 /* Storage backend for STORAGE=SDCARD: FAT microSD card over PIO SPI (pimoroni sdcard + fatfs).
- * Card layout (copied from tools/out/): /stories/<story>/pN.bmp, state in /currently.txt */
+ * Card layout (copied from tools/out/): /stories/<story>/pN.jpg + pN.txt, state in /currently.txt */
 #include "storage.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ff.h"
+#include "render.h"
 
 static FATFS fs;
 
@@ -20,12 +21,12 @@ bool storage_init(void) {
 }
 
 static int count_pages(const char *story) {
-    // Pages are p1.bmp .. pN.bmp without gaps, like the txt/pN.txt of the Pi version
+    // Pages are p1 .. pN without gaps, like the txt/pN.txt of the Pi version
     char path[64];
     int n = 0;
     for (;;) {
         FILINFO fi;
-        snprintf(path, sizeof path, STORIES_DIR "/%s/p%d.bmp", story, n + 1);
+        snprintf(path, sizeof path, STORIES_DIR "/%s/p%d.txt", story, n + 1);
         if (f_stat(path, &fi) != FR_OK) break;
         n++;
     }
@@ -50,24 +51,38 @@ int storage_list_stories(story_info_t *out, int max) {
     return count;
 }
 
-bool storage_load_page(const char *story, int page, row_sink_t sink) {
-    char path[64];
+static bool read_file(const char *path, uint8_t *buf, size_t cap, size_t *len) {
     FIL f;
-    static uint8_t row[DISPLAY_ROW_BYTES];
-    snprintf(path, sizeof path, STORIES_DIR "/%s/p%d.bmp", story, page);
+    UINT read = 0;
+    *len = 0;
     if (f_open(&f, path, FA_READ) != FR_OK) {
         printf("SD card: cannot open %s\n", path);
         return false;
     }
-    bool ok = f_size(&f) == PAGE_BMP_SIZE && f_lseek(&f, PAGE_BMP_PIXEL_OFFSET) == FR_OK;
-    for (int y = 0; ok && y < DISPLAY_HEIGHT; y++) {
-        UINT read = 0;
-        ok = f_read(&f, row, DISPLAY_ROW_BYTES, &read) == FR_OK && read == DISPLAY_ROW_BYTES;
-        if (ok) sink(y, row);
-    }
+    FSIZE_t size = f_size(&f);
+    bool ok = size <= cap && f_read(&f, buf, (UINT)size, &read) == FR_OK && read == size;
     f_close(&f);
-    if (!ok) printf("SD card: %s is not a valid page file\n", path);
+    if (!ok) printf("SD card: cannot read %s (%lu bytes, buffer %u)\n", path, (unsigned long)size, (unsigned)cap);
+    *len = read;
     return ok;
+}
+
+bool storage_load_page(const char *story, int page, page_data_t *out) {
+    static char text[PAGE_TEXT_MAX];
+    char path[64];
+    size_t cap, len;
+    uint8_t *jpeg = render_image_buffer(&cap);
+
+    snprintf(path, sizeof path, STORIES_DIR "/%s/p%d.jpg", story, page);
+    if (!read_file(path, jpeg, cap, &len)) return false;
+    out->jpeg = jpeg;
+    out->jpeg_len = len;
+
+    snprintf(path, sizeof path, STORIES_DIR "/%s/p%d.txt", story, page);
+    if (!read_file(path, (uint8_t *)text, sizeof text - 1, &len)) return false;
+    text[len] = '\0';
+    out->text = text;
+    return true;
 }
 
 bool storage_load_settings(settings_t *s) {

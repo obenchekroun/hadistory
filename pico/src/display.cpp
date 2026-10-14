@@ -26,16 +26,6 @@ void display_clear(uint8_t colour) {
     graphics->clear();
 }
 
-void display_set_row(int y, const uint8_t *packed_row) {
-    for (int x = 0; x < DISPLAY_WIDTH; x += 2) {
-        uint8_t b = packed_row[x / 2];
-        graphics->set_pen(b >> 4);
-        graphics->set_pixel(Point(x, y));
-        graphics->set_pen(b & 0x0F);
-        graphics->set_pixel(Point(x + 1, y));
-    }
-}
-
 void display_update(void) {
     driver->update(graphics);
 }

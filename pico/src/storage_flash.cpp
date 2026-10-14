@@ -35,14 +35,14 @@ int storage_list_stories(story_info_t *out, int max) {
     return count;
 }
 
-bool storage_load_page(const char *story, int page, row_sink_t sink) {
+bool storage_load_page(const char *story, int page, page_data_t *out) {
     for (int i = 0; i < embedded_story_count; i++) {
         if (strcmp(embedded_stories[i].name, story) != 0) continue;
         if (page < 1 || page > embedded_stories[i].page_count) return false;
-        const uint8_t *data = embedded_stories[i].pages[page - 1];   // read in place from XIP flash
-        for (int y = 0; y < DISPLAY_HEIGHT; y++) {
-            sink(y, data + y * DISPLAY_ROW_BYTES);
-        }
+        const embedded_page_t *p = &embedded_stories[i].pages[page - 1];   // read in place from XIP flash
+        out->jpeg = p->jpeg;
+        out->jpeg_len = p->jpeg_len;
+        out->text = p->text;
         return true;
     }
     printf("Flash storage: story %s not found\n", story);

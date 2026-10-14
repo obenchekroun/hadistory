@@ -9,6 +9,7 @@ static const uint button_gpio[BUTTON_COUNT] = {
 
 static bool previous_state[BUTTON_COUNT];   // true = released (pull-up), as in hadistory.py
 static bool current_state[BUTTON_COUNT];
+static bool injected[BUTTON_COUNT];         // press to report on the next poll (wake from sleep)
 
 void buttons_init(void) {
     for (int i = 0; i < BUTTON_COUNT; i++) {
@@ -22,11 +23,22 @@ void buttons_init(void) {
 
 void buttons_poll(void) {
     for (int i = 0; i < BUTTON_COUNT; i++) {
-        previous_state[i] = current_state[i];
-        current_state[i] = gpio_get(button_gpio[i]);
+        if (injected[i]) {
+            // Present the injected press as a falling edge for this poll
+            injected[i] = false;
+            previous_state[i] = true;
+            current_state[i] = false;
+        } else {
+            previous_state[i] = current_state[i];
+            current_state[i] = gpio_get(button_gpio[i]);
+        }
     }
 }
 
 bool buttons_pressed(button_t b) {
     return previous_state[b] && !current_state[b];
+}
+
+void buttons_inject_press(button_t b) {
+    if (b < BUTTON_COUNT) injected[b] = true;
 }

@@ -18,5 +18,6 @@ typedef enum {
 void buttons_init(void);
 void buttons_poll(void);
 bool buttons_pressed(button_t b);   // true once per press, on the poll where it went down
+void buttons_inject_press(button_t b);   // report b as pressed on the next buttons_pressed() (wake from sleep)
 
 #endif

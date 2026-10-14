@@ -1,6 +1,7 @@
 #include "story.h"
 #include "hadistory_config.h"
 #include "display.h"
+#include "render.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -38,7 +39,11 @@ void story_reset(settings_t *settings) {
 static bool show_current_page(const settings_t *settings) {
     printf("Let's show the following story : %s, on page %d/%d\n",
            settings->story, settings->page, story_page_count(settings));
-    if (!storage_load_page(settings->story, settings->page, display_set_row)) return false;
+    page_data_t page;
+    if (!storage_load_page(settings->story, settings->page, &page)) return false;
+    render_layout_t layout = render_text(page.text);
+    if (!render_jpeg(layout, page.jpeg, page.jpeg_len)) return false;
+    render_page_counter(settings->page, story_page_count(settings));
     display_update();
     return true;
 }

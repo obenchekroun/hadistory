@@ -5,8 +5,10 @@ cmake_minimum_required(VERSION 3.13)
 #   cmake -S pico -B pico/build -DPICO_BOARD=pico2_w -DSTORAGE=SDCARD
 #   cmake -S pico -B pico/build -DPICO_BOARD=pimoroni_pico_plus2_rp2350 -DSTORAGE=FLASH
 #   add -DEMBED_STORIES="story_1;story_2" to embed a selection only (FLASH), default is all of stories/
+#   add -DEMBED_QUALITY=70 to shrink the embedded JPEGs (FLASH), default 85
 #   add -DWITH_GPT=ON -DWIFI_SSID=... -DWIFI_PASSWORD=... -DOPENAI_API_KEY=... for the AI mode
 #   add -DSTATUS_LED=ONBOARD to use the board's own LED instead of the external one
+#   add -DDEEP_SLEEP=OFF to keep the board awake (keeps the USB serial console alive, for debugging)
 # Secrets can also go in pico/secrets.cmake (ignored by git), see secrets.cmake.example
 # ------------------------------------------------------------------------------
 
@@ -18,11 +20,14 @@ endif()
 set(PICO_PLATFORM rp2350)
 
 option(WITH_GPT "Build the AI mode (OpenAI over WiFi). Requires a board with wireless." OFF)
+option(TLS_NO_VERIFY "AI mode: skip the TLS certificate check of api.openai.com (debug only, exposes the API key)" OFF)
+option(DEEP_SLEEP "Power the core off between pages in story mode (RP2350 power manager), any button reboots the board." ON)
 set(STATUS_LED "EXTERNAL" CACHE STRING "Status LED: EXTERNAL (LED_PIN in hadistory_config.h) or ONBOARD (the board's own LED)")
 set_property(CACHE STATUS_LED PROPERTY STRINGS EXTERNAL ONBOARD)
 set(STORAGE "SDCARD" CACHE STRING "Where the stories live: SDCARD (FAT microSD) or FLASH (embedded in the firmware)")
 set_property(CACHE STORAGE PROPERTY STRINGS SDCARD FLASH)
 set(EMBED_STORIES "" CACHE STRING "STORAGE=FLASH only: stories to embed, e.g. \"story_1;story_2\". Empty = all of stories/")
+set(EMBED_QUALITY "85" CACHE STRING "STORAGE=FLASH only: JPEG quality 1-95 of the embedded illustrations (size vs look)")
 
 include(${CMAKE_CURRENT_LIST_DIR}/secrets.cmake OPTIONAL)
 set(WIFI_SSID "" CACHE STRING "WiFi SSID (AI mode)")
@@ -42,15 +47,18 @@ pico_sdk_init()
 
 set(REPO_ROOT ${CMAKE_CURRENT_LIST_DIR}/..)
 
-# Pimoroni display stack: PicoGraphics frame buffer and the UC8159 (Inky Impression 5.7") driver
+# Pimoroni display stack: PicoGraphics frame buffer, the UC8159 (Inky Impression 5.7") driver
+# and the JPEG decoder used for every page illustration
 include(libraries/pico_graphics/pico_graphics)
 include(drivers/uc8159/uc8159)
+include(libraries/jpegdec/jpegdec)
 
 set(hadistory_SRC
     main.cpp
     src/led.cpp
     src/buttons.cpp
     src/display.cpp
+    src/render.cpp
     src/story.cpp
 )
 set(my_lib
@@ -60,6 +68,7 @@ set(my_lib
     hardware_pwm
     pico_graphics
     uc8159
+    jpegdec
 )
 
 # ---------------------------------------------------------------- storage backend
@@ -71,29 +80,29 @@ if(STORAGE STREQUAL "SDCARD")
     list(APPEND my_lib hardware_pio sdcard fatfs)
     set(STORAGE_DEFINE HADISTORY_STORAGE_SDCARD=1)
 elseif(STORAGE STREQUAL "FLASH")
-    # Pages are rendered by tools/render_pages.py at build time and embedded with .incbin.
-    # Needs python3 with Pillow and numpy. Re-runs when the stories or the script change.
+    # Pages are prepared by tools/prepare_pages.py at build time (JPEG + text) and embedded
+    # with .incbin. Needs python3 with Pillow. Re-runs when the stories or the script change.
     set(EMBED_DIR ${CMAKE_BINARY_DIR}/embedded_stories)
     file(GLOB_RECURSE STORY_SOURCES CONFIGURE_DEPENDS
          ${REPO_ROOT}/stories/*/txt/*.txt ${REPO_ROOT}/stories/*/img/*.png)
     # Optional selection: -DEMBED_STORIES="story_1;story_2" -> --story story_1 --story story_2
-    set(EMBED_STORY_ARGS "")
+    set(EMBED_STORY_ARGS --quality ${EMBED_QUALITY})
     foreach(story IN LISTS EMBED_STORIES)
         list(APPEND EMBED_STORY_ARGS --story ${story})
     endforeach()
     if(EMBED_STORIES)
-        message(STATUS "Embedding stories: ${EMBED_STORIES}")
+        message(STATUS "Embedding stories: ${EMBED_STORIES} (JPEG quality ${EMBED_QUALITY})")
     else()
-        message(STATUS "Embedding all stories from ${REPO_ROOT}/stories")
+        message(STATUS "Embedding all stories from ${REPO_ROOT}/stories (JPEG quality ${EMBED_QUALITY})")
     endif()
-    # The selection is recorded in a stamp file so that changing it re-runs the rendering
-    file(WRITE ${CMAKE_BINARY_DIR}/embed_stories_selection.txt "${EMBED_STORIES}")
+    # Selection and quality are recorded in a stamp file so that changing them re-runs the preparation
+    file(WRITE ${CMAKE_BINARY_DIR}/embed_stories_selection.txt "${EMBED_STORIES} q${EMBED_QUALITY}")
     add_custom_command(
         OUTPUT ${EMBED_DIR}/stories_data.S ${EMBED_DIR}/stories_table.c
-        COMMAND python3 ${REPO_ROOT}/tools/render_pages.py
-                --out ${CMAKE_BINARY_DIR}/rendered_pages --embed ${EMBED_DIR} ${EMBED_STORY_ARGS}
-        DEPENDS ${REPO_ROOT}/tools/render_pages.py ${STORY_SOURCES} ${CMAKE_BINARY_DIR}/embed_stories_selection.txt
-        COMMENT "Rendering stories for embedding in flash"
+        COMMAND python3 ${REPO_ROOT}/tools/prepare_pages.py
+                --out ${CMAKE_BINARY_DIR}/prepared_pages --embed ${EMBED_DIR} ${EMBED_STORY_ARGS}
+        DEPENDS ${REPO_ROOT}/tools/prepare_pages.py ${STORY_SOURCES} ${CMAKE_BINARY_DIR}/embed_stories_selection.txt
+        COMMENT "Preparing stories for embedding in flash"
         VERBATIM
     )
     list(APPEND hadistory_SRC src/storage_flash.cpp ${EMBED_DIR}/stories_data.S ${EMBED_DIR}/stories_table.c)
@@ -117,13 +126,39 @@ else()
     message(FATAL_ERROR "STATUS_LED must be EXTERNAL or ONBOARD (got '${STATUS_LED}')")
 endif()
 
+# ---------------------------------------------------------------- deep sleep
+if(DEEP_SLEEP)
+    list(APPEND hadistory_SRC src/power.cpp)
+    list(APPEND my_lib hardware_powman)
+endif()
+
 # ---------------------------------------------------------------- AI mode
 if(WITH_GPT)
     if(NOT PICO_CYW43_SUPPORTED)
         message(FATAL_ERROR "WITH_GPT=ON needs a board with wireless (e.g. -DPICO_BOARD=pico2_w)")
     endif()
-    list(APPEND hadistory_SRC src/gpt.cpp)
-    list(APPEND my_lib pico_cyw43_arch_lwip_threadsafe_background)
+    list(APPEND hadistory_SRC src/gpt.cpp src/https.cpp src/json.cpp src/prompt.cpp src/base64.cpp)
+    list(APPEND my_lib pico_cyw43_arch_lwip_threadsafe_background pico_lwip_mbedtls pico_mbedtls)
+    # prompts/prompts.txt embedded as a NUL-terminated string (hadistory_prompts_txt)
+    set(PROMPTS_ASM ${CMAKE_BINARY_DIR}/prompts_data.S)
+    file(WRITE ${PROMPTS_ASM}
+"    .section .rodata.hadistory_prompts, \"a\"
+    .global hadistory_prompts_txt
+hadistory_prompts_txt:
+    .incbin \"${REPO_ROOT}/prompts/prompts.txt\"
+    .byte 0
+")
+    set_source_files_properties(${PROMPTS_ASM} PROPERTIES OBJECT_DEPENDS ${REPO_ROOT}/prompts/prompts.txt)
+    list(APPEND hadistory_SRC ${PROMPTS_ASM})
+    if(TLS_NO_VERIFY)
+        set(TLS_DEFINES HADISTORY_TLS_NO_VERIFY=1)
+    else()
+        # Verify the server against the roots in src/openai_roots.h, and fail if it does not match
+        set(TLS_DEFINES HADISTORY_TLS_NO_VERIFY=0 ALTCP_MBEDTLS_AUTHMODE=MBEDTLS_SSL_VERIFY_REQUIRED)
+    endif()
+    # Ignore a warning from lwip code
+    set_source_files_properties(${PICO_LWIP_PATH}/src/apps/altcp_tls/altcp_tls_mbedtls.c
+                                PROPERTIES COMPILE_OPTIONS "-Wno-unused-result")
 endif()
 
 add_executable(${PROJECT_NAME} ${hadistory_SRC})
@@ -138,9 +173,14 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
+    # The USB console drops the rest of a long line when the host has not drained its
+    # buffer within this delay (SDK default 0.5 s): long prompts and stories were cut
+    PICO_STDIO_USB_STDOUT_TIMEOUT_US=2000000
     HADISTORY_WITH_GPT=$<BOOL:${WITH_GPT}>
+    HADISTORY_DEEP_SLEEP=$<BOOL:${DEEP_SLEEP}>
     ${STORAGE_DEFINE}
     ${LED_DEFINE}
+    ${TLS_DEFINES}
 )
 if(WITH_GPT)
     target_compile_definitions(${PROJECT_NAME} PRIVATE

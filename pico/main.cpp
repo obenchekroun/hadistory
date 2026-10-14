@@ -6,6 +6,7 @@
  *   PICO_BOARD          target board, selects the pin mapping in hadistory_config.h
  *   STORAGE             SDCARD (pages on a FAT microSD) or FLASH (pages embedded in the firmware)
  *   WITH_GPT            adds the AI mode (OpenAI over WiFi); off = story mode only
+ *   DEEP_SLEEP          core powered off between pages, any button reboots the board (story mode)
  ********************************************************************************/
 
 #include <stdio.h>
@@ -23,6 +24,9 @@
 #endif
 #if HADISTORY_WITH_GPT || HADISTORY_LED_CYW43
 #include "pico/cyw43_arch.h"
+#endif
+#if HADISTORY_DEEP_SLEEP
+#include "power.h"
 #endif
 
 static settings_t settings;
@@ -51,8 +55,23 @@ static void wait_for_press(void) {
 
 int main(void) {
     stdio_init_all();
-    sleep_ms(2000);   // leave time for the USB console to attach
-    puts("Welcome to hadistory !");
+#if HADISTORY_DEEP_SLEEP
+    // Waking from deep sleep is a reboot: no console delay then, the reader is waiting.
+    // The button that woke us is captured right away, before any delay, while it is
+    // still recorded by the power manager and probably still held down.
+    bool woke = power_woke_from_sleep();
+    button_t wake_button = woke ? power_wake_button() : BUTTON_COUNT;
+#else
+    bool woke = false;
+#endif
+    if (!woke) sleep_ms(2000);   // leave time for the USB console to attach
+    puts(woke ? "Welcome back to hadistory !" : "Welcome to hadistory !");
+#if HADISTORY_DEEP_SLEEP
+    if (woke) {
+        power_print_wake_slots();
+        printf("Woken up by button %d (0 = A, 1 = B, 2 = C, 3 = D, 4 = unknown)\n", (int)wake_button);
+    }
+#endif
 
 #if HADISTORY_WITH_GPT || HADISTORY_LED_CYW43
     // Wireless chip driver: needed by the AI mode and by the onboard LED of the Pico W family
@@ -127,18 +146,53 @@ int main(void) {
     story_init(&settings);
 
 #if HADISTORY_WITH_GPT
-    if (!gpt_init()) {
-        puts("AI mode unavailable, forcing story mode.");
-        settings.ai_mode = false;
-    }
+    gpt_init();
+    if (settings.ai_mode) gpt_wifi_connect();   // resume in AI mode: join in the background
+    bool ai_switch_pending = false;             // button C pressed, waiting for the WiFi
 #else
     settings.ai_mode = false;   // no AI mode in this build
 #endif
-    announce_mode();
+    if (woke) {
+#if HADISTORY_DEEP_SLEEP
+        if (wake_button < BUTTON_COUNT) buttons_inject_press(wake_button);   // act on the button that woke us
+#endif
+    } else {
+        announce_mode();
+    }
     wait_for_press();
+
+    absolute_time_t idle_since = get_absolute_time();
 
     while (true) {
         buttons_poll();
+        bool any_press = false;
+        for (int b = 0; b < BUTTON_COUNT; b++) {
+            if (buttons_pressed((button_t)b)) any_press = true;
+        }
+
+#if HADISTORY_WITH_GPT
+        wifi_state_t wifi = gpt_wifi_poll();
+        if (ai_switch_pending) {
+            // The switch to AI mode completes only once the network is there
+            if (wifi == WIFI_UP) {
+                ai_switch_pending = false;
+                settings.ai_mode = true;
+                led_breathe_stop();
+                announce_mode();
+                save_settings();
+                led_on();
+            } else if (wifi == WIFI_FAILED) {
+                ai_switch_pending = false;
+                puts("AI mode refused: no WiFi. Staying in story mode.");
+                led_breathe_stop();
+                led_rapid_blink();
+                led_on();
+            }
+            any_press = true;   // keep the board awake while connecting
+        } else if (settings.ai_mode && (wifi == WIFI_OFF || wifi == WIFI_FAILED)) {
+            gpt_wifi_connect();   // link lost or failed at boot: keep trying while in AI mode
+        }
+#endif
 
         if (buttons_pressed(BUTTON_EXECUTE)) {
             led_breathe_start();
@@ -175,15 +229,42 @@ int main(void) {
 
         } else if (buttons_pressed(BUTTON_MODE)) {
 #if HADISTORY_WITH_GPT
-            settings.ai_mode = !settings.ai_mode;
-            announce_mode();
-            save_settings();
-            led_on();
+            if (settings.ai_mode) {
+                settings.ai_mode = false;
+                ai_switch_pending = false;
+                announce_mode();
+                save_settings();
+                led_on();
+            } else if (wifi == WIFI_UP) {
+                settings.ai_mode = true;
+                announce_mode();
+                save_settings();
+                led_on();
+            } else {
+                // Not connected yet: join in the background, switch when the link is up
+                puts("Connecting to the WiFi before switching to AI mode...");
+                ai_switch_pending = true;
+                gpt_wifi_connect();   // no-op if already connecting
+                led_breathe_start();
+            }
 #else
             puts("AI mode not available in this build.");
 #endif
         }
 
+        // The idle time counts from the end of the action, not from the press
+        if (any_press) idle_since = get_absolute_time();
+
+#if HADISTORY_DEEP_SLEEP
+        // Story mode only: the WiFi link of the AI mode would not survive the power-down
+        if (!settings.ai_mode && absolute_time_diff_us(idle_since, get_absolute_time()) > IDLE_BEFORE_SLEEP_MS * 1000) {
+            puts("Going to sleep, press any button to wake up.");
+            led_off();
+            power_sleep();            // reboots on a button press, returns only on failure
+            led_on();
+            idle_since = get_absolute_time();
+        }
+#endif
         sleep_ms(BUTTON_POLL_MS);
     }
 }
