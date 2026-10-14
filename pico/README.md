@@ -62,40 +62,57 @@ Build-time options:
 | `WITH_GPT` | `ON` builds the AI mode (`HADISTORY_WITH_GPT=1` in the code). Default `OFF`. |
 | `WIFI_SSID`, `WIFI_PASSWORD`, `OPENAI_API_KEY` | Credentials for the AI mode, via `-D` or `secrets.cmake`. |
 
-## Wiring (default mapping in `hadistory_config.h`, Pico 2 W)
+## Wiring (default mapping in `hadistory_config.h`, Pico 2 W and Pico Plus 2)
 
-Inky Impression 5.7" HAT, signals taken from its 40-pin header:
+Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the HAT, and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40).
 
-| Signal | HAT pin (Pi GPIO) | Pico GPIO |
+Power. The HAT needs both 5V and 3V3 ([pinout.xyz](https://pinout.xyz/pinout/inky_impression)). VBUS only carries 5V when the board is USB powered; battery operation is to be checked.
+
+| HAT | HAT pin | Pico | Pico pin |
+|---|---|---|---|
+| 5V | 2 | VBUS | 40 |
+| 3V3 | 1 | 3V3 OUT | 36 |
+| GND | 6 | GND | 38 |
+
+Inky Impression 5.7" display, on the Pico SPI0:
+
+| Signal | Pi GPIO | HAT pin | Pico GPIO | Pico pin |
+|---|---|---|---|---|
+| SCLK | GPIO 11 | 23 | GP18 | 24 |
+| MOSI | GPIO 10 | 19 | GP19 | 25 |
+| CS | GPIO 8 | 24 | GP17 | 22 |
+| DC | GPIO 22 | 15 | GP20 | 26 |
+| RESET | GPIO 27 | 13 | GP21 | 27 |
+| BUSY | GPIO 17 | 11 | GP22 | 29 |
+
+The 4 HAT buttons (active low, internal pull-ups on the Pico; they close to the HAT ground, already shared):
+
+| Function | Button | Pi GPIO | HAT pin | Pico GPIO | Pico pin |
+|---|---|---|---|---|---|
+| execute / next page | A | GPIO 5 | 29 | GP2 | 4 |
+| reset story | B | GPIO 6 | 31 | GP3 | 5 |
+| change mode | C | GPIO 16 | 36 | GP4 | 6 |
+| go back | D | GPIO 24 | 18 | GP5 | 7 |
+
+Status LED (external, as on the Pi version):
+
+| Element | Pico | Pico pin |
 |---|---|---|
-| SCLK | GPIO 11 | GP18 |
-| MOSI | GPIO 10 | GP19 |
-| CS | GPIO 8 | GP17 |
-| DC | GPIO 22 | GP20 |
-| RESET | GPIO 27 | GP21 |
-| BUSY | GPIO 17 | GP22 |
-| 3V3, GND | 3V3, GND | 3V3, GND |
+| LED anode through a 220 ohm resistor | GP6 | 9 |
+| LED cathode | GND | 8 |
 
-Whether the HAT also needs 5V is still to be confirmed on the Pimoroni schematic.
+microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 
-microSD breakout (SPI, 3.3 V):
-
-| Signal | Pico GPIO |
-|---|---|
-| SCK | GP10 |
-| MOSI | GP11 |
-| MISO | GP12 |
-| CS | GP13 |
-
-Buttons (to GND, internal pull-ups) and LED (through a 220 ohm resistor):
-
-| Function | HAT button | Pico GPIO |
+| Signal | Pico GPIO | Pico pin |
 |---|---|---|
-| execute / next page | A (GPIO 5) | GP2 |
-| reset story | B (GPIO 6) | GP3 |
-| change mode | C (GPIO 16) | GP4 |
-| go back | D (GPIO 24) | GP5 |
-| status LED | — | GP6 |
+| SCK | GP10 | 14 |
+| MOSI | GP11 | 15 |
+| MISO | GP12 | 16 |
+| CS | GP13 | 17 |
+| VCC | 3V3 OUT | 36 |
+| GND | GND | 13 |
+
+HAT pins 27 and 28 (ID EEPROM) stay unconnected.
 
 ## Stories in flash (`STORAGE=FLASH`)
 
