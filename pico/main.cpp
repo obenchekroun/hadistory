@@ -21,6 +21,9 @@
 #if HADISTORY_WITH_GPT
 #include "gpt.h"
 #endif
+#if HADISTORY_WITH_GPT || HADISTORY_LED_CYW43
+#include "pico/cyw43_arch.h"
+#endif
 
 static settings_t settings;
 static bool sd_ok = false;
@@ -51,9 +54,68 @@ int main(void) {
     sleep_ms(2000);   // leave time for the USB console to attach
     puts("Welcome to hadistory !");
 
+#if HADISTORY_WITH_GPT || HADISTORY_LED_CYW43
+    // Wireless chip driver: needed by the AI mode and by the onboard LED of the Pico W family
+    if (cyw43_arch_init()) {
+        puts("cyw43: init failed");
+    }
+#endif
+
     led_init();
     buttons_init();
     display_init();
+
+// ---- DEBUG: buttons + display test. Uncomment to enable. ----
+//     // Loop forever: print each button press and the raw BUSY level every second.
+//     // Button A draws 7 colour bars and refreshes the display, timing the refresh
+//     // (expected 25 to 35 s; a few hundred ms means BUSY never went low).
+//     {
+//         static const char *names[BUTTON_COUNT] = { "A execute (GP2)", "B reset (GP3)", "C mode (GP4)", "D back (GP5)" };
+//         puts("Test: press B/C/D to check them, A to run the display test pattern");
+//         for (int tick = 0; ; tick++) {
+//             buttons_poll();
+//             for (int b = 0; b < BUTTON_COUNT; b++) {
+//                 if (!buttons_pressed((button_t)b)) continue;
+//                 printf("pressed: %s\n", names[b]);
+//                 if (b == BUTTON_EXECUTE) {
+//                     pimoroni::PicoGraphics &g = display_graphics();
+//                     int bar = DISPLAY_WIDTH / 7;
+//                     for (int c = 0; c < 7; c++) {
+//                         g.set_pen(c);
+//                         g.rectangle(pimoroni::Rect(c * bar, 0, bar, DISPLAY_HEIGHT));
+//                     }
+//                     puts("Test pattern: refreshing display (LED breathing)...");
+//                     // Probe: sample BUSY every ms during the update and count the low samples
+//                     static volatile uint32_t busy_samples, busy_low;
+//                     busy_samples = busy_low = 0;
+//                     repeating_timer_t probe;
+//                     add_repeating_timer_ms(1, [](repeating_timer_t *) {
+//                         busy_samples++;
+//                         if (!gpio_get(DISPLAY_PIN_BUSY)) busy_low++;
+//                         return true;
+//                     }, NULL, &probe);
+//                     led_breathe_start();
+//                     absolute_time_t t0 = get_absolute_time();
+//                     display_update();
+//                     led_breathe_stop();
+//                     cancel_repeating_timer(&probe);
+//                     printf("Test pattern: done in %lld ms\n", absolute_time_diff_us(t0, get_absolute_time()) / 1000);
+//                     printf("BUSY probe: low during %lu of %lu ms (0 = the panel never signalled busy)\n",
+//                            (unsigned long)busy_low, (unsigned long)busy_samples);
+//                 } else {
+//                     led_on(); sleep_ms(100); led_off();
+//                 }
+//             }
+//             if (tick % 50 == 0) {   // every second
+//                 printf("BUSY (GP%d) level: %d   buttons raw: A=%d B=%d C=%d D=%d\n",
+//                        DISPLAY_PIN_BUSY, gpio_get(DISPLAY_PIN_BUSY),
+//                        gpio_get(BUTTON_PIN_EXECUTE), gpio_get(BUTTON_PIN_RESET),
+//                        gpio_get(BUTTON_PIN_MODE), gpio_get(BUTTON_PIN_BACK));
+//             }
+//             sleep_ms(20);
+//         }
+//     }
+// ---- end DEBUG ----
 
     sd_ok = storage_init();
     if (sd_ok && storage_load_settings(&settings)) {

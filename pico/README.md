@@ -4,8 +4,39 @@ Port of hadistory to the RP2350 (Raspberry Pi Pico 2 W, Pimoroni Pico Plus 2 / P
 
 Scope compared to the Pi version:
 - **Story mode**: pre-rendered pages, either on a microSD card (`STORAGE=SDCARD`) or embedded in the firmware for boards with a big flash such as the Pico Plus 2 / Pico LiPo 2 (`STORAGE=FLASH`). Pages are produced by `tools/render_pages.py`, see `tools/README.md`.
-- **AI mode** (optional, `WITH_GPT=ON`): OpenAI text and image generation over WiFi. No embedded models. Not implemented yet, the module is a stub.
+- **AI mode** (optional, `WITH_GPT=ON`): OpenAI text and image generation over WiFi. No embedded models. Not implemented yet, the module is a stub that only joins the WiFi.
 - 4 buttons (execute, reset, change mode, go back) and a status LED, same behaviour as the Pi version.
+
+## Status
+
+| Part | State |
+|---|---|
+| Buttons, status LED, display, story mode from flash | Working on a Pico Plus 2 with the Inky Impression 5.7" HAT wired on a breadboard |
+| Story mode from microSD | Written, not yet tested on hardware |
+| Onboard LED (`STATUS_LED=ONBOARD`) | Written, not yet tested |
+| AI mode | WiFi connection only, pipeline to be written |
+| Battery operation | To be tested, see Power |
+
+## Use
+
+At boot the firmware prints on the USB serial console (115200 baud), announces the current mode with the LED and waits with the LED on:
+
+```
+Welcome to hadistory !
+Flash storage: 2 embedded stories      (or "SD card: mounted")
+Stories available: 2
+Starting on local story mode.
+Waiting for next button press...
+```
+
+| Button | Story mode | AI mode (`WITH_GPT=ON`) |
+|---|---|---|
+| A, execute | Next page; picks a story at random when none is running or the last page was shown | Generates and shows a new page |
+| D, go back | Previous page | — |
+| B, reset | Forgets the current story, the next A starts a new one | Same |
+| C, change mode | Switches to AI mode, 3 long LED bursts | Switches to story mode, 5 short LED bursts |
+
+LED: solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
 
 ## Layout
 
@@ -17,6 +48,7 @@ pico/
 └── src/
     ├── hadistory_config.h  pins per board, display geometry, behaviour constants
     ├── led.cpp/.h          status LED: solid = waiting, breathing = busy (timer driven), bursts = mode / error
+    │                       external GPIO (PWM) or onboard LED, including the cyw43-driven one of the Pico 2 W
     ├── buttons.cpp/.h      4 active-low buttons, edge detection
     ├── display.cpp/.h      PicoGraphics 3-bit frame buffer + Pimoroni UC8159 driver; the only path to the panel
     ├── storage.h           storage interface (stories catalogue, pages delivered row by row, persisted state)
@@ -31,6 +63,8 @@ pico/
 ## Display path
 
 Everything that reaches the panel goes through `display.cpp`: a `PicoGraphics_Pen3Bit` frame buffer (100 KB, allocated once) and the Pimoroni `UC8159` driver, which converts it to the panel format on the fly. Pages from the storage are 4 bpp colour indices (the BMP pixel data, see `tools/README.md`) and are pushed one row at a time with `set_pen(index)` / `set_pixel()`, so no second full-frame buffer exists. The AI mode will draw into the same PicoGraphics object (jpegdec, fonts). Changing to another Pimoroni panel means swapping the driver class and the geometry in `display.cpp` / `hadistory_config.h`, and re-rendering the pages for it.
+
+Orientation: `DISPLAY_ROTATION` in `hadistory_config.h` (`ROTATE_0` or `ROTATE_180`) is passed to the driver, which flips the scan directions of the UC8159 in hardware. `ROTATE_180` is the default: it puts the HAT buttons at the top with the pages as rendered by the tool. Nothing is rotated in software.
 
 ## Build
 
@@ -51,7 +85,9 @@ cmake -S pico -B pico/build-gpt -DPICO_BOARD=pico2_w -DSTORAGE=SDCARD -DWITH_GPT
 make -C pico/build-gpt -j8
 ```
 
-Flash `hadistory.uf2` by holding BOOTSEL while plugging the board, or with `picotool load -f pico/build/hadistory.uf2`. Console output is on USB serial.
+Flashing: put the board in BOOTSEL mode (hold BOOTSEL while plugging the USB, or on the Pico Plus 2 hold BOOT, press RESET, release both) and copy `hadistory.uf2` to the `RP2350` volume, or use `picotool load -f -x pico/build/hadistory.uf2` from application mode. The `picotool` reboot over USB does not work while a serial monitor holds the port: close minicom first.
+
+Console: USB serial, 115200 baud, e.g. `minicom -b 115200 -o -D /dev/tty.usbmodem*`. Messages printed before the monitor is attached are lost; `main.cpp` waits a few seconds after boot for that reason.
 
 Build-time options:
 
@@ -59,14 +95,16 @@ Build-time options:
 |---|---|
 | `PICO_BOARD` | Selects the pin mapping in `hadistory_config.h`. Known: `pico2_w`, `pico2`, `pimoroni_pico_plus2_rp2350`, `pimoroni_pico_plus2_w_rp2350`. |
 | `STORAGE` | `SDCARD` (default): pages on a FAT microSD, `HADISTORY_STORAGE_SDCARD=1`. `FLASH`: pages rendered at build time and embedded in the firmware, `HADISTORY_STORAGE_FLASH=1`. |
+| `EMBED_STORIES` | `STORAGE=FLASH` only: semicolon-separated list of the stories to embed, e.g. `"story_1;story_2"`. Empty (default) embeds everything in `stories/`. |
 | `WITH_GPT` | `ON` builds the AI mode (`HADISTORY_WITH_GPT=1` in the code). Default `OFF`. |
+| `STATUS_LED` | `EXTERNAL` (default): LED on `LED_PIN` (GP8). `ONBOARD`: the board's own LED, GP25 on the Pico Plus 2 with the same breathing effect; on the Pico 2 W the LED is on the wireless chip, no PWM, so busy is shown as a 1 Hz blink. |
 | `WIFI_SSID`, `WIFI_PASSWORD`, `OPENAI_API_KEY` | Credentials for the AI mode, via `-D` or `secrets.cmake`. |
 
 ## Wiring (default mapping in `hadistory_config.h`, Pico 2 W and Pico Plus 2)
 
 Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the HAT, and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40).
 
-Power. The HAT needs both 5V and 3V3 ([pinout.xyz](https://pinout.xyz/pinout/inky_impression)). VBUS only carries 5V when the board is USB powered; battery operation is to be checked.
+Power. The HAT needs both 5V and 3V3 ([pinout.xyz](https://pinout.xyz/pinout/inky_impression)). VBUS only carries 5V when the board is USB powered. On a Waveshare Pico UPS-B, VSYS (pin 39) is boosted to 5V on battery as well: feed the HAT 5V from VSYS instead of VBUS in that case.
 
 | HAT | HAT pin | Pico | Pico pin |
 |---|---|---|---|
@@ -94,12 +132,14 @@ The 4 HAT buttons (active low, internal pull-ups on the Pico; they close to the 
 | change mode | C | GPIO 16 | 36 | GP4 | 6 |
 | go back | D | GPIO 24 | 18 | GP5 | 7 |
 
-Status LED (external, as on the Pi version):
+Status LED, external as on the Pi version (`STATUS_LED=EXTERNAL`, the default). With `STATUS_LED=ONBOARD` nothing is wired and the board LED is used instead: GP25 on the Pico Plus 2, the wireless-chip LED on the Pico 2 W.
 
 | Element | Pico | Pico pin |
 |---|---|---|
-| LED anode through a 220 ohm resistor | GP6 | 9 |
-| LED cathode | GND | 8 |
+| LED anode through a 220 ohm resistor | GP8 | 11 |
+| LED cathode | GND | 13 |
+
+GP6 and GP7 are kept free: they are the I2C1 bus (INA219) of the Waveshare Pico UPS-B when the board is mounted on it.
 
 microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 
@@ -114,11 +154,27 @@ microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 
 HAT pins 27 and 28 (ID EEPROM) stay unconnected.
 
+## Power and battery
+
+On USB, the Pico powers everything: 3V3 OUT for the HAT and the microSD, VBUS (5V) for the HAT. Three options for a rechargeable battery:
+
+- **Waveshare Pico UPS-B** (preferred for the Pico 2 W). The Pico mounts on it, its USB port charges the battery through the UPS charger, and VSYS (pin 39) is boosted to 5V on battery too. Feed the HAT 5V from VSYS instead of VBUS. Its INA219 battery monitor is on I2C1, GP6 (SDA) and GP7 (SCL), which is why the LED is on GP8. Reading the battery level is not implemented yet.
+- **Pimoroni Pico LiPo 2** (RP2350B, 16 MB flash, onboard charger and battery connector). Same build as the Pico Plus 2 (`PICO_BOARD=pimoroni_pico_plus2_rp2350`, the SDK 2.1.0 has no board file for it). No wireless unless an RM2 breakout is added. On battery VBUS is not available: whether the HAT works with its 5V pin fed from VSYS (3.7 to 4.2 V) is to be tested.
+- **TP4056 module** with a single LiPo cell: battery on B+/B-, module IN+ from the Pico VBUS so that the Pico USB charges it, module OUT+ to the Pico VSYS through a Schottky diode (1N5817 / SS14). The Pico's own VBUS diode then gives the load sharing: on USB the board runs from USB and the battery charges alone, off USB the battery takes over. Lower the charge current with Rprog (2 kΩ ≈ 580 mA, 5 kΩ ≈ 250 mA). Same 5V caveat for the HAT.
+
 ## Stories in flash (`STORAGE=FLASH`)
 
 `make` runs `tools/render_pages.py --embed`, which renders the pages into the build folder and writes an assembly file that includes the pixel data of each BMP with `.incbin` (the 118-byte header is skipped), plus a C table of stories. The pages are read straight from the flash by XIP. The current state is saved in the last 4 KB sector of the flash.
 
 The 12 current stories (97 pages) make a 13.1 MB image, which fits the 16 MB flash of the Pico Plus 2 / Pico LiPo 2 with about 3.6 MB to spare before the state sector. The `.uf2` file is twice that size, that is normal. Changing a story means rebuilding and reflashing.
+
+On a 4 MB board such as the Pico 2 W, about 29 pages fit without the AI mode and 27 with it (134 400 bytes per page). Select the stories with `EMBED_STORIES`, for example:
+
+```bash
+cmake -S pico -B pico/build-flash -DPICO_BOARD=pico2_w -DSTORAGE=FLASH -DEMBED_STORIES="story_1;story_2"
+```
+
+The linker refuses an image that does not fit, so an oversized selection fails at build time rather than on the board.
 
 ## SD card content (`STORAGE=SDCARD`)
 
@@ -129,3 +185,21 @@ Copy `tools/out/stories/` to the root of a FAT32 card:
 /stories/story_2/...
 /currently.txt       written by the firmware: current story, page and mode
 ```
+
+## Troubleshooting
+
+Lessons from the first bring-up, in the order they bit:
+
+- **Count the HAT header pins from the right end and row.** Seen from the HAT's female connector the numbering is mirrored. The even pins (2, 4, ..., 40) are the row along the board edge, pin 1 is at the end marked with a square pad. Check with a continuity tester before powering: pins 2 and 4 (5V) are adjacent and connected, pins 1 and 17 (3V3) are connected, and the grounds 6, 9, 14, 20, 25, 30, 34, 39 are all connected. A button line that reads 0 at rest is on a ground pin (29 and 30 are neighbours).
+- **Buttons**: at rest a button line reads 1 (internal pull-up), pressed it reads 0, whether or not the HAT is powered. The HAT ground must be connected to the Pico ground.
+- **`Test pattern: done in 605 ms`** instead of about 30 s: the driver never saw BUSY go low, so the panel did not answer. In practice: BUSY wire (HAT pin 11), then 3V3 and 5V on HAT pins 1 and 2, then RESET (pin 13).
+- **`main.cpp` has a commented DEBUG block** after `display_init()`: an endless loop that prints each button press and the BUSY level every second, and on button A draws 7 colour bars, refreshes the panel, times it and reports how long BUSY was low. Uncomment it to check a new wiring step by step.
+- **Flashing over USB fails** ("no accessible RP-series devices in BOOTSEL mode"): a serial monitor holds the port. Close it, or use the BOOTSEL button.
+- **The FLASH variant uf2 is tiny** (a few hundred KB): nothing references the stories, typically because a debug loop never returns, so the linker dropped them. Remove the loop.
+
+## Roadmap
+
+- AI mode pipeline: prompt from `prompts/prompts.txt`, OpenAI chat and image requests over TLS, JPEG decoding into PicoGraphics, text with a bitmap font.
+- Battery level over the UPS-B INA219, with a low-battery LED pattern.
+- Dithering alternatives in `tools/render_pages.py`, to be compared on the real panel.
+- Deep sleep between pages.

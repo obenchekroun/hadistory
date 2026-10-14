@@ -22,12 +22,18 @@
 #if !defined(HADISTORY_STORAGE_SDCARD) && !defined(HADISTORY_STORAGE_FLASH)
 #define HADISTORY_STORAGE_SDCARD 1
 #endif
+#ifndef HADISTORY_LED_ONBOARD
+#define HADISTORY_LED_ONBOARD 0   // -DSTATUS_LED=ONBOARD sets it to 1
+#endif
 
 // ---------------------------------------------------------------------------
 // Display: Inky Impression 5.7" (UC8159, 600 x 448, 7 colours)
 // ---------------------------------------------------------------------------
 #define DISPLAY_WIDTH        600
 #define DISPLAY_HEIGHT       448
+// Panel orientation, done in hardware by the UC8159 scan directions: ROTATE_0 or
+// ROTATE_180 (pimoroni::Rotation). 180 puts the HAT buttons at the top.
+#define DISPLAY_ROTATION     ROTATE_180
 // Page files produced by tools/render_pages.py (see tools/README.md): 4 bpp colour indices
 #define DISPLAY_ROW_BYTES    (DISPLAY_WIDTH / 2)                     // 300
 #define FRAME_BYTES          (DISPLAY_ROW_BYTES * DISPLAY_HEIGHT)    // 134400
@@ -56,8 +62,8 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    // Status LED (PWM capable)
-    #define LED_PIN              6
+    // Status LED (PWM capable). GP6 / GP7 are left free: I2C1 of the Waveshare Pico UPS-B (INA219).
+    #define LED_PIN              8
 #elif defined(PIMORONI_PICO_PLUS2_RP2350) || defined(PIMORONI_PICO_PLUS2_W_RP2350)
     // Same mapping for now; adjust once the LiPo 2 / Plus 2 wiring is decided
     #define DISPLAY_SPI          spi0
@@ -75,9 +81,27 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    #define LED_PIN              6
+    #define LED_PIN              8   // GP6 / GP7 left free for the Pico UPS-B I2C
 #else
     #error "Unsupported PICO_BOARD: add a pin mapping in src/hadistory_config.h"
+#endif
+
+// Status LED selection. ONBOARD overrides LED_PIN with the board's own LED:
+//  - a plain GPIO on most boards (PICO_DEFAULT_LED_PIN, e.g. GP25 on the Pico Plus 2), PWM capable
+//  - on the Pico W / Pico 2 W the LED sits on the wireless chip (CYW43_WL_GPIO_LED_PIN):
+//    no PWM, so the "breathing" becomes a 1 Hz blink (HADISTORY_LED_CYW43)
+#if HADISTORY_LED_ONBOARD
+    #if defined(PICO_DEFAULT_LED_PIN)
+        #undef LED_PIN
+        #define LED_PIN PICO_DEFAULT_LED_PIN
+        #define HADISTORY_LED_CYW43 0
+    #elif defined(CYW43_WL_GPIO_LED_PIN)
+        #define HADISTORY_LED_CYW43 1
+    #else
+        #error "STATUS_LED=ONBOARD: this board has no known onboard LED"
+    #endif
+#else
+    #define HADISTORY_LED_CYW43 0
 #endif
 
 // ---------------------------------------------------------------------------

@@ -14,10 +14,7 @@
 #include "pico/cyw43_arch.h"
 
 bool gpt_init(void) {
-    if (cyw43_arch_init()) {
-        puts("WiFi: init failed");
-        return false;
-    }
+    // cyw43_arch_init() is done once in main()
     cyw43_arch_enable_sta_mode();
     printf("WiFi: connecting to %s ...\n", WIFI_SSID);
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {

@@ -2,6 +2,72 @@
 #include "hadistory_config.h"
 
 #include "pico/stdlib.h"
+
+#if HADISTORY_LED_CYW43
+// ============================================================================
+// Onboard LED of the Pico W family, driven through the wireless chip.
+// No PWM there: the LED is on/off only and the busy indication is a 1 Hz blink.
+// The blink runs as a timed worker of the cyw43 async context, which is the
+// context where cyw43 calls are allowed; cyw43_arch_init() is done in main().
+// ============================================================================
+#include "pico/cyw43_arch.h"
+#include "pico/async_context.h"
+
+static async_at_time_worker_t blink_worker;
+static volatile bool breathing = false;
+static bool blink_state = false;
+
+static void set_led(bool on) {
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on);
+}
+
+static void blink_work(async_context_t *context, async_at_time_worker_t *worker) {
+    if (!breathing) {
+        set_led(false);
+        return;
+    }
+    blink_state = !blink_state;
+    set_led(blink_state);
+    async_context_add_at_time_worker_in_ms(context, worker, 500);
+}
+
+void led_init(void) {
+    blink_worker.do_work = blink_work;
+    set_led(false);
+}
+
+void led_on(void)  { led_breathe_stop(); set_led(true); }
+void led_off(void) { led_breathe_stop(); set_led(false); }
+
+void led_breathe_start(void) {
+    if (breathing) return;
+    breathing = true;
+    blink_state = false;
+    async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &blink_worker, 0);
+}
+
+void led_breathe_stop(void) {
+    if (!breathing) return;
+    breathing = false;
+    async_context_remove_at_time_worker(cyw43_arch_async_context(), &blink_worker);
+    set_led(false);
+}
+
+static void bursts(int count, int on_ms, int off_ms) {
+    led_breathe_stop();
+    for (int i = 0; i < count; i++) {
+        set_led(true);
+        sleep_ms(on_ms);
+        set_led(false);
+        sleep_ms(off_ms);
+    }
+}
+
+#else
+// ============================================================================
+// LED on a GPIO (external LED, or the board LED on e.g. the Pico Plus 2): PWM,
+// with a breathing ramp driven by a hardware timer during busy phases.
+// ============================================================================
 #include "hardware/pwm.h"
 
 #define PWM_TOP 1000
@@ -74,6 +140,9 @@ static void bursts(int count, int on_ms, int off_ms) {
     }
 }
 
+#endif  // HADISTORY_LED_CYW43
+
+// Same patterns as hadistory.py, whatever the LED
 void led_five_short_bursts(void) { bursts(5, 250, 250); }
 void led_three_long_bursts(void) { bursts(3, 800, 800); }
 void led_rapid_blink(void)       { bursts(19, 100, 100); }

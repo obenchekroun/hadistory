@@ -4,7 +4,9 @@ cmake_minimum_required(VERSION 3.13)
 # Build-time configuration
 #   cmake -S pico -B pico/build -DPICO_BOARD=pico2_w -DSTORAGE=SDCARD
 #   cmake -S pico -B pico/build -DPICO_BOARD=pimoroni_pico_plus2_rp2350 -DSTORAGE=FLASH
+#   add -DEMBED_STORIES="story_1;story_2" to embed a selection only (FLASH), default is all of stories/
 #   add -DWITH_GPT=ON -DWIFI_SSID=... -DWIFI_PASSWORD=... -DOPENAI_API_KEY=... for the AI mode
+#   add -DSTATUS_LED=ONBOARD to use the board's own LED instead of the external one
 # Secrets can also go in pico/secrets.cmake (ignored by git), see secrets.cmake.example
 # ------------------------------------------------------------------------------
 
@@ -16,8 +18,11 @@ endif()
 set(PICO_PLATFORM rp2350)
 
 option(WITH_GPT "Build the AI mode (OpenAI over WiFi). Requires a board with wireless." OFF)
+set(STATUS_LED "EXTERNAL" CACHE STRING "Status LED: EXTERNAL (LED_PIN in hadistory_config.h) or ONBOARD (the board's own LED)")
+set_property(CACHE STATUS_LED PROPERTY STRINGS EXTERNAL ONBOARD)
 set(STORAGE "SDCARD" CACHE STRING "Where the stories live: SDCARD (FAT microSD) or FLASH (embedded in the firmware)")
 set_property(CACHE STORAGE PROPERTY STRINGS SDCARD FLASH)
+set(EMBED_STORIES "" CACHE STRING "STORAGE=FLASH only: stories to embed, e.g. \"story_1;story_2\". Empty = all of stories/")
 
 include(${CMAKE_CURRENT_LIST_DIR}/secrets.cmake OPTIONAL)
 set(WIFI_SSID "" CACHE STRING "WiFi SSID (AI mode)")
@@ -71,11 +76,23 @@ elseif(STORAGE STREQUAL "FLASH")
     set(EMBED_DIR ${CMAKE_BINARY_DIR}/embedded_stories)
     file(GLOB_RECURSE STORY_SOURCES CONFIGURE_DEPENDS
          ${REPO_ROOT}/stories/*/txt/*.txt ${REPO_ROOT}/stories/*/img/*.png)
+    # Optional selection: -DEMBED_STORIES="story_1;story_2" -> --story story_1 --story story_2
+    set(EMBED_STORY_ARGS "")
+    foreach(story IN LISTS EMBED_STORIES)
+        list(APPEND EMBED_STORY_ARGS --story ${story})
+    endforeach()
+    if(EMBED_STORIES)
+        message(STATUS "Embedding stories: ${EMBED_STORIES}")
+    else()
+        message(STATUS "Embedding all stories from ${REPO_ROOT}/stories")
+    endif()
+    # The selection is recorded in a stamp file so that changing it re-runs the rendering
+    file(WRITE ${CMAKE_BINARY_DIR}/embed_stories_selection.txt "${EMBED_STORIES}")
     add_custom_command(
         OUTPUT ${EMBED_DIR}/stories_data.S ${EMBED_DIR}/stories_table.c
         COMMAND python3 ${REPO_ROOT}/tools/render_pages.py
-                --out ${CMAKE_BINARY_DIR}/rendered_pages --embed ${EMBED_DIR}
-        DEPENDS ${REPO_ROOT}/tools/render_pages.py ${STORY_SOURCES}
+                --out ${CMAKE_BINARY_DIR}/rendered_pages --embed ${EMBED_DIR} ${EMBED_STORY_ARGS}
+        DEPENDS ${REPO_ROOT}/tools/render_pages.py ${STORY_SOURCES} ${CMAKE_BINARY_DIR}/embed_stories_selection.txt
         COMMENT "Rendering stories for embedding in flash"
         VERBATIM
     )
@@ -84,6 +101,20 @@ elseif(STORAGE STREQUAL "FLASH")
     set(STORAGE_DEFINE HADISTORY_STORAGE_FLASH=1)
 else()
     message(FATAL_ERROR "STORAGE must be SDCARD or FLASH (got '${STORAGE}')")
+endif()
+
+# ---------------------------------------------------------------- status LED
+if(STATUS_LED STREQUAL "ONBOARD")
+    set(LED_DEFINE HADISTORY_LED_ONBOARD=1)
+    # On the Pico W family the onboard LED hangs off the wireless chip: the cyw43 driver is
+    # needed even without the AI mode (pico_cyw43_arch_none, no network stack).
+    if(PICO_CYW43_SUPPORTED AND NOT WITH_GPT)
+        list(APPEND my_lib pico_cyw43_arch_none)
+    endif()
+elseif(STATUS_LED STREQUAL "EXTERNAL")
+    set(LED_DEFINE HADISTORY_LED_ONBOARD=0)
+else()
+    message(FATAL_ERROR "STATUS_LED must be EXTERNAL or ONBOARD (got '${STATUS_LED}')")
 endif()
 
 # ---------------------------------------------------------------- AI mode
@@ -109,6 +140,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     HADISTORY_WITH_GPT=$<BOOL:${WITH_GPT}>
     ${STORAGE_DEFINE}
+    ${LED_DEFINE}
 )
 if(WITH_GPT)
     target_compile_definitions(${PROJECT_NAME} PRIVATE

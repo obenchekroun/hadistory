@@ -11,7 +11,7 @@ static PicoGraphics_Pen3Bit *graphics = nullptr;
 void display_init(void) {
     SPIPins pins = { DISPLAY_SPI, DISPLAY_PIN_CS, DISPLAY_PIN_SCK, DISPLAY_PIN_MOSI,
                      PIN_UNUSED, DISPLAY_PIN_DC, PIN_UNUSED };
-    driver = new UC8159(DISPLAY_WIDTH, DISPLAY_HEIGHT, ROTATE_0, pins, DISPLAY_PIN_BUSY, DISPLAY_PIN_RESET);
+    driver = new UC8159(DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_ROTATION, pins, DISPLAY_PIN_BUSY, DISPLAY_PIN_RESET);
     driver->set_blocking(true);
     graphics = new PicoGraphics_Pen3Bit(DISPLAY_WIDTH, DISPLAY_HEIGHT, nullptr);
     display_clear(UC8159::WHITE);
