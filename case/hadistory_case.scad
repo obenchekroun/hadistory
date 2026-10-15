@@ -20,6 +20,9 @@
 //
 // Render:  openscad -D 'part="front"' -o front.stl hadistory_case.scad   (also "back", "key")
 // Units: mm.
+//
+// Printing grid: 0.4 mm nozzle, 0.2 mm layers. Heights are kept on multiples of 0.2 mm and
+// thin features on multiples of 0.4 mm; adjusting a dimension by less than that changes nothing.
 
 part = "assembly";   // "front" | "back" | "key" | "assembly" (preview)
 
@@ -160,7 +163,7 @@ module back() {
         // Pico micro-USB through the bottom wall (the Pico stands along the left wall, USB down)
         translate([pico_pos()[0] + pico_w/2 - 5, -1, wall + 1]) cube([10, wall + 2, 5]);
         // Slide switch knob slot through the right wall
-        translate([out_w - wall - 1, sw_pos()[1] - sw_slot_l/2, wall + 1.5]) cube([wall + 2, sw_slot_l, sw_slot_w]);
+        translate([out_w - wall - 1, sw_pos()[1] - sw_slot_l/2, wall + 1.4]) cube([wall + 2, sw_slot_l, sw_slot_w]);
         // Relief for the panel flex at the left edge of the PCB, just below the PCB plane
         at_pcb() translate([-clear - 1.3, P(fpc_x1, 0)[1], back_t - 2.5]) cube([4, fpc_x1 - fpc_x0, 3]);
         // Key slots continue into the top wall of the shell (keys straddle both parts)
@@ -187,17 +190,17 @@ module pcb_lip() {
 
 // Pico: standing in the lower middle, long side vertical, USB towards the bottom wall,
 // dupont_room free on both long sides for the housings on the right-angle pins.
-// Standoffs 2.5 mm so the pins clear the floor.
+// Standoffs 2.4 mm (12 layers) so the pins clear the floor.
 function pico_pos() = [(out_w - pico_w)/2 - 6, wall + 1.5];   // bottom-left corner (21 wide, 51 tall)
 function pico_holes() = let(p = pico_pos(), ox = (pico_w - pico_hole_dy)/2, oy = (pico_l - pico_hole_dx)/2)
     [[p[0] + ox, p[1] + oy], [p[0] + ox + pico_hole_dy, p[1] + oy],
      [p[0] + ox, p[1] + oy + pico_hole_dx], [p[0] + ox + pico_hole_dy, p[1] + oy + pico_hole_dx]];
-module pico_mounts() { for (h = pico_holes()) translate([h[0], h[1], 0]) cylinder(d = 4.5, h = wall + 2.5); }
+module pico_mounts() { for (h = pico_holes()) translate([h[0], h[1], 0]) cylinder(d = 4.8, h = wall + 2.4); }
 
 // Battery: lying across the top of the shell, above the 40-pin header strip, long side along X
 function bat_pos() = [(out_w - bat_l)/2 - 8, out_h - wall - 3 - bat_w];
 module battery_ribs() {
-    b = bat_pos(); r = 1.5; h = wall + 5;
+    b = bat_pos(); r = 1.6; h = wall + 5;
     for (p = [[b[0] - r, b[1] - r, bat_l + 2*r, r], [b[0] - r, b[1] + bat_w, bat_l + 2*r, r],
               [b[0] - r, b[1] - r, r, bat_w + 2*r], [b[0] + bat_l, b[1] - r, r, bat_w + 2*r]])
         translate([p[0], p[1], 0]) cube([p[2], p[3], h]);
@@ -206,7 +209,7 @@ module battery_ribs() {
 // TP4056: along the bottom wall, micro-USB towards the wall, right of the Pico
 function tp_pos() = [out_w - wall - 2 - tp_w, wall + 0.5];   // bottom-left corner (17 wide, 26 tall)
 module tp_ribs() {
-    t = tp_pos(); r = 1.5; h = wall + 3;
+    t = tp_pos(); r = 1.6; h = wall + 3;
     for (p = [[t[0] - r, t[1], r, tp_l], [t[0] + tp_w, t[1], r, tp_l], [t[0] - r, t[1] + tp_l, tp_w + 2*r, r]])
         translate([p[0], p[1], 0]) cube([p[2], p[3], h]);
 }
@@ -214,7 +217,7 @@ module tp_ribs() {
 // Slide switch: against the right wall, above the battery, knob through the wall
 function sw_pos() = [out_w - wall - sw_body_w - 0.3, pcb_y0 + hat_w - hdr_x + 6];   // just above the end of the header strip
 module switch_pocket() {
-    s = sw_pos(); r = 1.5;
+    s = sw_pos(); r = 1.6;
     difference() {
         translate([s[0] - r, s[1] - sw_body_l/2 - r, 0]) cube([sw_body_w + r + 0.3, sw_body_l + 2*r, wall + sw_body_t]);
         translate([s[0], s[1] - sw_body_l/2, wall]) cube([sw_body_w + 1, sw_body_l, sw_body_t + 1]);
@@ -228,7 +231,7 @@ function led_x() = out_w * 0.22;
 module led_holder() {
     seat = back_t - led_sphere_d;   // below this the tube is open on the inner side
     translate([led_x(), wall + ear_bottom/2, 0]) difference() {
-        cylinder(d = led_sphere_d + 3.6, h = back_t);
+        cylinder(d = led_sphere_d + 0.6 + 3.2, h = back_t);   // 1.6 mm wall, 4 lines
         translate([0, 0, wall]) cylinder(d = led_sphere_d + 0.6, h = back_t);
         translate([-(led_sphere_d + 4)/2, 0, wall]) cube([led_sphere_d + 4, led_sphere_d, seat - wall]);
     }
@@ -239,7 +242,7 @@ module led_holder() {
 module key() {
     shaft_l = ear_top + wall + clear + 1.0;      // through the wall and the ear, 1 mm proud
     translate([0, 0, 0]) cube([key_slot_w - 0.4, shaft_l, key_slot_h - 0.4]);
-    translate([-2, -1.5, -1]) cube([key_slot_w - 0.4 + 4, 1.5, key_slot_h - 0.4 + 2]);   // head
+    translate([-2, -1.6, -1]) cube([key_slot_w - 0.4 + 4, 1.6, key_slot_h - 0.4 + 2]);   // head, 1.6 = 8 layers
 }
 
 // ---------------------------------------------------------------- previews
@@ -253,11 +256,11 @@ module hat() {
         color("Red") at_pcb() translate([q[0] - btn_cap_w/2, hat_w, 0.3]) cube([btn_cap_w, btn_protrusion, 2]); }
 }
 module parts_preview() {
-    pp = pico_pos(); color("Green") translate([pp[0], pp[1], wall + 2.5]) cube([pico_w, pico_l, pico_t]);
+    pp = pico_pos(); color("Green") translate([pp[0], pp[1], wall + 2.4]) cube([pico_w, pico_l, pico_t]);
     b = bat_pos();   color("Gold")  translate([b[0], b[1], wall]) cube([bat_l, bat_w, bat_t]);
     // Dupont housings on the Pico pins, both sides
-    color("Silver", 0.4) translate([pp[0] - dupont_room, pp[1] + 2, wall + 2.5]) cube([dupont_room, pico_l - 4, 6]);
-    color("Silver", 0.4) translate([pp[0] + pico_w, pp[1] + 2, wall + 2.5]) cube([dupont_room, pico_l - 4, 6]);
+    color("Silver", 0.4) translate([pp[0] - dupont_room, pp[1] + 2, wall + 2.4]) cube([dupont_room, pico_l - 4, 6]);
+    color("Silver", 0.4) translate([pp[0] + pico_w, pp[1] + 2, wall + 2.4]) cube([dupont_room, pico_l - 4, 6]);
     t = tp_pos();    color("Blue")  translate([t[0], t[1], wall]) cube([tp_w, tp_l, tp_t]);
     s = sw_pos();    color("White") translate([s[0], s[1] - sw_body_l/2, wall]) cube([sw_body_w, sw_body_l, sw_body_t]);
     color("LimeGreen") translate([led_x(), wall + ear_bottom/2, back_t + hat_pcb_t + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);

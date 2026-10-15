@@ -62,13 +62,13 @@ Signal wiring: see the wiring tables in `pico/README.md` (display on GP17 to GP2
 
 ## Printing
 
-PLA or PETG, 0.2 mm layers, 3 walls. Front frame face down (the countersinks print as overhangs, fine at 45 degrees). Back shell floor down, no supports needed: the wall openings are small. Keys flat on their head.
+PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls. The model keeps heights on multiples of 0.2 mm and thin features on multiples of 0.4 mm: when adjusting a parameter, move by at least one layer (0.2 mm) or one line (0.4 mm), smaller changes are not reproduced. Front frame face down (the countersinks print as overhangs, fine at 45 degrees). Back shell floor down, no supports needed: the wall openings are small. Keys flat on their head.
 
 ## First print checklist
 
 The model is a first version drawn from the Pimoroni drawing and a few measurements; expect to adjust:
 
-1. HAT pocket: the PCB must drop in with little play (`clear`), the glass flush with the bezel window.
+1. HAT pocket: the PCB must drop in with little play (`clear`), the glass flush with the bezel window. Vertical play between lip and bezel is taken up by a strip of thin adhesive foam on the lip rather than by 0.1 mm tweaks, which the printer cannot reproduce; `hat_pcb_t` only moves by 0.2 mm steps.
 2. Key slots: the keys must slide freely and reach the button caps (`btn_protrusion`, measure it).
 3. Pico standoffs: the right-angle pins must clear the floor; raise the standoffs if not.
 4. USB openings: centred on the connectors; move `pico_pos()` / `tp_pos()` if needed.
