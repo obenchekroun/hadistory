@@ -17,6 +17,7 @@ The project targets two platforms that share the same stories and prompts:
 | [`pi/`](pi/) | Raspberry Pi version (RPi 5 / Zero 2W, Python, omni-epd, local AI with Ollama + OnnxStream or OpenAI). See [`pi/README.md`](pi/README.md). |
 | [`pico/`](pico/) | Raspberry Pi Pico 2 version (RP2350, C++ on the Pico SDK and the Pimoroni libraries). Stories on microSD or embedded in flash, OpenAI mode optional. Story mode working on hardware, AI mode to come. See [`pico/README.md`](pico/README.md). |
 | [`tools/`](tools/) | Desktop scripts: preparation of the story pages (JPEG + text) for the Pico version, microSD or flash. See [`tools/README.md`](tools/README.md). |
+| [`case/`](case/) | 3D printed enclosure for the Pico version: OpenSCAD model, STL files, wiring of the battery circuit. See [`case/README.md`](case/README.md). |
 | `stories/` | Shared pre-generated stories: one folder per story, `txt/pN.txt` and `img/pN.png` per page. |
 | `stories_not_used/` | Stories kept aside, not loaded by the device. |
 | `prompts/` | Shared theme files used to build the story-generation prompt. |
