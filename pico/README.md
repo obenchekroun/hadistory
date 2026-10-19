@@ -117,13 +117,13 @@ Build-time options:
 
 Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the HAT, and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40).
 
-Power. The HAT needs both 5V and 3V3 ([pinout.xyz](https://pinout.xyz/pinout/inky_impression)). VBUS only carries 5V when the board is USB powered. On a Waveshare Pico UPS-B, VSYS (pin 39) is boosted to 5V on battery as well: feed the HAT 5V from VSYS instead of VBUS in that case.
+Power. The HAT runs from 3V3 alone: its 5V pin only feeds its small expansion header (Pimoroni schematic), so it can stay unconnected. That is what makes battery operation simple.
 
 | HAT | HAT pin | Pico | Pico pin |
 |---|---|---|---|
-| 5V | 2 | VBUS | 40 |
 | 3V3 | 1 | 3V3 OUT | 36 |
 | GND | 6 | GND | 38 |
+| 5V | 2 | not connected | |
 
 Inky Impression 5.7" display, on the Pico SPI0:
 
@@ -173,9 +173,44 @@ Consumption, order of magnitude (to be measured): a page costs about 10 to 18 J,
 
 On USB, the Pico powers everything: 3V3 OUT for the HAT and the microSD, VBUS (5V) for the HAT. Three options for a rechargeable battery:
 
-- **Waveshare Pico UPS-B** (preferred for the Pico 2 W). The Pico mounts on it, its USB port charges the battery through the UPS charger, and VSYS (pin 39) is boosted to 5V on battery too. Feed the HAT 5V from VSYS instead of VBUS. Its INA219 battery monitor is on I2C1, GP6 (SDA) and GP7 (SCL), which is why the LED is on GP8. Reading the battery level is not implemented yet.
-- **Pimoroni Pico LiPo 2** (RP2350B, 16 MB flash, onboard charger and battery connector). Same build as the Pico Plus 2 (`PICO_BOARD=pimoroni_pico_plus2_rp2350`, the SDK 2.1.0 has no board file for it). No wireless unless an RM2 breakout is added. On battery VBUS is not available: whether the HAT works with its 5V pin fed from VSYS (3.7 to 4.2 V) is to be tested.
-- **TP4056 module** with a single LiPo cell: battery on B+/B-, module IN+ from the Pico VBUS so that the Pico USB charges it, module OUT+ to the Pico VSYS through a Schottky diode (1N5817 / SS14). The Pico's own VBUS diode then gives the load sharing: on USB the board runs from USB and the battery charges alone, off USB the battery takes over. Lower the charge current with Rprog (2 kΩ ≈ 580 mA, 5 kΩ ≈ 250 mA). Same 5V caveat for the HAT.
+The HAT's 5V pin is not needed: on the Inky Impression 5.7" it only feeds the small 10-pin expansion header, the panel voltages are made from 3V3 (checked on the Pimoroni schematic). So battery operation only needs VSYS.
+
+- **TP4056 module + single LiPo cell** (the enclosure in `case/` is built around it, see below).
+- **Waveshare Pico UPS-B**: the Pico mounts on it, its USB port charges the battery through the UPS charger, VSYS is boosted to 5V on battery. Its INA219 battery monitor is on I2C1, GP6 (SDA) and GP7 (SCL), which is why the LED is on GP8. Reading the battery level is not implemented.
+- **Pimoroni Pico LiPo 2** (RP2350B, 16 MB flash, onboard charger and battery connector). Same build as the Pico Plus 2 (`PICO_BOARD=pimoroni_pico_plus2_rp2350`, the SDK 2.1.0 has no board file for it). No wireless unless an RM2 breakout is added.
+
+### TP4056 wiring
+
+The Pico has no charger. Its VBUS pin (40) is the 5V of its own USB socket, unregulated; it feeds the TP4056, which charges the cell. Plugging the Pico's USB therefore charges the battery, and the TP4056's own micro-USB stays unused.
+
+| From | To | Role |
+|---|---|---|
+| Pico VBUS (pin 40) | TP4056 IN+ | USB 5V to the charger |
+| Pico GND (pin 38) | TP4056 IN- and B- | Common ground |
+| Battery + / - | TP4056 B+ / B- | |
+| TP4056 B+ (or OUT+ on a module with protection) | Slide switch, centre pin | Battery output |
+| Slide switch, one side pin | Diode anode (the end without the band) | |
+| Diode cathode (banded end) | Pico VSYS (pin 39) | Powers the Pico |
+
+```
+Pico USB ──► VBUS (40) ──► TP4056 IN+ ──► charger ──► B+ ──► battery
+                                                      │
+                                   slide switch ◄─────┘
+                                         │
+                                       ──┤►──  1 A Schottky diode (1N5817, 1N5819, SS14; a 1N4007 also works)
+                                         │
+                                       VSYS (39) ──► Pico regulator ──► 3V3 ──► Pico, HAT
+```
+
+The diode: inside the Pico, VBUS already reaches VSYS through a Schottky diode, so VSYS sits at about 4.7V when the USB is plugged. Without the external diode those 4.7V would reach the battery through the switch, uncontrolled. Oriented battery to VSYS, the diode lets the battery power the Pico but never the reverse. A 1N5711 is not suitable (15 mA signal diode).
+
+| Situation | What happens |
+|---|---|
+| USB plugged, switch on | VSYS gets 4.7V from the USB and only 3.9V from the battery through the diode: the Pico runs on USB, the battery charges without any load, the TP4056 terminates properly |
+| USB plugged, switch off | Charging only, Pico off |
+| USB unplugged, switch on | Battery minus the diode drop into VSYS; the Pico regulator accepts down to 1.8V |
+
+The TP4056 ships set to 1 A (Rprog 1.2 kΩ): charge from a mains USB adapter rather than a computer port, or fit 2 kΩ for about 580 mA. A module without B+/B- protection relies on the protection circuit of the cell itself (most 103450 pouch cells have one).
 
 ## AI mode
 
