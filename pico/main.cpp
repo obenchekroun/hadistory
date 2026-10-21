@@ -7,6 +7,7 @@
  *   STORAGE             SDCARD (pages on a FAT microSD) or FLASH (pages embedded in the firmware)
  *   WITH_GPT            adds the AI mode (OpenAI over WiFi); off = story mode only
  *   DEEP_SLEEP          core powered off between pages, any button reboots the board (story mode)
+ *   BATTERY_GAUGE       battery bars on each page, display only
  ********************************************************************************/
 
 #include <stdio.h>
@@ -28,6 +29,10 @@
 #if HADISTORY_DEEP_SLEEP
 #include "power.h"
 #endif
+#if HADISTORY_BATTERY
+#include "battery.h"
+#include "render.h"
+#endif
 
 static settings_t settings;
 static bool sd_ok = false;
@@ -38,19 +43,24 @@ static void save_settings(void) {
     }
 }
 
+// The mode LED says it: on = AI mode. No LED pattern on the status LED any more.
 static void announce_mode(void) {
-    if (settings.ai_mode) {
-        puts("Switching to AI mode.");
-        led_three_long_bursts();
-    } else {
-        puts("Switching to local story mode.");
-        led_five_short_bursts();
-    }
+    puts(settings.ai_mode ? "Switching to AI mode." : "Switching to local story mode.");
+    led_mode_set(settings.ai_mode);
 }
 
 static void wait_for_press(void) {
     puts("\nWaiting for next button press...");
     led_on();
+}
+
+// Battery reading before each page: hands the level to the page composers, which draw
+// it in the corner before the panel update. Display only, nothing depends on the level.
+static void battery_update(void) {
+#if HADISTORY_BATTERY
+    battery_t b = battery_read();
+    render_set_battery(b.bars, b.on_usb);
+#endif
 }
 
 int main(void) {
@@ -64,7 +74,6 @@ int main(void) {
 #else
     bool woke = false;
 #endif
-    if (!woke) sleep_ms(2000);   // leave time for the USB console to attach
     puts(woke ? "Welcome back to hadistory !" : "Welcome to hadistory !");
 #if HADISTORY_DEEP_SLEEP
     if (woke) {
@@ -81,8 +90,12 @@ int main(void) {
 #endif
 
     led_init();
+    led_mode_init();
     buttons_init();
     display_init();
+#if HADISTORY_BATTERY
+    battery_init();
+#endif
 
 // ---- DEBUG: buttons + display test. Uncomment to enable. ----
 //     // Loop forever: print each button press and the raw BUSY level every second.
@@ -156,6 +169,7 @@ int main(void) {
 #if HADISTORY_DEEP_SLEEP
         if (wake_button < BUTTON_COUNT) buttons_inject_press(wake_button);   // act on the button that woke us
 #endif
+        led_mode_set(settings.ai_mode);
     } else {
         announce_mode();
     }
@@ -184,6 +198,7 @@ int main(void) {
             } else if (wifi == WIFI_FAILED) {
                 ai_switch_pending = false;
                 puts("AI mode refused: no WiFi. Staying in story mode.");
+                led_mode_set(false);
                 led_breathe_stop();
                 led_rapid_blink();
                 led_on();
@@ -196,6 +211,7 @@ int main(void) {
 
         if (buttons_pressed(BUTTON_EXECUTE)) {
             led_breathe_start();
+            battery_update();
             if (settings.ai_mode) {
 #if HADISTORY_WITH_GPT
                 story_reset(&settings);
@@ -213,6 +229,7 @@ int main(void) {
         } else if (buttons_pressed(BUTTON_BACK) && !settings.ai_mode) {
             if (settings.story[0] && settings.page > 1) {
                 led_breathe_start();
+                battery_update();
                 if (!story_previous_page(&settings)) led_rapid_blink();
                 save_settings();
                 led_breathe_stop();
@@ -246,6 +263,7 @@ int main(void) {
                 ai_switch_pending = true;
                 gpt_wifi_connect();   // no-op if already connecting
                 led_breathe_start();
+                led_mode_blink_start();
             }
 #else
             puts("AI mode not available in this build.");

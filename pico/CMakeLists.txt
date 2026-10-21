@@ -9,6 +9,7 @@ cmake_minimum_required(VERSION 3.13)
 #   add -DWITH_GPT=ON -DWIFI_SSID=... -DWIFI_PASSWORD=... -DOPENAI_API_KEY=... for the AI mode
 #   add -DSTATUS_LED=ONBOARD to use the board's own LED instead of the external one
 #   add -DDEEP_SLEEP=OFF to keep the board awake (keeps the USB serial console alive, for debugging)
+#   add -DBATTERY_GAUGE=OFF to drop the battery bars (VSYS reading, see README "Battery gauge")
 # Secrets can also go in pico/secrets.cmake (ignored by git), see secrets.cmake.example
 # ------------------------------------------------------------------------------
 
@@ -22,6 +23,7 @@ set(PICO_PLATFORM rp2350)
 option(WITH_GPT "Build the AI mode (OpenAI over WiFi). Requires a board with wireless." OFF)
 option(TLS_NO_VERIFY "AI mode: skip the TLS certificate check of api.openai.com (debug only, exposes the API key)" OFF)
 option(DEEP_SLEEP "Power the core off between pages in story mode (RP2350 power manager), any button reboots the board." ON)
+option(BATTERY_GAUGE "Battery bars on each page from the VSYS reading, display only." ON)
 set(STATUS_LED "EXTERNAL" CACHE STRING "Status LED: EXTERNAL (LED_PIN in hadistory_config.h) or ONBOARD (the board's own LED)")
 set_property(CACHE STATUS_LED PROPERTY STRINGS EXTERNAL ONBOARD)
 set(STORAGE "SDCARD" CACHE STRING "Where the stories live: SDCARD (FAT microSD) or FLASH (embedded in the firmware)")
@@ -132,6 +134,12 @@ if(DEEP_SLEEP)
     list(APPEND my_lib hardware_powman)
 endif()
 
+# ---------------------------------------------------------------- battery gauge
+if(BATTERY_GAUGE)
+    list(APPEND hadistory_SRC src/battery.cpp)
+    list(APPEND my_lib hardware_adc)
+endif()
+
 # ---------------------------------------------------------------- AI mode
 if(WITH_GPT)
     if(NOT PICO_CYW43_SUPPORTED)
@@ -178,6 +186,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     PICO_STDIO_USB_STDOUT_TIMEOUT_US=2000000
     HADISTORY_WITH_GPT=$<BOOL:${WITH_GPT}>
     HADISTORY_DEEP_SLEEP=$<BOOL:${DEEP_SLEEP}>
+    HADISTORY_BATTERY=$<BOOL:${BATTERY_GAUGE}>
     ${STORAGE_DEFINE}
     ${LED_DEFINE}
     ${TLS_DEFINES}

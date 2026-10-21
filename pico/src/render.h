@@ -28,6 +28,14 @@ bool render_jpeg(const render_layout_t &layout, const uint8_t *data, size_t len)
 // Draws "page/total" top-left on a white box, over the illustration, as the Pi version does
 void render_page_counter(int page, int total);
 
+// Draws the robot badge of the AI mode at the same place: the page itself tells the mode
+void render_mode_badge(void);
+
+// Battery gauge, top-right of each page (BATTERY_GAUGE=ON): main.cpp sets the reading before
+// an action, the page composers draw it before the panel update. bars < 0 draws nothing.
+void render_set_battery(int bars, bool on_usb);
+void render_battery(void);
+
 // Shared buffer for JPEG data read from the SD card or received from the network
 uint8_t *render_image_buffer(size_t *capacity);
 

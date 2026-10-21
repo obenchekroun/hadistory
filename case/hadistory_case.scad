@@ -1,8 +1,11 @@
-// hadistory - enclosure for the Pico version (v4)
+// hadistory - enclosure for the Pico version
+// v8 "bump" style: 10 mm corners, 3 mm chamfer on the back edge, 26 mm body and a separate
+// pillow-shaped cap over the HAT Dupont block; the v7 "box" style is kept behind style = "box".
 //
-// Portrait tablet. The Inky Impression 5.7" HAT sits in the back shell, display up, on six
+// Portrait tablet. The Inky Impression 5.7" HAT sits in the back shell, display up, on eight
 // small pads one PCB thickness (plus a drop) below the rim; the front is a flat bezel plate
-// screwed on top. Raspberry Pi Pico 2 W, TP4056 charger, 103450 LiPo and slide switch live
+// screwed on top. Raspberry Pi Pico 2 W, TP4056 charger, 103450 LiPo, slide switch and a 5 mm
+// mode LED beside the status sphere live
 // in the back shell, all wired with Dupont jumpers plugged on the HAT's 40-pin header.
 //
 // Coordinates: X right, Y up, Z out of the display, device seen FROM THE FRONT.
@@ -12,16 +15,24 @@
 // on the LEFT edge, the four side buttons are on the TOP edge (they protrude from the PCB).
 //
 // Back shell layout: Pico standing lower left of centre (USB through the bottom wall, 20 mm
-// free on each long side for the Dupont housings on its right-angle pins), TP4056 bottom
-// right, battery across the top, sphere LED bottom left in the chin, slide switch on the
+// free on each long side for the Dupont housings on its right-angle pins), TP4056 on two
+// standoffs against the left wall under the battery with a slot in the wall to see its LEDs,
+// battery across the top, sphere LED bottom left in the chin, slide switch on the
 // bottom wall at the junction with the bezel, push keys at the junction on the top wall.
 //
-// Printed parts:  front (flat bezel), back (shell), key (x4)
-// Render:  openscad -D 'part="back"' -o back.stl hadistory_case.scad
+// Printed parts:  front (bezel), back (shell), cap (bump style), key (x4), plate (key labels, glued on the
+//                 top edge), swplate (ON / OFF beside the switch, glued on the bottom edge, two variants)
+// Render:  openscad -D 'part="back"' -o stl/bump/back.stl hadistory_case.scad   (-D 'style="box"' for the v7 box)
 // Units: mm. Printing grid 0.4 mm nozzle / 0.2 mm layers: heights on multiples of 0.2,
 // thin features on multiples of 0.4; smaller adjustments are not reproduced.
 
-part = "assembly";   // "front" | "back" | "key" | "assembly"
+part = "assembly";   // "front" | "back" | "cap" | "key" | "plate" | "swplate" | "assembly" | "closed" (all parts, opaque, for pictures)
+                     // | "section" (assembly cut at x = section_x, seen from +X)
+section_x = 85.6;    // through the HAT header strip and the cap
+// "bump": the body is as thin as the Pico allows (26 mm), the HAT Dupont block gets a separate cap on
+// the back; big corners, chamfered back edge, rounded bezel edge. "box": the v7 rectangular shell,
+// 33 mm deep everywhere. The insides (pads, key guides, switch cradle, LED tube, keys) are the same.
+style = "bump";
 
 // ---------------------------------------------------------------- HAT (Pimoroni drawing)
 hat_w          = 125.40;   // PCB, landscape frame of the drawing (buttons on its left edge)
@@ -67,9 +78,16 @@ pico_post_relief_h = 3.2;  // height of that flat below the Pico; the rest of th
 dupont_room    =  20.0;    // free space beside each row of pins for the housings
 usb_cut_w      =  13.0;    // micro-USB opening
 usb_cut_h      =   7.0;
-tp_l           =  26.0;    // TP4056 (IN+ IN- B+ B-), its own USB unused
+tp_l           =  26.0;    // TP4056 (IN+ IN- B+ B-), its own USB unused; lies USB end towards the left wall
 tp_w           =  17.0;
-tp_t           =   5.0;
+tp_t           =   5.0;    // PCB and components
+tp_pcb_t       =   1.0;
+tp_standoff    =   3.0;    // M2 posts under its two mounting holes
+tp_post_d      =   4.4;
+tp_holes       = [[2.5, 2.5], [2.5, 14.5]];   // hole centres from the USB edge (X) and the lower long edge (Y), to measure
+tp_led_x       =   5.5;    // charge / full LEDs on the top face, this far from the USB edge, to measure
+tp_slot_l      =  14.0;    // slot in the left wall to see them, at the top face of the PCB
+tp_slot_h      =   1.6;
 bat_l          =  50.0;    // 103450 LiPo
 bat_w          =  34.0;
 bat_t          =  10.0;
@@ -82,23 +100,55 @@ sw_ear_t       =   0.5;    // ear sheet thickness; the ears are in the plane of 
 sw_ear_h       =   4.0;    // ear height (Z), to measure
 sw_slot_l      =   8.0;    // knob travel slot
 sw_slot_h      =   3.4;    // knob slot depth below the rim (notch open at the rim)
-led_sphere_d   =   9.9;    // Adafruit dLUX-dLITE sphere LED (5431)
+sw_pad_t       =   1.2;    // pad under the switch body (v7: hanging from its ears alone it rocked and jammed in the grooves)
+led_sphere_d   =   9.9;    // Adafruit dLUX-dLITE sphere LED (5431): status
+led2_d         =   5.0;    // 5 mm LED beside it: AI mode. Flange 5.8, body 7.6 above the flange (dome top), flange 1.0
+led2_body_h    =   7.6;
+led2_flange_t  =   1.0;
+led2_proud     =   1.5;    // dome beyond the bezel face, like the sphere
+led2_tube_t    =   1.0;    // tube wall; 8 mm outside, which keeps it below the housings on the Pico's first pins
+led_tube_t     =   1.2;    // LED tube wall; 1.6 on v4 made the tube overlap the PCB edge by 0.45 mm
 
 // ---------------------------------------------------------------- design parameters
 wall           =   2.0;
 bezel_t        =   2.0;
 clear          =   0.4;    // clearance around the HAT PCB (per side); 0.8 on v3 left too much play
+clear_y        =   0.1;    // lip gap on the top and bottom edges only: with 0.4 the v5 still had 0.6 mm of play along
+                           // the PCB length (the sides are fine at 0.4). The pocket itself keeps clear.
 hat_corner_r   =   1.0;
 win_margin     =   1.0;
 ear_side       =   4.5;    // margins between the PCB pocket and the walls
-ear_top        =   6.0;    // room for the key guides behind the protruding buttons
+ear_top        = style == "bump" ? 7.0 : 6.0;   // room for the key guides behind the protruding buttons; 7 keeps
+                                                 // the 10 mm corner bosses off the PCB corners
 ear_bottom     =  12.0;    // chin: LED and switch
-corner_r       =   4.0;
+corner_r       = style == "bump" ? 10.0 : 4.0;   // plan radius of the outline
+back_chamfer   = style == "bump" ?  3.0 : 0;     // 45 degree chamfer on the back edge (prints floor down as is)
+bead           = style == "bump" ?  2.0 : 0;     // 45 degree bead inside, along the floor-wall junction, keeps
+                                                 // 2.1 mm of material behind the chamfer (0.7 without)
+bezel_edge_r   = style == "bump" ?  1.6 : 0;     // rounded front edge of the bezel (printed face up)
 screw_pilot    =   2.6;    // M3 self-tapping, printed pilot hole
 screw_d        =   3.0;
 boss_d         =   6.4;
-boss_inset     =   3.2;
-dupont_slack   =  10.0;    // extra depth to handle the Dupont housings on the HAT
+boss_inset     = style == "bump" ? 6.0 : 3.2;    // corner bosses, from the outer faces; 6 keeps 1.1 mm of wall
+                                                 // outside the boss and 3 mm around the pilot hole at the diagonal
+dupont_slack   =  10.0;    // box: extra depth to handle the Dupont housings on the HAT
+hat_back_room  =   3.0;    // bump: clearance between the Pico top and the HAT underside, for the components on the
+                           // back of the HAT PCB (to measure: the header itself is in the cap zone, not over the Pico)
+// Cap over the HAT Dupont block (bump style): a pillow on the back, inserted from inside through a hole
+// in the floor, its flange glued on the inner face of the floor. Centred on the header strip, which
+// runs X 83 to 88, Y 45 to 96; stops short of the battery rib above.
+bump_x0        =  66.6;    // footprint at the back face
+bump_y0        =  36.0;
+bump_w         =  38.0;
+bump_len       =  67.0;
+bump_r         =  12.0;    // plan radius of the footprint
+bump_h         =   6.0;    // beyond the back face; the housings end 1 mm above the floor, this is the slack
+bump_edge_r    =   3.0;    // rounding of the top edge
+bump_top_in    =   3.0;    // sides lean in this much before the rounding: 45 degrees
+cap_wall       =   2.0;
+cap_flange     =   3.0;    // flange width around the hole, inside
+cap_flange_t   =   1.2;
+cap_clear      =   0.2;    // hole to cap, per side
 shelf_drop     =   0.4;    // PCB underside this much lower than rim - hat_pcb_t (1.0 on v3 was too much)
 pad_w          =   8.0;    // support pads along the PCB edges
 pad_in         =   1.6;    // how far a pad reaches under the PCB
@@ -107,8 +157,30 @@ lip_t          =   1.2;    // locating lip on each pad, outside the PCB
 key_w          =   8.0;    // key shaft width (X); its height runs from the notch bottom to the rim
 key_head_w     =  12.0;
 key_head_t     =   2.0;    // head pocket depth (Y)
+key_proud      =   3.0;    // shaft beyond the outer face of the wall (1.0 on v4 was too short to find by feel)
+key_play       =   0.6;    // side play of the key shaft and head in their notch (0.8 up to v6, loose)
+key_head_play  =   0.2;    // head play along the travel in its step (0.8 up to v6)
+key_gap        =   0.3;    // nub to cap with the key fully out; free travel = key_head_play + key_gap
+                           // (1.1 mm up to v6, too much), plus the error on btn_protrusion
 key_block_w    =  16.0;    // guide block width around each key
 cap_room       =   2.4;    // key guide inner face set back from the PCB edge, beyond the button caps
+// Label plate glued on the outer face of the top wall, behind the keys: one word per key with a
+// small pointer towards it, text raised plate_relief (colour change at plate_t for two colours).
+// Labels left to right as seen from the front, i.e. keys D, C, B, A (btn_from_flex order).
+plate_labels   = ["BACK", "MODE", "RESET", "NEXT"];
+plate_w        =  92.0;    // centred on the four keys; the top wall is flat from X 4 to 109.3
+plate_h        =   8.0;    // along the depth of the case (Z): pointer and word
+plate_t        =   1.2;    // plate body
+plate_relief   =   0.6;    // text and pointers above the body (negative: engraved into it)
+plate_gap      =   1.0;    // between the plate and the key notches
+plate_font     = "Liberation Sans:style=Bold";   // bundled with OpenSCAD
+plate_word_sz  =   4.2;    // "RESET" is then about 15 mm wide for a 21.5 mm key pitch; stems about 0.6 mm
+// ON / OFF plate glued on the bottom edge under the switch knob, same construction. Two variants,
+// sw_on_left true or false, since which way is "on" depends on how the switch was wired.
+sw_on_left     = true;
+sw_plate_w     =  30.0;    // centred on the switch; the knob slot is 8 mm wide in the middle
+sw_plate_h     =   7.0;
+sw_plate_sz    =   4.0;
 $fn            = 48;
 
 // Derived
@@ -118,8 +190,9 @@ in_w     = pocket_w + 2*ear_side;              // 109.3
 in_h     = pocket_h + ear_top + ear_bottom;    // 144.2
 out_w    = in_w + 2*wall;                      // 113.3
 out_h    = in_h + 2*wall;                      // 148.2
-cavity_t = hat_dupont_t - hat_pcb_t + 1 + dupont_slack;   // 29: PCB underside to floor (nominal)
-rim_z    = wall + cavity_t;                    // 31
+cavity_t = style == "bump" ? pico_standoff + pico_t + hat_back_room + hat_pcb_t + shelf_drop   // 22.2: floor top to rim,
+                           : hat_dupont_t - hat_pcb_t + 1 + dupont_slack;   // the Pico sets it, the HAT Dupont block goes into the cap; box: 29
+rim_z    = wall + cavity_t;                    // 24.2 | 31
 shelf_z  = rim_z - hat_pcb_t - shelf_drop;     // 27.8: PCB underside
 key_z0   = shelf_z - btn_cap_drop;             // 23.4: bottom of the key notches
 key_h    = rim_z - key_z0 - 0.4;               // 7.2: key height, under the bezel
@@ -136,26 +209,59 @@ module rounded_rect(w, h, r) { translate([r, r]) offset(r = r) square([w - 2*r, 
 function bosses() = [[boss_inset, boss_inset], [out_w - boss_inset, boss_inset],
                      [boss_inset, out_h - boss_inset], [out_w - boss_inset, out_h - boss_inset]];
 function btn_x(i) = pcb_x0 + hat_pt(0, btn_from_flex[i])[0];   // key centres along X, from the flex (left) edge
-function led_pos() = [18, wall + ear_bottom/2];
+// LED as low in the chin as its bore allows inside the wall; the tube then stays 0.4 clear of the PCB
+function led_pos() = [18, pcb_y0 - 0.4 - (led_sphere_d + 0.6)/2 - led_tube_t];   // y 7.55
+function led2_pos() = [31, 7.0];                                                    // beside the sphere, same chin
+function led2_seat() = rim_z + bezel_t - led2_proud - led2_body_h - led2_flange_t;  // flange seat, 16.1 in bump
+function btn_mid(i) = (btn_x(i) + btn_x(i + 1))/2;                               // between two keys
 
 // ---------------------------------------------------------------- component positions
 function pico_pos() = [40, wall + 1.5];                      // bottom-left corner, 21 wide x 51 tall
 function pico_holes() = let(p = pico_pos(), ox = (pico_w - pico_hole_dy)/2, oy = (pico_l - pico_hole_dx)/2)
     [[p[0] + ox, p[1] + oy], [p[0] + ox + pico_hole_dy, p[1] + oy],
      [p[0] + ox, p[1] + oy + pico_hole_dx], [p[0] + ox + pico_hole_dy, p[1] + oy + pico_hole_dx]];
-function tp_pos()  = [92, wall + 1.5];                       // bottom-left corner, 17 wide x 26 tall
+function tp_pos()  = [wall + 1.0, 88];                       // bottom-left corner, 26 along X (USB end 1 mm off the left
+                                                             // wall, LEDs facing the slot), 17 along Y, under the battery
 function bat_pos() = [26, out_h - wall - 4 - bat_w];         // lying across the top
 function sw_x()    = 86;                                     // switch centre on the bottom wall
 function hdr_strip() = let(p = hat_pt(hdr_x, hdr_y + hdr_wid/2))
     [pcb_x0 + p[0] - hdr_wid/2, pcb_y0 + p[1] - hdr_len, hdr_wid, hdr_len];
 function fpc_y() = [pcb_y0 + hat_pt(fpc_x1, 0)[1], pcb_y0 + hat_pt(fpc_x0, 0)[1]];   // flex span on the left edge
-// Pads: [edge, position along the edge]; edges: "L" "R" "B" (none on top: the buttons protrude there)
-function pads() = [["L", 28], ["L", 112], ["R", 28], ["R", 112], ["B", 30], ["B", 68]];   // clear of the LED, Pico screws and switch
+// Pads: [edge, position along the edge]; edges: "L" "R" "B" "T". On top, between the keys, clear of
+// the protruding caps (v4 had none there: the PCB could ride up to the key guides, 1 mm or more off the
+// bottom lips, and shift at each key press)
+function pads() = [["L", 28], ["L", 112], ["R", 28], ["R", 112], ["B", 30], ["B", 68],   // clear of the LED, Pico screws and switch
+                   ["T", btn_mid(0)], ["T", btn_mid(2)]];
 
 // ---------------------------------------------------------------- front plate
+// Outline with a rounded top edge (radius r, quarter circle in 6 steps), from z = 0 to h
+module rounded_top(h, r) {
+    if (r <= 0) linear_extrude(h) rounded_rect(out_w, out_h, corner_r);
+    else hull() {
+        linear_extrude(h - r) rounded_rect(out_w, out_h, corner_r);
+        for (a = [15 : 15 : 90]) translate([0, 0, h - r + r*sin(a) - 0.01])
+            linear_extrude(0.01) offset(delta = -r*(1 - cos(a))) rounded_rect(out_w, out_h, corner_r);
+    }
+}
+// Outer envelope of the shell: the back edge chamfered at 45 degrees over back_chamfer
+module envelope(h) {
+    if (back_chamfer <= 0) linear_extrude(h) rounded_rect(out_w, out_h, corner_r);
+    else hull() {
+        linear_extrude(0.01) offset(delta = -back_chamfer) rounded_rect(out_w, out_h, corner_r);
+        translate([0, 0, back_chamfer]) linear_extrude(h - back_chamfer) rounded_rect(out_w, out_h, corner_r);
+    }
+}
+// Inner cavity, with the 45 degree bead along the floor
+module cavity() {
+    translate([wall, wall, wall]) hull() {
+        linear_extrude(0.01) offset(delta = -bead) rounded_rect(in_w, in_h, corner_r - wall);
+        translate([0, 0, bead]) linear_extrude(rim_z) rounded_rect(in_w, in_h, corner_r - wall);
+    }
+}
+
 module front() {
     difference() {
-        linear_extrude(bezel_t) rounded_rect(out_w, out_h, corner_r);
+        rounded_top(bezel_t, bezel_edge_r);
         translate([pcb_x0 + (hat_h - disp_h)/2 - win_margin, pcb_y0 + (hat_w - disp_w)/2 - win_margin, -1])
             linear_extrude(bezel_t + 2) rounded_rect(disp_h + 2*win_margin, disp_w + 2*win_margin, 1.5);
         for (b = bosses()) translate([b[0], b[1], -1]) {
@@ -164,25 +270,30 @@ module front() {
         }
         translate([led_pos()[0], led_pos()[1], -1])
             cylinder(d1 = led_sphere_d + 0.8, d2 = led_sphere_d - 0.5, h = bezel_t + 2);
+        translate([led2_pos()[0], led2_pos()[1], -1]) cylinder(d = led2_d + 0.4, h = bezel_t + 2);   // mode LED dome
     }
 }
 
 // ---------------------------------------------------------------- back shell
 module back() {
+  intersection() {
+    envelope(rim_z);   // trims the corner bosses to the chamfer
     difference() {
         union() {
             difference() {   // walls and floor
                 linear_extrude(rim_z) rounded_rect(out_w, out_h, corner_r);
-                translate([wall, wall, wall]) linear_extrude(rim_z) rounded_rect(in_w, in_h, corner_r - wall);
+                cavity();
             }
             for (b = bosses()) translate([b[0], b[1], 0]) cylinder(d = boss_d, h = rim_z);
             for (p = pads()) pad(p[0], p[1]);
             for (i = [0 : btn_n - 1]) key_guide(btn_x(i));
             pico_mounts();
             battery_ribs();
-            tp_ribs();
+            tp_mounts();
             switch_cradle();
+            switch_pad();
             led_tube();
+            led2_tube();
         }
         for (b = bosses()) translate([b[0], b[1], 2]) cylinder(d = screw_pilot, h = rim_z);
         for (h = pico_holes()) translate([h[0], h[1], 1]) cylinder(d = 2.0, h = wall + pico_standoff + 1);
@@ -197,14 +308,62 @@ module back() {
         }
         // LED bore and wire exit of the tube towards the inside
         translate([led_pos()[0], led_pos()[1], wall]) cylinder(d = led_sphere_d + 0.6, h = rim_z);
-        translate([led_pos()[0] - (led_sphere_d + 4)/2, led_pos()[1], wall]) cube([led_sphere_d + 4, led_sphere_d, shelf_z - led_sphere_d - wall - 1]);
+        hull() {   // open towards the inside up to h, closing with a 45 degree roof above (no support, printed floor down)
+            w = led_sphere_d + 4; h = shelf_z - led_sphere_d - wall - 1;
+            translate([led_pos()[0] - w/2, led_pos()[1], wall]) cube([w, led_sphere_d, h - wall]);
+            translate([led_pos()[0] - 0.01, led_pos()[1], h + w/2 - 0.01]) cube([0.02, led_sphere_d, 0.02]);
+        }
+        // Mode LED: bore above the flange seat, leg slot through the seat, open half below with a 45 degree roof
+        translate([led2_pos()[0], led2_pos()[1], led2_seat()]) cylinder(d = led2_d + 1.0, h = rim_z);
+        translate([led2_pos()[0] - 1.7, led2_pos()[1] - 1.7, led2_seat() - 2]) cube([3.4, 3.4, 2.1]);
+        hull() {
+            w2 = led2_d + 1.0 + 2*led2_tube_t; h2 = led2_seat() - 1.0;
+            translate([led2_pos()[0] - w2/2, led2_pos()[1], wall]) cube([w2, w2, h2 - wall]);
+            translate([led2_pos()[0] - 0.01, led2_pos()[1], h2 + w2/2 - 0.01]) cube([0.02, w2, 0.02]);
+        }
+        // TP4056: pilot holes of its posts, and the slot in the left wall at the level of its LEDs
+        for (h = tp_holes) translate([tp_pos()[0] + h[0], tp_pos()[1] + h[1], 1]) cylinder(d = 2.0, h = wall + tp_standoff + 1);
+        translate([-1, tp_pos()[1] + tp_w/2 - tp_slot_l/2, wall + tp_standoff + tp_pcb_t]) cube([wall + 2, tp_slot_l, tp_slot_h]);
+        // Hole in the floor for the cap over the HAT Dupont block
+        if (style == "bump") translate([0, 0, -1]) linear_extrude(wall + 2) bump_fp(cap_clear);
+    }
+  }
+}
+
+// ---------------------------------------------------------------- cap over the HAT Dupont block
+// Footprint of the cap at the back face, offset by o (negative inwards)
+module bump_fp(o) { translate([bump_x0 - o, bump_y0 - o]) rounded_rect(bump_w + 2*o, bump_len + 2*o, bump_r + o); }
+
+// Modelled in place: dome outside the back face (z < 0), skirt through the floor, flange on the
+// inner face of the floor. Hollow, 2 mm walls, the inside closing at 45 degrees so that it prints
+// flange down without support: the housings sit under the flat part of the ceiling.
+module cap() {
+    d_side = bump_h - bump_edge_r;   // depth of the straight, leaning side
+    difference() {
+        union() {
+            hull() {   // dome
+                translate([0, 0, -0.01]) linear_extrude(0.01) bump_fp(0);
+                for (a = [0 : 15 : 90]) translate([0, 0, -(d_side + bump_edge_r*sin(a))])
+                    linear_extrude(0.01) bump_fp(-bump_top_in - bump_edge_r*(1 - cos(a)));
+            }
+            linear_extrude(wall) bump_fp(0);                                             // skirt, through the floor
+            translate([0, 0, wall]) linear_extrude(cap_flange_t) bump_fp(cap_flange);  // flange, inside
+        }
+        hull() {   // inside: 45 degree ceiling, flat from bump_fp(-cap_wall - inner_d) inwards
+            inner_d = bump_h - cap_wall;
+            translate([0, 0, -inner_d]) linear_extrude(0.01) bump_fp(-cap_wall - 0.8 - inner_d);
+            translate([0, 0, -0.01]) linear_extrude(wall + cap_flange_t + 0.03) bump_fp(-cap_wall - 0.8);
+        }
     }
 }
 
 // Support pad under the PCB edge, cantilevered from the wall with a 45 degree gusset,
 // plus a locating lip outside the PCB up to the rim
 module pad(edge, pos) {
-    reach = (edge == "B") ? ear_bottom + clear + pad_in : ear_side + clear + pad_in;   // from the wall inner face
+    reach = (edge == "B") ? ear_bottom + clear + pad_in     // from the wall inner face
+          : (edge == "T") ? ear_top + clear + pad_in
+          : ear_side + clear + pad_in;
+    gap   = (edge == "B" || edge == "T") ? clear_y : clear;   // lip to PCB edge
     module shape() {   // in a local frame: X along the edge, Y from the wall inwards, Z up
         // pad
         translate([-pad_w/2, 0, shelf_z - pad_t]) cube([pad_w, reach, pad_t]);
@@ -214,16 +373,38 @@ module pad(edge, pos) {
             translate([-pad_w/2, 0, shelf_z - pad_t - 0.01]) cube([pad_w, reach, 0.01]);
         }
         // locating lip, outside the PCB outline, up to the rim
-        translate([-pad_w/2, reach - pad_in - clear - lip_t, shelf_z - pad_t]) cube([pad_w, lip_t, rim_z - shelf_z + pad_t]);
+        translate([-pad_w/2, reach - pad_in - gap - lip_t, shelf_z - pad_t]) cube([pad_w, lip_t, rim_z - shelf_z + pad_t]);
     }
     if (edge == "L") translate([wall, pos, 0]) rotate([0, 0, -90]) mirror([1, 0, 0]) shape();
     else if (edge == "R") translate([out_w - wall, pos, 0]) rotate([0, 0, 90]) shape();
+    else if (edge == "T") translate([pos, out_h - wall, 0]) mirror([0, 1, 0]) shape();
     else translate([pos, wall, 0]) shape();
 }
 
 // Guide block for a key, in the top ear, set back from the PCB edge to clear the button cap
 module key_guide(x) {
-    translate([x - key_block_w/2, pcb_y1 + cap_room, key_z0 - 2]) cube([key_block_w, out_h - wall - (pcb_y1 + cap_room), rim_z - key_z0 + 2]);
+    y0 = pcb_y1 + cap_room; d = out_h - wall - y0; z0 = key_z0 - 2;   // 4 deep from the wall, 21.4 up
+    translate([x - key_block_w/2, y0, z0]) cube([key_block_w, d, rim_z - z0]);
+    // 45 degree gusset under the block, hanging from the wall: no support when printed upright
+    hull() {
+        translate([x - key_block_w/2, y0, z0 - 0.01]) cube([key_block_w, d, 0.01]);
+        translate([x - key_block_w/2, y0 + d - 0.01, z0 - d]) cube([key_block_w, 0.01, 0.01]);
+    }
+}
+
+// Short pad under the switch body, from the wall, so that the body rests on it instead of hanging
+// from its ears: pushed sideways on the knob, the switch then slides without rocking in the
+// grooves. Top one layer above the nominal body underside (the ears then float 0.1 above the
+// groove bottoms); 45 degree gusset below. The pins leave the body on its inner face, above the pad.
+module switch_pad() {
+    d = sw_ear_t + 0.2 + sw_body_w + 0.4;          // wall inner face to just past the body: 7.1
+    w = sw_body_l + 2;
+    z = rim_z - 0.4 - sw_body_t + 0.1;             // 25.0: body underside nominal 24.9
+    translate([sw_x() - w/2, wall, z - sw_pad_t]) cube([w, d, sw_pad_t]);
+    hull() {
+        translate([sw_x() - w/2, wall, z - sw_pad_t - 0.01]) cube([w, d, 0.01]);
+        translate([sw_x() - w/2, wall, z - sw_pad_t - d]) cube([w, 0.01, 0.01]);
+    }
 }
 
 // Pico standoffs: round, with a flat face towards the nearer long edge of the Pico over the top
@@ -254,10 +435,10 @@ module battery_ribs() {
     }
 }
 
-module tp_ribs() {
-    t = tp_pos(); r = 1.6; h = wall + 3;
-    for (p = [[t[0] - r, t[1], r, tp_l], [t[0] + tp_w, t[1], r, tp_l], [t[0] - r, t[1] + tp_l, tp_w + 2*r, r]])
-        translate([p[0], p[1], 0]) cube([p[2], p[3], h]);
+// TP4056 standoffs: two M2 posts under the module's mounting holes (pilot holes cut in back())
+module tp_mounts() {
+    t = tp_pos();
+    for (h = tp_holes) translate([t[0] + h[0], t[1] + h[1], 0]) cylinder(d = tp_post_d, h = wall + tp_standoff);
 }
 
 // Slide switch holder on the bottom wall, at the rim: the switch stands knob towards the
@@ -286,21 +467,60 @@ module switch_cradle() {
     }
 }
 
-module led_tube() { translate([led_pos()[0], led_pos()[1], 0]) cylinder(d = led_sphere_d + 0.6 + 3.2, h = rim_z); }
+module led_tube() { translate([led_pos()[0], led_pos()[1], 0]) cylinder(d = led_sphere_d + 0.6 + 2*led_tube_t, h = rim_z); }
+// Mode LED tube: the LED drops in from above, its flange rests on a step at led2_seat(), the legs go
+// through a square slot into the open lower half, where the wires are soldered
+module led2_tube() { translate([led2_pos()[0], led2_pos()[1], 0]) cylinder(d = led2_d + 1.0 + 2*led2_tube_t, h = rim_z); }
 
 // ---------------------------------------------------------------- push key
-// Shaft through the guide and the wall, 1 mm proud outside; head in the step on the inner face of
+// Shaft through the guide and the wall, key_proud outside; head in the step on the inner face of
 // the guide; nub towards the cap. Full height from the notch bottom to the bezel, so that it
 // cannot ride up and reaches the cap wherever it sits below the PCB. Printed as modelled.
+// Modelled with the key fully out (head against the outer end of its step), y from the tip.
+function key_shaft_w() = key_w + 0.4 - key_play;   // in a key_w + 0.4 notch
 module key() {
-    shaft_l = out_h - wall - (pcb_y1 + cap_room) + wall - key_head_t + 1.0;   // through the guide and wall, 1 mm proud
-    nub     = cap_room - btn_protrusion - 0.3;                               // from the guide face to 0.3 mm short of the cap
-    cube([key_w - 0.4, shaft_l, key_h]);
-    translate([-(key_head_w - key_w)/2, shaft_l, 0]) cube([key_head_w - 0.4, key_head_t - 0.4, key_h]);   // head
-    translate([(key_w - 4)/2 - 0.2, shaft_l + key_head_t - 0.4, 0]) cube([4, max(0.4, nub), key_h]);       // nub
+    w       = key_shaft_w();
+    hw      = key_head_w + 0.4 - key_play;
+    step    = key_head_t + 0.4;                              // depth of the head step cut in the guide
+    head_t  = step - key_head_play;
+    tip_to_guide = key_proud + out_h - (pcb_y1 + cap_room);  // tip to the guide inner face
+    shaft_l = tip_to_guide - step;
+    nub     = cap_room - btn_protrusion - key_gap + key_head_play;   // head inner face to key_gap short of the cap
+    cube([w, shaft_l, key_h]);
+    translate([-(hw - w)/2, shaft_l, 0]) cube([hw, head_t, key_h]);          // head
+    translate([(w - 4)/2, shaft_l + head_t, 0]) cube([4, max(0.4, nub), key_h]);   // nub
 }
 
 // ---------------------------------------------------------------- previews
+// Label plate, flat, text up (local frame: X along the case, Y towards the back of the case
+// = text up, Z out of the wall). Glued on the top wall with its lower edge plate_gap behind the
+// key notches: seen from the top edge with the display facing you, the words sit right behind
+// their keys and read with the back of the case up.
+// A label plate w x h with the 2D marks() children raised (or engraved) on it
+module label_plate(w, h) {
+    difference() {
+        linear_extrude(plate_t) rounded_rect(w, h, 1.5);
+        if (plate_relief < 0) translate([0, 0, plate_t + plate_relief]) linear_extrude(1) children();
+    }
+    if (plate_relief > 0) translate([0, 0, plate_t]) linear_extrude(plate_relief) children();
+}
+module plate() {
+    label_plate(plate_w, plate_h) for (i = [0 : btn_n - 1]) translate([btn_x(i) - plate_x0(), 0]) {
+        polygon([[-1.6, 2.6], [1.6, 2.6], [0, 0.6]]);                                // pointer towards the key
+        translate([0, 3.6]) text(plate_labels[i], size = plate_word_sz, font = plate_font,
+                                 halign = "center", valign = "baseline");
+    }
+}
+// ON / OFF plate: glued on the bottom wall under the knob slot, read with the display facing you
+// and the bottom edge tilted towards you, i.e. the display side up: local Y = +Z of the case.
+module sw_plate(on_left = sw_on_left) {
+    label_plate(sw_plate_w, sw_plate_h) for (p = [[-9, on_left ? "ON" : "OFF"], [9, on_left ? "OFF" : "ON"]])
+        translate([sw_plate_w/2 + p[0], 1.6]) text(p[1], size = sw_plate_sz, font = plate_font,
+                                                   halign = "center", valign = "baseline");
+}
+function sw_plate_z0() = rim_z - sw_slot_h - plate_gap - sw_plate_h;   // under the knob slot
+function plate_x0() = (btn_x(0) + btn_x(btn_n - 1))/2 - plate_w/2;   // case X of the plate's left edge, centred on the keys
+
 module hat() {
     color("DarkSlateGray") translate([pcb_x0, pcb_y0, shelf_z]) linear_extrude(hat_pcb_t) rounded_rect(hat_h, hat_w, 1);
     color("Black") translate([pcb_x0 + (hat_h - disp_h)/2, pcb_y0 + (hat_w - disp_w)/2, shelf_z + hat_pcb_t - 0.3]) cube([disp_h, disp_w, 0.3]);
@@ -315,19 +535,53 @@ module parts_preview() {
     color("Silver", 0.4) translate([pp[0] - dupont_room, pp[1] + 2, wall + pico_standoff]) cube([dupont_room, pico_l - 4, 6]);
     color("Silver", 0.4) translate([pp[0] + pico_w, pp[1] + 2, wall + pico_standoff]) cube([dupont_room, pico_l - 4, 6]);
     b = bat_pos();   color("Gold")  translate([b[0], b[1], wall]) cube([bat_l, bat_w, bat_t]);
-    t = tp_pos();    color("Blue")  translate([t[0], t[1], wall]) cube([tp_w, tp_l, tp_t]);
-    color("White") translate([sw_x() - sw_body_l/2, wall + sw_ear_t + 0.2, rim_z - sw_body_t - 0.4]) cube([sw_body_l, sw_body_w, sw_body_t]);
-    color("Silver") translate([sw_x() - sw_ear_len/2, wall + 0.2, rim_z - sw_ear_h - 0.4]) cube([sw_ear_len, sw_ear_t, sw_ear_h]);
+    t = tp_pos();    color("Blue")  translate([t[0], t[1], wall + tp_standoff]) cube([tp_l, tp_w, tp_t]);
+    for (c = [["Red", 6], ["DodgerBlue", 10]]) color(c[0]) translate([t[0] + tp_led_x - 0.6, t[1] + c[1], wall + tp_standoff + tp_pcb_t]) cube([1.2, 1.2, 0.8]);
+    hs = hdr_strip(); color("Silver", 0.4) translate([hs[0] - 2.5, hs[1], shelf_z - (hat_dupont_t - hat_pcb_t)])
+        cube([hs[2] + 5, hs[3], hat_dupont_t - hat_pcb_t]);   // Dupont housings on the HAT header, 18 mm below the PCB
+    color("White") translate([sw_x() - sw_body_l/2, wall + sw_ear_t + 0.2, rim_z - sw_body_t - 0.3]) cube([sw_body_l, sw_body_w, sw_body_t]);
+    color("Silver") translate([sw_x() - sw_ear_len/2, wall + 0.2, rim_z - sw_ear_h - 0.3]) cube([sw_ear_len, sw_ear_t, sw_ear_h]);
     color("LimeGreen") translate([led_pos()[0], led_pos()[1], rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
-    for (i = [0 : btn_n - 1]) color("Yellow") translate([btn_x(i) - key_w/2 + 0.2, out_h + 1.0, key_z0 + 0.2]) mirror([0, 1, 0]) key();   // shaft 1 mm proud of the wall
+    color("Red") translate([led2_pos()[0], led2_pos()[1], led2_seat()]) { cylinder(d = 5.8, h = led2_flange_t); translate([0, 0, led2_flange_t]) cylinder(d = led2_d, h = led2_body_h - led2_d/2); translate([0, 0, led2_flange_t + led2_body_h - led2_d/2]) sphere(d = led2_d); }
+    for (i = [0 : btn_n - 1]) color("Yellow") translate([btn_x(i) - key_shaft_w()/2, out_h + key_proud, key_z0 + 0.2]) mirror([0, 1, 0]) key();   // fully out, shaft key_proud of the wall
+    color("DimGray") translate([plate_x0(), out_h, key_z0 - 0.2 - plate_gap]) rotate([-90, 0, 0]) plate();   // label plate on the top wall, behind the keys
+    color("DimGray") translate([sw_x() - sw_plate_w/2, 0, sw_plate_z0()]) rotate([90, 0, 0]) sw_plate();      // ON / OFF plate under the knob slot
 }
 
 // ---------------------------------------------------------------- output
-if (part == "front") translate([0, out_h, bezel_t]) rotate([180, 0, 0]) front();   // face down for printing
+if (part == "front") {
+    if (bezel_edge_r > 0) front();                                             // bump: face up (rounded edge on top)
+    else translate([0, out_h, bezel_t]) rotate([180, 0, 0]) front();          // box: face down
+}
 else if (part == "back") back();
+else if (part == "cap") translate([0, 0, wall + cap_flange_t]) rotate([180, 0, 0]) cap();   // flange down, dome up
 else if (part == "key") key();   // flat on its bottom face
+else if (part == "plate") plate();   // flat, text up
+else if (part == "swplate") sw_plate();   // flat, text up; -D sw_on_left=false for the other variant
+else if (part == "closed") {
+    back();
+    if (style == "bump") color("SteelBlue") cap();
+    translate([0, 0, rim_z]) front();
+    color("LimeGreen") translate([led_pos()[0], led_pos()[1], rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
+    color("Red") translate([led2_pos()[0], led2_pos()[1], led2_seat() + led2_flange_t]) { cylinder(d = led2_d, h = led2_body_h - led2_d/2); translate([0, 0, led2_body_h - led2_d/2]) sphere(d = led2_d); }
+    for (i = [0 : btn_n - 1]) color("Gainsboro") translate([btn_x(i) - key_shaft_w()/2, out_h + key_proud, key_z0 + 0.2]) mirror([0, 1, 0]) key();
+    color("DimGray") translate([plate_x0(), out_h, key_z0 - 0.2 - plate_gap]) rotate([-90, 0, 0]) plate();
+    color("DimGray") translate([sw_x() - sw_plate_w/2, 0, sw_plate_z0()]) rotate([90, 0, 0]) sw_plate();
+    color("#1d2b2a") translate([pcb_x0, pcb_y0, rim_z - 0.4]) cube([hat_h, hat_w, 0.4]);   // glass
+}
+else if (part == "section") intersection() {
+    union() {
+        back();
+        if (style == "bump") color("SteelBlue") cap();
+        parts_preview();
+        hat();
+        translate([0, 0, rim_z]) front();
+    }
+    translate([section_x, -1, -20]) cube([out_w, out_h + 2, 80]);
+}
 else {
     back();
+    if (style == "bump") color("SteelBlue") cap();
     %parts_preview();
     hat();
     %translate([0, 0, rim_z]) front();

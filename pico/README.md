@@ -5,19 +5,22 @@ Port of hadistory to the RP2350 (Raspberry Pi Pico 2 W, Pimoroni Pico Plus 2 / P
 Scope compared to the Pi version:
 - **Story mode**: pages made of a JPEG illustration and a text, either on a microSD card (`STORAGE=SDCARD`) or embedded in the firmware (`STORAGE=FLASH`). The firmware composes the page with its bitmap font. Pages are prepared by `tools/prepare_pages.py`, see `tools/README.md`.
 - **AI mode** (optional, `WITH_GPT=ON`): OpenAI text and image generation over WiFi, no embedded models. The WiFi is joined on demand and the switch to AI mode is refused without network.
-- 4 buttons (execute, reset, change mode, go back) and a status LED, same behaviour as the Pi version.
+- 4 buttons (execute, reset, change mode, go back) and a status LED, same behaviour as the Pi version, plus a mode LED and a robot badge on the AI pages.
+- **Battery gauge** (`BATTERY_GAUGE=ON`, the default): battery bars in the top-right corner of each page. Display only, nothing in the firmware depends on the level.
 
 ## Status
 
 | Part | State |
 |---|---|
-| Buttons, status LED, display | Working on a Pico Plus 2 with the Inky Impression 5.7" HAT wired on a breadboard |
+| Buttons, status LED, display | Working on a Pico Plus 2 with the Inky Impression 5.7" display HAT wired on a breadboard |
 | Story mode from flash | Working with JPEG + text pages composed on the board (bitmap font, page counter) |
 | Story mode from microSD | Written, not yet tested on hardware |
 | Onboard LED (`STATUS_LED=ONBOARD`) | Working on the Pico 2 W (wireless-chip LED, 1 Hz blink when busy); GP25 of the Pico Plus 2 not tried yet |
 | AI mode | Working end to end on a Pico 2 W: prompt, chat request, image request, JPEG decoding and display, about 35 s plus the 30 s refresh |
 | Deep sleep between pages (`DEEP_SLEEP=ON`) | Working on the Pico 2 W: RP2350 power manager, wake-up and action on the button that woke the board |
 | Battery operation | To be tested, see Power |
+| Battery gauge (`BATTERY_GAUGE=ON`) | Written, to be tested on the battery wiring: bars on each page, calibration of the diode drop |
+| Mode LED and robot badge | Written, to be tested: red LED on in AI mode, robot top-left of the AI pages |
 
 ## Use
 
@@ -36,9 +39,11 @@ Waiting for next button press...
 | A, execute | Next page; picks a story at random when none is running or the last page was shown | Generates and shows a new page |
 | D, go back | Previous page | — |
 | B, reset | Forgets the current story, the next A starts a new one | Same |
-| C, change mode | Starts the WiFi connection if needed (LED breathing), then switches to AI mode with 3 long LED bursts; if the network cannot be joined within 30 s the switch is refused with the error blink | Switches to story mode, 5 short LED bursts |
+| C, change mode | Starts the WiFi connection if needed (status LED breathing, mode LED blinking), then switches to AI mode: mode LED on; if the network cannot be joined within 30 s the switch is refused with the error blink and the mode LED goes off | Switches to story mode: mode LED off |
 
-LED: solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, off = asleep. In story mode the core is powered off 2 minutes after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
+Two LEDs, one question each. Status LED (the white sphere): solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, off = asleep. Mode LED (red): on = AI mode, off = story mode, blinking = joining the WiFi after a press on C; it goes off again if the network cannot be joined (with the error blink on the status LED). The status LED no longer bursts at a mode change. On the page itself, the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep. In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
+
+Battery (`BATTERY_GAUGE=ON`): each page carries a battery symbol in its top-right corner, 4 bars when full, red with one bar or none when low, a lightning bolt when the USB is plugged. The gauge is informative only: the firmware never refuses an action, powers off or changes mode because of the level; when the cell is really empty the protection circuit of the battery module cuts the power. See "Battery gauge" under Power and battery.
 
 ## Layout
 
@@ -47,13 +52,16 @@ pico/
 ├── CMakeLists.txt          build configuration and options
 ├── main.cpp                button loop and mode switching (port of the Python main loop)
 ├── secrets.cmake.example   WiFi / OpenAI credentials template (copy to secrets.cmake, ignored by git)
+├── img/                    wiring diagram (wiring.py generates wiring.svg, rendered to wiring.png)
 └── src/
     ├── hadistory_config.h  pins per board, display geometry, behaviour constants
-    ├── led.cpp/.h          status LED: solid = waiting, breathing = busy (timer driven), bursts = mode / error
-    │                       external GPIO (PWM) or onboard LED, including the cyw43-driven one of the Pico 2 W
+    ├── led.cpp/.h          status LED: solid = waiting, breathing = busy (timer driven), rapid blink = error,
+    │                       external GPIO (PWM) or onboard LED, including the cyw43-driven one of the Pico 2 W;
+    │                       mode LED: plain GPIO, on in AI mode, blinking while the WiFi is joined
     ├── buttons.cpp/.h      4 active-low buttons, edge detection
     ├── display.cpp/.h      PicoGraphics 3-bit frame buffer + Pimoroni UC8159 driver; the only path to the panel
     ├── render.cpp/.h       page composition: rotated text layout, JPEG decoded and dithered into the square
+    ├── battery.cpp/.h      BATTERY_GAUGE: cell voltage from VSYS, bars
     ├── storage.h           storage interface (stories catalogue, page = JPEG + text, persisted state)
     ├── storage_sdcard.cpp  STORAGE=SDCARD backend: FAT microSD, state in /currently.txt
     ├── storage_flash.cpp   STORAGE=FLASH backend: pages embedded in the image, state in the last flash sector
@@ -74,7 +82,7 @@ pico/
 
 Everything that reaches the panel goes through `display.cpp`: a `PicoGraphics_Pen3Bit` frame buffer (100 KB, allocated once) and the Pimoroni `UC8159` driver, which converts it to the panel format on the fly. Pages, from the storage or from the AI mode, are composed by `render.cpp` into that frame buffer: the text is wrapped and drawn with the `bitmap8` font at scale 2 (accents supported), the JPEG illustration is decoded by Pimoroni's `jpegdec`, resampled into the square left above the text and dithered to the 7 colours with Floyd-Steinberg error diffusion, strip by strip as the decoder delivers the blocks, with the inky palette blend used by the Pi version (the ordered dithering of PicoGraphics was tried first and gave a woven look). The layout is the one of `pi/hadistory.py`: portrait page, illustration on top, text below, rotated 90 degrees onto the landscape panel; the font is drawn rotated by PicoGraphics so no intermediate buffer exists. One 160 KB buffer holds the current JPEG (`IMAGE_MAX_BYTES`). Changing to another Pimoroni panel means swapping the driver class and the geometry in `display.cpp` / `hadistory_config.h`.
 
-Orientation: `DISPLAY_ROTATION` in `hadistory_config.h` (`ROTATE_0` or `ROTATE_180`) is passed to the driver, which flips the scan directions of the UC8159 in hardware. `ROTATE_180` is the default: it puts the HAT buttons at the top with the pages as rendered by the tool. Nothing is rotated in software.
+Orientation: `DISPLAY_ROTATION` in `hadistory_config.h` (`ROTATE_0` or `ROTATE_180`) is passed to the driver, which flips the scan directions of the UC8159 in hardware. `ROTATE_180` is the default: it puts the display HAT buttons at the top with the pages as rendered by the tool. Nothing is rotated in software.
 
 ## Build
 
@@ -97,7 +105,7 @@ make -C pico/build-gpt -j8
 
 Flashing: put the board in BOOTSEL mode (hold BOOTSEL while plugging the USB, or on the Pico Plus 2 hold BOOT, press RESET, release both) and copy `hadistory.uf2` to the `RP2350` volume, or use `picotool load -f -x pico/build/hadistory.uf2` from application mode. The `picotool` reboot over USB does not work while a serial monitor holds the port: close minicom first.
 
-Console: USB serial, 115200 baud, e.g. `minicom -b 115200 -o -D /dev/tty.usbmodem*`. Messages printed before the monitor is attached are lost; `main.cpp` waits a few seconds after boot for that reason.
+Console: USB serial, 115200 baud, e.g. `minicom -b 115200 -o -D /dev/tty.usbmodem*`. Messages printed before the monitor is attached are lost: the boot does not wait for it (the 2 s wait of the bring-up was removed), so attach the monitor before resetting the board, or build with `-DDEEP_SLEEP=OFF` and read the lines printed at each press.
 
 Build-time options:
 
@@ -108,26 +116,31 @@ Build-time options:
 | `EMBED_STORIES` | `STORAGE=FLASH` only: semicolon-separated list of the stories to embed, e.g. `"story_1;story_2"`. Empty (default) embeds everything in `stories/`. |
 | `EMBED_QUALITY` | `STORAGE=FLASH` only: JPEG quality of the embedded illustrations, 1 to 95, default 85. See the size table in `tools/README.md`. |
 | `WITH_GPT` | `ON` builds the AI mode (`HADISTORY_WITH_GPT=1` in the code). Default `OFF`. |
-| `DEEP_SLEEP` | `ON` (default): 2 minutes after the last press in story mode the RP2350 power manager switches the core off (state P1.7), any button powers it up, which reboots the firmware (`HADISTORY_DEEP_SLEEP=1`). `OFF` keeps the board awake and the USB console alive, for debugging. |
+| `DEEP_SLEEP` | `ON` (default): 20 seconds after the last press in story mode (`IDLE_BEFORE_SLEEP_MS`) the RP2350 power manager switches the core off (state P1.7), any button powers it up, which reboots the firmware (`HADISTORY_DEEP_SLEEP=1`). `OFF` keeps the board awake and the USB console alive, for debugging. |
+| `BATTERY_GAUGE` | `ON` (default): battery bars on each page from the VSYS reading, display only (`HADISTORY_BATTERY=1`). `OFF` drops the module and the ADC. |
 | `STATUS_LED` | `EXTERNAL` (default): LED on `LED_PIN` (GP8). `ONBOARD`: the board's own LED, GP25 on the Pico Plus 2 with the same breathing effect; on the Pico 2 W the LED is on the wireless chip, no PWM, so busy is shown as a 1 Hz blink. |
 | `WIFI_SSID`, `WIFI_PASSWORD`, `OPENAI_API_KEY` | Credentials for the AI mode, via `-D` or `secrets.cmake`. |
 | `TLS_NO_VERIFY` | AI mode: `ON` skips the certificate check of `api.openai.com`. Debug only, it exposes the API key to anyone on the path. Default `OFF`: the server must chain to one of the roots in `src/openai_roots.h`. |
 
 ## Wiring (default mapping in `hadistory_config.h`, Pico 2 W and Pico Plus 2)
 
-Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the HAT, and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40).
+![Wiring of the Pico version](img/wiring.png)
 
-Power. The HAT runs from 3V3 alone: its 5V pin only feeds its small expansion header (Pimoroni schematic), so it can stay unconnected. That is what makes battery operation simple.
+*Everything on one picture: display HAT header, buttons, status and mode LEDs, TP4056, battery, switch and diode (`img/wiring.svg`, generated by `img/wiring.py`). The HAT header is drawn as seen from the back of the HAT, the side the wires plug into: pin 1 (3V3) top right, odd pins on the right column. The microSD breakout of `STORAGE=SDCARD` is not drawn.*
 
-| HAT | HAT pin | Pico | Pico pin |
+Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the display HAT (the Inky Impression), and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40). Any Pico GND pin does for any ground; the ones below keep one wire per pin: 33 for the HAT, 38 for the TP4056, 13 for the status LED, 23 for the mode LED. The "Display HAT GPIO" column is the Raspberry Pi GPIO number the HAT expects on that pin, as in the Pimoroni pinout; it is only there to find your way on the HAT, nothing on the Pico uses it.
+
+Power. The display HAT runs from 3V3 alone: its 5V pin only feeds its small expansion header (Pimoroni schematic), so it can stay unconnected. That is what makes battery operation simple.
+
+| Display HAT | Display HAT pin | Pico | Pico pin |
 |---|---|---|---|
 | 3V3 | 1 | 3V3 OUT | 36 |
-| GND | 6 | GND | 38 |
+| GND | 6 | GND | 33 |
 | 5V | 2 | not connected | |
 
 Inky Impression 5.7" display, on the Pico SPI0:
 
-| Signal | Pi GPIO | HAT pin | Pico GPIO | Pico pin |
+| Signal | Display HAT GPIO | Display HAT pin | Pico GPIO | Pico pin |
 |---|---|---|---|---|
 | SCLK | GPIO 11 | 23 | GP18 | 24 |
 | MOSI | GPIO 10 | 19 | GP19 | 25 |
@@ -136,9 +149,9 @@ Inky Impression 5.7" display, on the Pico SPI0:
 | RESET | GPIO 27 | 13 | GP21 | 27 |
 | BUSY | GPIO 17 | 11 | GP22 | 29 |
 
-The 4 HAT buttons (active low, internal pull-ups on the Pico; they close to the HAT ground, already shared):
+The 4 display HAT buttons (active low, internal pull-ups on the Pico; they close to the display HAT ground, already shared):
 
-| Function | Button | Pi GPIO | HAT pin | Pico GPIO | Pico pin |
+| Function | Button | Display HAT GPIO | Display HAT pin | Pico GPIO | Pico pin |
 |---|---|---|---|---|---|
 | execute / next page | A | GPIO 5 | 29 | GP2 | 4 |
 | reset story | B | GPIO 6 | 31 | GP3 | 5 |
@@ -149,10 +162,12 @@ Status LED, external as on the Pi version (`STATUS_LED=EXTERNAL`, the default). 
 
 | Element | Pico | Pico pin |
 |---|---|---|
-| LED anode through a 220 ohm resistor | GP8 | 11 |
-| LED cathode | GND | 13 |
+| Status LED anode through a 220 ohm resistor | GP8 | 11 |
+| Status LED cathode | GND | 13 |
+| Mode LED (red, 5 mm) anode through a 220 ohm resistor | GP16 | 21 |
+| Mode LED cathode | GND | 23 |
 
-GP6 and GP7 are kept free: they are the I2C1 bus (INA219) of the Waveshare Pico UPS-B when the board is mounted on it.
+The mode LED is a plain on/off output (`MODE_LED_PIN`); it is lit in AI mode only, when the board is awake with the WiFi anyway, so it costs nothing in story mode.
 
 microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 
@@ -165,18 +180,15 @@ microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 | VCC | 3V3 OUT | 36 |
 | GND | GND | 13 |
 
-HAT pins 27 and 28 (ID EEPROM) stay unconnected.
+Display HAT pins 27 and 28 (ID EEPROM) stay unconnected.
 
 ## Power and battery
 
-Consumption, order of magnitude (to be measured): a page costs about 10 to 18 J, i.e. around 1 mAh of a single LiPo cell, so a 600 mAh battery is good for several hundred pages. What actually sets the autonomy is the time between pages: awake, the board draws 30 to 40 mA (60 to 80 mA with WiFi), about 15 h on 600 mAh. With the core powered off between pages (`DEEP_SLEEP=ON`, after 2 minutes idle) the RP2350 itself drops to about 150 uA; the floor is then the quiescent current of the battery board (the boost converter of the UPS-B keeps running) and of the SD card.
+Consumption, order of magnitude (to be measured): a page costs about 10 to 18 J, i.e. around 1 mAh of a single LiPo cell, so even a 600 mAh battery is good for several hundred pages. What actually sets the autonomy is the time between pages: awake, the board draws 30 to 40 mA (60 to 80 mA with WiFi), about 15 h on 600 mAh, 50 h on the 2000 mAh 103450 cell of the enclosure. With the core powered off between pages (`DEEP_SLEEP=ON`, after 20 s idle) the RP2350 itself drops to about 150 uA; the floor is then the quiescent current of the charger board and of the SD card.
 
-On USB, the Pico powers everything: 3V3 OUT for the HAT and the microSD, VBUS (5V) for the HAT. Three options for a rechargeable battery:
-
-The HAT's 5V pin is not needed: on the Inky Impression 5.7" it only feeds the small 10-pin expansion header, the panel voltages are made from 3V3 (checked on the Pimoroni schematic). So battery operation only needs VSYS.
+On USB, the Pico powers everything from its 3V3 OUT: display HAT and microSD. The display HAT's 5V pin is not needed: on the Inky Impression 5.7" it only feeds the small 10-pin expansion header, the panel voltages are made from 3V3 (checked on the Pimoroni schematic), so battery operation only needs VSYS. Two options for a rechargeable battery:
 
 - **TP4056 module + single LiPo cell** (the enclosure in `case/` is built around it, see below).
-- **Waveshare Pico UPS-B**: the Pico mounts on it, its USB port charges the battery through the UPS charger, VSYS is boosted to 5V on battery. Its INA219 battery monitor is on I2C1, GP6 (SDA) and GP7 (SCL), which is why the LED is on GP8. Reading the battery level is not implemented.
 - **Pimoroni Pico LiPo 2** (RP2350B, 16 MB flash, onboard charger and battery connector). Same build as the Pico Plus 2 (`PICO_BOARD=pimoroni_pico_plus2_rp2350`, the SDK 2.1.0 has no board file for it). No wireless unless an RM2 breakout is added.
 
 ### TP4056 wiring
@@ -199,7 +211,7 @@ Pico USB ──► VBUS (40) ──► TP4056 IN+ ──► charger ──► B+
                                          │
                                        ──┤►──  1 A Schottky diode (1N5817, 1N5819, SS14; a 1N4007 also works)
                                          │
-                                       VSYS (39) ──► Pico regulator ──► 3V3 ──► Pico, HAT
+                                       VSYS (39) ──► Pico regulator ──► 3V3 ──► Pico, display HAT
 ```
 
 The diode: inside the Pico, VBUS already reaches VSYS through a Schottky diode, so VSYS sits at about 4.7V when the USB is plugged. Without the external diode those 4.7V would reach the battery through the switch, uncontrolled. Oriented battery to VSYS, the diode lets the battery power the Pico but never the reverse. A 1N5711 is not suitable (15 mA signal diode).
@@ -212,6 +224,33 @@ The diode: inside the Pico, VBUS already reaches VSYS through a Schottky diode, 
 
 The TP4056 ships set to 1 A (Rprog 1.2 kΩ): charge from a mains USB adapter rather than a computer port, or fit 2 kΩ for about 580 mA. A module without B+/B- protection relies on the protection circuit of the cell itself (most 103450 pouch cells have one).
 
+### Battery gauge
+
+No extra component: the Pico has a 200 k / 100 k divider between VSYS and GP29 (ADC 3), so the firmware reads VSYS / 3 with the 12-bit ADC over its 3.3 V reference, averaged over 8 samples. On battery, VSYS is the cell voltage minus the drop of the Schottky diode of the wiring above, a constant at the idle current of the board; `BATTERY_DIODE_DROP_MV` (250 mV) adds it back. On a board with its own charger (Pico LiPo 2) set it to 0.
+
+Six states are shown: 4, 3, 2, 1 or 0 bars, and the lightning bolt on USB. The outline turns red at one bar or none.
+
+| Bars | Estimated cell voltage |
+|---|---|
+| 4 | 4.00 V and above |
+| 3 | 3.80 V and above |
+| 2 | 3.60 V and above |
+| 1 | 3.45 V and above |
+| 0 | below 3.45 V |
+
+**Calibration**, two multimeter readings, nothing to flash in between:
+
+1. *ADC chain, on USB.* The console prints `Battery: VSYS n mV` before each page. Compare with the multimeter between pin 39 (VSYS) and a ground pin. Up to 50 mV of difference is normal (3.3 V reference and 1 % divider); there is no correction factor in the firmware, add one if the error is larger.
+2. *Diode drop, USB unplugged, switch on, board idle* (not during a refresh). Measure the cell on B+ / B- of the TP4056, then pin 39: the difference is the real drop. Put it in `BATTERY_DIODE_DROP_MV`: typically 150 to 250 mV for a 1N5817 / SS14 at 40 mA, 600 to 700 mV for a 1N4007.
+
+The firmware's own reading on battery cannot be watched: without USB there is no console. Hence the multimeter-only method; the bars on the page are the only feedback once unplugged.
+
+On USB, VSYS is the USB voltage through the Pico's own diode, about 4.7 V, whatever the cell: a reading above `BATTERY_USB_MV` (4.3 V) means USB power, and the symbol shows the lightning bolt. A cell never gives more than 4.0 V to VSYS through the diode, so the two cases cannot be confused.
+
+On the Pico W family GP29 is also the clock of the SPI link to the wireless chip, so the reading holds the cyw43 driver for the millisecond it takes; the driver sets the pin back at its next transfer. The measurement is taken before each page, with the board idle at 30 to 40 mA, never during the panel refresh, where the current peaks and the voltage sags.
+
+The thresholds (`BATTERY_BAR_MV`) are 150 to 200 mV apart and a LiPo spends most of its charge between 3.6 and 4.0 V, so the bars are honest to about one bar; a percentage would not be. The symbol turns red at one bar or none, time to recharge. That is all the firmware does with the reading: no action depends on the level, the protection circuit of the battery module (about 2.4 V) is what cuts the power on a flat cell.
+
 ## AI mode
 
 Port of the online mode of `pi/hadistory.py`, with `gpt-4o-mini` for the text and `gpt-image-2` for the illustration (models in `hadistory_config.h`). The prompt is built like the Pi version from `prompts/prompts.txt` (only that file; `prompts_en.txt` and `prompts_examples.txt` are not used), which is embedded in the firmware at build time, so editing it means rebuilding. Each line is a theme drawn at random with equal chances; a `3:` prefix gives a line three chances, and `[a|b|c]`, `(a|b)` or `{a|b}` groups pick one option at random inside a line. The French incipit and excipit around the theme are in `src/prompt.cpp`.
@@ -222,7 +261,7 @@ Requests go to `api.openai.com` over TLS 1.2 with the server certificate verifie
 
 The illustration is requested from the image API as a 1024 x 1024 JPEG (`IMAGE_QUALITY`, `IMAGE_COMPRESSION` in `hadistory_config.h`), returned base64 encoded inside the JSON; it is decoded on the fly into the 160 KB image buffer while the response streams in, then decoded by `jpegdec` at half size and dithered into the page like a story page (see Display path). If the image step fails, the text alone is shown and the LED blinks the error pattern.
 
-On button A in AI mode, the console shows the prompt, the generated story, the image download size and the decoding, then the page is displayed.
+On button A in AI mode, the console shows the prompt, the generated story, the image download size and the decoding, then the page is displayed, with the robot badge top-left where a story page carries its counter.
 
 Deep sleep stays off in AI mode: the power-down would drop the WiFi link. Switching back to story mode re-enables it.
 
@@ -257,12 +296,12 @@ Copy `tools/out/stories/` to the root of a FAT32 card:
 
 Lessons from the first bring-up, in the order they bit:
 
-- **Count the HAT header pins from the right end and row.** Seen from the HAT's female connector the numbering is mirrored. The even pins (2, 4, ..., 40) are the row along the board edge, pin 1 is at the end marked with a square pad. Check with a continuity tester before powering: pins 2 and 4 (5V) are adjacent and connected, pins 1 and 17 (3V3) are connected, and the grounds 6, 9, 14, 20, 25, 30, 34, 39 are all connected. A button line that reads 0 at rest is on a ground pin (29 and 30 are neighbours).
-- **Buttons**: at rest a button line reads 1 (internal pull-up), pressed it reads 0, whether or not the HAT is powered. The HAT ground must be connected to the Pico ground.
-- **`Test pattern: done in 605 ms`** instead of about 30 s: the driver never saw BUSY go low, so the panel did not answer. In practice: BUSY wire (HAT pin 11), then 3V3 and 5V on HAT pins 1 and 2, then RESET (pin 13).
+- **Count the display HAT header pins from the right end and row.** Seen from the display HAT's female connector the numbering is mirrored. The even pins (2, 4, ..., 40) are the row along the board edge, pin 1 is at the end marked with a square pad. Check with a continuity tester before powering: pins 2 and 4 (5V) are adjacent and connected, pins 1 and 17 (3V3) are connected, and the grounds 6, 9, 14, 20, 25, 30, 34, 39 are all connected. A button line that reads 0 at rest is on a ground pin (29 and 30 are neighbours).
+- **Buttons**: at rest a button line reads 1 (internal pull-up), pressed it reads 0, whether or not the display HAT is powered. The display HAT ground must be connected to the Pico ground.
+- **`Test pattern: done in 605 ms`** instead of about 30 s: the driver never saw BUSY go low, so the panel did not answer. In practice: BUSY wire (display HAT pin 11), then 3V3 on display HAT pin 1, then RESET (pin 13).
 - **`main.cpp` has a commented DEBUG block** after `display_init()`: an endless loop that prints each button press and the BUSY level every second, and on button A draws 7 colour bars, refreshes the panel, times it and reports how long BUSY was low. Uncomment it to check a new wiring step by step.
 - **Flashing over USB fails** ("no accessible RP-series devices in BOOTSEL mode"): a serial monitor holds the port. Close it, or use the BOOTSEL button.
-- **The USB serial console drops at each sleep**: the core is powered off, so the host sees the device go away and come back on the wake-up reboot (reopen the serial monitor). Build with `-DDEEP_SLEEP=OFF` while debugging, or press a button within the 2 minute idle window.
+- **The USB serial console drops at each sleep**: the core is powered off, so the host sees the device go away and come back on the wake-up reboot (reopen the serial monitor). Build with `-DDEEP_SLEEP=OFF` while debugging, or press a button within the 20 second idle window.
 - **Deep sleep history**: the first implementation used the XOSC dormant mode of pico-extras and never woke on the RP2350. The power manager path (P1.7, GPIO wake-up slots, reboot on wake) is the one Raspberry Pi documents for the RP2350. Three things were needed to make it work: a wake-up state that lists the SRAM banks in the same state as the sleep state, waiting for the power manager's WAITING bit beyond the SDK's short timeout, and the SLEEPDEEP bit of the Cortex-M33 before the wait-for-interrupt. The console prints the wake-up slot registers before sleeping and after waking. If the board wakes immediately or refuses to power down, a button line is probably low: check the pull-ups, the internal ones are kept in sleep, the internal pull-downs are not (erratum E9).
 - **Long lines on the USB console are cut in the middle**, the end of the line being kept: an artefact of the console path, the data itself is complete (the firmware prints the character counts). Raising `PICO_STDIO_USB_STDOUT_TIMEOUT_US` did not remove it; try another terminal program if it matters.
 - **`SubSample mode: 0x22`** on the console comes from the JPEG decoder library itself, it is harmless.
@@ -270,6 +309,5 @@ Lessons from the first bring-up, in the order they bit:
 
 ## Roadmap
 
-- Battery level over the UPS-B INA219, with a low-battery LED pattern.
 - Dithering: Floyd-Steinberg on the board; Atkinson or Stucki could be tried if a lighter grain is wanted.
 - Measure the real consumption awake, refreshing and dormant.

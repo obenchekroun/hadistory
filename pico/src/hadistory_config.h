@@ -28,6 +28,9 @@
 #ifndef HADISTORY_DEEP_SLEEP
 #define HADISTORY_DEEP_SLEEP 0    // -DDEEP_SLEEP=ON sets it to 1
 #endif
+#ifndef HADISTORY_BATTERY
+#define HADISTORY_BATTERY 0       // -DBATTERY_GAUGE=ON sets it to 1
+#endif
 
 // ---------------------------------------------------------------------------
 // Display: Inky Impression 5.7" (UC8159, 600 x 448, 7 colours)
@@ -63,8 +66,9 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    // Status LED (PWM capable). GP6 / GP7 are left free: I2C1 of the Waveshare Pico UPS-B (INA219).
+    // Status LED (PWM capable), and the mode LED (plain GPIO, on in AI mode)
     #define LED_PIN              8
+    #define MODE_LED_PIN         16
 #elif defined(PIMORONI_PICO_PLUS2_RP2350) || defined(PIMORONI_PICO_PLUS2_W_RP2350)
     // Same mapping for now; adjust once the LiPo 2 / Plus 2 wiring is decided
     #define DISPLAY_SPI          spi0
@@ -82,7 +86,8 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    #define LED_PIN              8   // GP6 / GP7 left free for the Pico UPS-B I2C
+    #define LED_PIN              8
+    #define MODE_LED_PIN         16
 #else
     #error "Unsupported PICO_BOARD: add a pin mapping in src/hadistory_config.h"
 #endif
@@ -104,6 +109,8 @@
 #else
     #define HADISTORY_LED_CYW43 0
 #endif
+// The wireless chip driver (cyw43) is initialised by main() when one of these needs it
+#define HADISTORY_HAS_CYW43 (HADISTORY_WITH_GPT || HADISTORY_LED_CYW43)
 
 // ---------------------------------------------------------------------------
 // Behaviour
@@ -115,6 +122,16 @@
 #define SETTINGS_FILE        "/currently.txt"  // SDCARD backend
 #define MAX_STORIES          64
 #define STORY_NAME_LEN       32
+
+// ---------------------------------------------------------------------------
+// Battery gauge (BATTERY_GAUGE=ON): the cell voltage estimated from VSYS, see battery.cpp.
+// Display only: no action in the firmware depends on the level
+// ---------------------------------------------------------------------------
+#define BATTERY_DIODE_DROP_MV 250    // Schottky between the battery and VSYS, at the idle current: calibrate with a
+                                     // multimeter on the battery, USB unplugged (0 on a board with its own charger)
+#define BATTERY_USB_MV        4300   // VSYS at or above this means USB power (4.7 V); a cell never gives more than 4.0 V after the diode
+#define BATTERY_BARS          4
+#define BATTERY_BAR_MV        { 4000, 3800, 3600, 3450 }   // cell voltage for 4, 3, 2 and 1 bars; below the last: empty
 
 // ---------------------------------------------------------------------------
 // AI mode (WITH_GPT=ON), same models as pi/hadistory.py

@@ -139,6 +139,76 @@ void render_page_counter(int page, int total) {
 }
 
 // ---------------------------------------------------------------------------
+// Battery gauge: a battery symbol drawn in portrait coordinates, 33 x 16 at scale 1
+// (body 30 x 16 with a 2 px outline, nub 3 x 8), four bars inside, a lightning bolt
+// instead of the bars on USB. Red outline when one bar is left or none.
+// ---------------------------------------------------------------------------
+static int  battery_bars = -1;
+static bool battery_usb = false;
+
+// Portrait rectangle -> panel rectangle, the same rotation as to_panel()
+static inline Rect prect(int x, int y, int w, int h) {
+    return Rect(y, PAGE_W - x - w, h, w);
+}
+
+static void draw_battery(int x, int y, int s, int bars, bool on_usb) {
+    PicoGraphics &g = display_graphics();
+    int ink = (!on_usb && bars <= 1) ? DISPLAY_RED : DISPLAY_BLACK;
+    g.set_pen(ink);
+    g.rectangle(prect(x, y, 30 * s, 16 * s));                 // body
+    g.rectangle(prect(x + 30 * s, y + 4 * s, 3 * s, 8 * s));  // nub
+    g.set_pen(DISPLAY_WHITE);
+    g.rectangle(prect(x + 2 * s, y + 2 * s, 26 * s, 12 * s)); // inside
+    g.set_pen(ink);
+    if (on_usb) {
+        g.triangle(to_panel(x + 16 * s, y + 2 * s), to_panel(x + 10 * s, y + 9 * s), to_panel(x + 15 * s, y + 9 * s));
+        g.triangle(to_panel(x + 14 * s, y + 14 * s), to_panel(x + 20 * s, y + 7 * s), to_panel(x + 15 * s, y + 7 * s));
+    } else {
+        for (int i = 0; i < bars && i < 4; i++) {             // 4 cells of 5 px, 1 px apart
+            g.rectangle(prect(x + (3 + 6 * i) * s, y + 3 * s, 5 * s, 10 * s));
+        }
+    }
+}
+
+void render_set_battery(int bars, bool on_usb) {
+    battery_bars = bars;
+    battery_usb = on_usb;
+}
+
+void render_battery(void) {
+    if (battery_bars < 0) return;
+    PicoGraphics &g = display_graphics();
+    // Top-right, the mirror of the page counter: symbol at portrait (PAGE_W - 20 - 33, 20)
+    // on a white box with a 5 px margin
+    const int w = 33, h = 16, x = PAGE_W - 20 - w, y = 20;
+    g.set_pen(DISPLAY_WHITE);
+    g.rectangle(prect(x - 5, y - 5, w + 10, h + 10));
+    draw_battery(x, y, 1, battery_bars, battery_usb);
+}
+
+// ---------------------------------------------------------------------------
+// AI mode badge: a robot head, 18 x 18 in portrait pixels, blue, where the story mode
+// draws its page counter (top-left, white box with a 5 px margin). Antenna, head,
+// two ears, two eyes and a mouth, all rectangles.
+// ---------------------------------------------------------------------------
+void render_mode_badge(void) {
+    PicoGraphics &g = display_graphics();
+    const int x = 20, y = 20, s = 18;
+    g.set_pen(DISPLAY_WHITE);
+    g.rectangle(prect(x - 5, y - 5, s + 10, s + 10));
+    g.set_pen(DISPLAY_BLUE);
+    g.rectangle(prect(x + 7,  y,      4, 3));    // antenna ball
+    g.rectangle(prect(x + 8,  y + 3,  2, 2));    // antenna stem
+    g.rectangle(prect(x + 2,  y + 5,  14, 13));  // head
+    g.rectangle(prect(x,      y + 9,  2, 5));    // ears
+    g.rectangle(prect(x + 16, y + 9,  2, 5));
+    g.set_pen(DISPLAY_WHITE);
+    g.rectangle(prect(x + 5,  y + 8,  3, 3));    // eyes
+    g.rectangle(prect(x + 10, y + 8,  3, 3));
+    g.rectangle(prect(x + 5,  y + 13, 8, 2));    // mouth
+}
+
+// ---------------------------------------------------------------------------
 // JPEG: decoded blocks are resampled into the square, then dithered with Floyd-Steinberg
 // error diffusion, the method of the Pi version. The decoder delivers the image as
 // strips of blocks (one row of MCUs at a time, left to right); each strip is resampled

@@ -262,6 +262,8 @@ bool gpt_generate_page(void) {
         uint8_t *buf = render_image_buffer(&cap);
         render_jpeg(layout, buf, last_image_len);   // the download filled the shared buffer
     }
+    render_mode_badge();
+    render_battery();
     display_update();
     print_elapsed("Image shown", t0);
     puts("The end.");

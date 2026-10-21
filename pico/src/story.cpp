@@ -44,6 +44,7 @@ static bool show_current_page(const settings_t *settings) {
     render_layout_t layout = render_text(page.text);
     if (!render_jpeg(layout, page.jpeg, page.jpeg_len)) return false;
     render_page_counter(settings->page, story_page_count(settings));
+    render_battery();
     display_update();
     return true;
 }
