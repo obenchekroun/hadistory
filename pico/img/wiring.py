@@ -1,7 +1,7 @@
 # Generates pico/img/wiring.svg: Fritzing-like wiring of the hadistory Pico version.
 import sys
 
-W, H = 1500, 1235
+W, H = 1500, 1260
 out = []
 def add(s): out.append(s)
 
@@ -52,12 +52,12 @@ def pad(x, y, s=12, fill="#d4af37"):
 C = {  # wire colours
     "VBUS": "#e8711a", "VSYS": "#c0392b", "GND": "#111111", "3V3": "#e74c3c",
     "SCLK": "#f1c40f", "MOSI": "#2980b9", "CS": "#27ae60", "DC": "#8e44ad", "RESET": "#8d5524", "BUSY": "#16a085",
-    "A": "#7f8c8d", "B": "#2c3e50", "C": "#d35400", "D": "#1abc9c", "LED": "#ff69b4", "LED2": "#e53935", "BAT+": "#c0392b", "BAT-": "#111111",
+    "A": "#7f8c8d", "B": "#2c3e50", "C": "#d35400", "D": "#1abc9c", "LED": "#ff69b4", "DIAL": "#3949ab", "BAT+": "#c0392b", "BAT-": "#111111",
 }
 
 add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">')
 add(f'<rect width="{W}" height="{H}" fill="#f7f7f2"/>')
-text(40, 1220, "hadistory · câblage de la version Pico 2 W (brochage par défaut de hadistory_config.h). Fils : couleur = signal, voir la légende. Broches = numéros physiques.", 12, color="#555")
+text(40, 1246, "hadistory · câblage de la version Pico 2 W (brochage par défaut de hadistory_config.h). Fils : couleur = signal, voir la légende. Broches = numéros physiques.", 12, color="#555")
 
 # ---------------------------------------------------------------- Pico 2 W
 rect(PICO_X0, 206, PICO_X1 - PICO_X0, row_y(19) + 24 - 206, "#2e7d32", "#1b5e20", rx=6)
@@ -184,22 +184,31 @@ add('<polygon points="874,773 874,787 887,780" fill="#c2185b"/>'); add('<line x1
 text(880, 806, "LED sphère dLUX-dLITE", 9, "middle", "#222"); text(880, 818, "anode (patte longue) côté résistance", 9, "middle", "#555")
 wire([(892, 780), (930, 780), (930, 758), (748, 758), (748, p13[1]), (p13[0], p13[1])], C["GND"])   # cathode -> GND pin 13
 
-# ---------------------------------------------------------------- mode LED (red, 5 mm) on GP16 (pin 21), GND pin 23
-p21 = pico_pin(21); p23 = pico_pin(23)
-wire([(p21[0], p21[1]), (950, p21[1]), (950, 730), (980, 730)], C["LED2"])             # GP16 -> resistor
-rect(980, 724, 50, 12, "#f5deb3", "#8d5524", rx=2); text(1005, 720, "220 Ω", 9, "middle", "#222")
-wire([(1030, 730), (1040, 730)], C["LED2"])
-add('<circle cx="1050" cy="730" r="9" fill="#ff8a80" stroke="#b71c1c" stroke-width="1.5"/>')   # LED
-add('<polygon points="1045,725 1045,735 1055,730" fill="#b71c1c"/>'); add('<line x1="1055" y1="725" x2="1055" y2="735" stroke="#b71c1c" stroke-width="2"/>')
-text(1060, 744, "LED rouge 5 mm : mode IA", 9, "end", "#222"); text(1060, 756, "fixe en mode IA, clignote pendant la connexion", 9, "end", "#555")
-wire([(1059, 730), (1066, 730), (1066, p23[1]), (p23[0], p23[1])], C["GND"])              # cathode -> GND pin 23
+# ---------------------------------------------------------------- story dial, option STORY_DIAL: KY-040 on GP6 / GP7 / GP9, + on 3V3, GND pin 8
+KX, KY, KW, KH = 470, 640, 220, 96
+kpins = [("+", 604), ("GND", 620), ("CLK", 640), ("DT", 656), ("SW", 672)]
+rect(KX, KY, KW, KH, "#1f5fa8", "#123c6b", rx=4)
+text(KX + 12, KY + 48, "KY-040", 13, "start", "#fff", "bold")
+text(KX + 12, KY + 64, "encodeur rotatif : cadran des histoires", 8, "start", "#cfd8dc")
+text(KX + 12, KY + 76, "option STORY_DIAL", 8, "start", "#cfd8dc")
+text(KX + 12, KY + 88, "ordre réel des broches du module : GND + SW DT CLK", 7, "start", "#cfd8dc")
+add(f'<circle cx="{KX + KW - 30}" cy="{KY + 62}" r="20" fill="#2e3a40" stroke="#111" stroke-width="1.5"/>')   # the knob
+for lbl, x in kpins:
+    pad(x, KY, 10); text(x, KY + 21, lbl, 7, "middle", "#fff")
+p8 = pico_pin(8); p9 = pico_pin(9); p10 = pico_pin(10); p12 = pico_pin(12); p36 = pico_pin(36)
+wire([(p8[0], p8[1]), (620, p8[1]), (620, KY)], C["GND"])                                   # GND pin 8
+wire([(p9[0], p9[1]), (640, p9[1]), (640, KY)], C["DIAL"])                                  # CLK GP6
+wire([(p10[0], p10[1]), (656, p10[1]), (656, KY)], C["DIAL"])                               # DT GP7
+wire([(p12[0], p12[1]), (672, p12[1]), (672, KY)], C["DIAL"])                               # SW GP9
+wire([(p36[0], p36[1]), (930, p36[1] - 8), (930, 110), (604, 110), (604, KY)], C["3V3"])    # + from 3V3 OUT, around the top
+text(770, 106, "3V3 OUT → KY-040 + (pull-ups du module)", 9, "middle", C["3V3"])
 
 # ---------------------------------------------------------------- legend
 LX, LY = 40, 925
 text(LX, LY, "Légende", 13, "start", "#222", "bold")
 rows = [
-    ("3V3", "3V3 OUT", "Pico 36", "HAT 1", "alimentation du HAT (le 5V du HAT reste libre)"),
-    ("GND", "GND", "Pico 33 / 38 / 13 / 23", "HAT 6 / TP4056 IN- et B- / LED / LED mode", "masse commune, un fil par broche"),
+    ("3V3", "3V3 OUT", "Pico 36", "HAT 1, KY-040 +", "alimentation du HAT (le 5V du HAT reste libre) et du cadran"),
+    ("GND", "GND", "Pico 33 / 38 / 13 / 8", "HAT 6 / TP4056 IN- et B- / LED / KY-040", "masse commune, un fil par broche"),
     ("SCLK", "SCLK", "Pico 24 (GP18)", "HAT 23 (GPIO11)", "SPI0 horloge"),
     ("MOSI", "MOSI", "Pico 25 (GP19)", "HAT 19 (GPIO10)", "SPI0 données"),
     ("CS", "CS", "Pico 22 (GP17)", "HAT 24 (GPIO8)", "sélection"),
@@ -211,7 +220,7 @@ rows = [
     ("C", "bouton C", "Pico 6 (GP4)", "HAT 36 (GPIO16)", "changer de mode"),
     ("D", "bouton D", "Pico 7 (GP5)", "HAT 18 (GPIO24)", "page précédente"),
     ("LED", "LED", "Pico 11 (GP8)", "résistance 220 Ω, LED, Pico 13 (GND)", "LED d'état : fixe prête, respire occupée, clignote erreur"),
-    ("LED2", "LED mode", "Pico 21 (GP16)", "résistance 220 Ω, LED rouge, Pico 23 (GND)", "allumée en mode IA, clignote pendant la connexion WiFi"),
+    ("DIAL", "cadran", "Pico 9 / 10 / 12", "KY-040 CLK (GP6) / DT (GP7) / SW (GP9)", "option STORY_DIAL : numéro d'histoire ; le poussoir vaut RESET"),
     ("VBUS", "VBUS", "Pico 40", "TP4056 IN+", "5 V de l'USB du Pico : charge la batterie"),
     ("VSYS", "VSYS", "Pico 39", "diode ← switch ← TP4056 B+", "alimentation sur batterie"),
 ]

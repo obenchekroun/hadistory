@@ -37,7 +37,8 @@ static int read_vsys_mv(void) {
     cyw43_thread_exit();
 #endif
     uint32_t raw = sum / SAMPLES;                    // 0 .. 4095 for 0 .. 3.3 V
-    return (int)(raw * 3300 * 3 / 4095);
+    uint32_t nominal = raw * 3300 * 3 / 4095;        // over the nominal reference and divider
+    return (int)((uint64_t)nominal * BATTERY_CAL_METER_MV / BATTERY_CAL_CONSOLE_MV);   // measured correction
 }
 
 battery_t battery_read(void) {

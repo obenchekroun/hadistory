@@ -19,6 +19,20 @@ void buttons_init(void) {
         previous_state[i] = true;
         current_state[i] = true;
     }
+#if HADISTORY_STORY_DIAL
+    gpio_init(DIAL_PIN_SW);          // the push button of the dial acts as RESET too
+    gpio_set_dir(DIAL_PIN_SW, GPIO_IN);
+    gpio_pull_up(DIAL_PIN_SW);
+#endif
+}
+
+// Released = high on every line of the button; the dial push button is wired-OR with RESET
+static bool read_button(int i) {
+    bool released = gpio_get(button_gpio[i]);
+#if HADISTORY_STORY_DIAL
+    if (i == BUTTON_RESET) released = released && gpio_get(DIAL_PIN_SW);
+#endif
+    return released;
 }
 
 void buttons_poll(void) {
@@ -30,7 +44,7 @@ void buttons_poll(void) {
             current_state[i] = false;
         } else {
             previous_state[i] = current_state[i];
-            current_state[i] = gpio_get(button_gpio[i]);
+            current_state[i] = read_button(i);
         }
     }
 }

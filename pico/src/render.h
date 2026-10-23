@@ -26,7 +26,7 @@ render_layout_t render_text(const char *text);
 bool render_jpeg(const render_layout_t &layout, const uint8_t *data, size_t len);
 
 // Draws "page/total" top-left on a white box, over the illustration, as the Pi version does
-void render_page_counter(int page, int total);
+void render_page_counter(int story_no, int page, int total);   // story_no 0 = not shown (no dial)
 
 // Draws the robot badge of the AI mode at the same place: the page itself tells the mode
 void render_mode_badge(void);

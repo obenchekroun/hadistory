@@ -8,6 +8,7 @@
  *   WITH_GPT            adds the AI mode (OpenAI over WiFi); off = story mode only
  *   DEEP_SLEEP          core powered off between pages, any button reboots the board (story mode)
  *   BATTERY_GAUGE       battery bars on each page, display only
+ *   STORY_DIAL          KY-040 story dial: RESET re-arms it at 1, GO starts the story under the arrow
  ********************************************************************************/
 
 #include <stdio.h>
@@ -33,20 +34,26 @@
 #include "battery.h"
 #include "render.h"
 #endif
+#if HADISTORY_STORY_DIAL
+#include "dial.h"
+#endif
 
 static settings_t settings;
 static bool sd_ok = false;
 
 static void save_settings(void) {
+#if HADISTORY_STORY_DIAL
+    settings.dial = dial_position();
+#endif
     if (sd_ok && !storage_save_settings(&settings)) {
         puts("Could not save state");
     }
 }
 
-// The mode LED says it: on = AI mode. No LED pattern on the status LED any more.
+// Same bursts as hadistory.py: 3 long = AI mode, 5 short = story mode
 static void announce_mode(void) {
     puts(settings.ai_mode ? "Switching to AI mode." : "Switching to local story mode.");
-    led_mode_set(settings.ai_mode);
+    if (settings.ai_mode) led_three_long_bursts(); else led_five_short_bursts();
 }
 
 static void wait_for_press(void) {
@@ -64,6 +71,7 @@ static void battery_update(void) {
 }
 
 int main(void) {
+    // sleep_ms(5000);
     stdio_init_all();
 #if HADISTORY_DEEP_SLEEP
     // Waking from deep sleep is a reboot: no console delay then, the reader is waiting.
@@ -90,7 +98,6 @@ int main(void) {
 #endif
 
     led_init();
-    led_mode_init();
     buttons_init();
     display_init();
 #if HADISTORY_BATTERY
@@ -157,6 +164,10 @@ int main(void) {
         memset(&settings, 0, sizeof settings);
     }
     story_init(&settings);
+#if HADISTORY_STORY_DIAL
+    dial_init(settings.dial);
+    bool dial_dirty = false;    // position moved since the last save
+#endif
 
 #if HADISTORY_WITH_GPT
     gpt_init();
@@ -169,7 +180,6 @@ int main(void) {
 #if HADISTORY_DEEP_SLEEP
         if (wake_button < BUTTON_COUNT) buttons_inject_press(wake_button);   // act on the button that woke us
 #endif
-        led_mode_set(settings.ai_mode);
     } else {
         announce_mode();
     }
@@ -183,6 +193,19 @@ int main(void) {
         for (int b = 0; b < BUTTON_COUNT; b++) {
             if (buttons_pressed((button_t)b)) any_press = true;
         }
+#if HADISTORY_STORY_DIAL
+        // Each counted detent: a blip of the status LED, and the board stays awake a while longer
+        if (int steps = dial_take_steps()) {
+            printf("Dial: %+d -> %d\n", steps, dial_position());
+            dial_dirty = true;
+            any_press = true;
+            bool quiet = settings.ai_mode;
+#if HADISTORY_WITH_GPT
+            quiet = quiet || ai_switch_pending;   // the LED is busy breathing
+#endif
+            if (!quiet) { led_off(); sleep_ms(DIAL_BLIP_MS); led_on(); }
+        }
+#endif
 
 #if HADISTORY_WITH_GPT
         wifi_state_t wifi = gpt_wifi_poll();
@@ -198,7 +221,6 @@ int main(void) {
             } else if (wifi == WIFI_FAILED) {
                 ai_switch_pending = false;
                 puts("AI mode refused: no WiFi. Staying in story mode.");
-                led_mode_set(false);
                 led_breathe_stop();
                 led_rapid_blink();
                 led_on();
@@ -241,8 +263,15 @@ int main(void) {
 
         } else if (buttons_pressed(BUTTON_RESET)) {
             story_reset(&settings);
+#if HADISTORY_STORY_DIAL
+            dial_set_position(1);   // the ritual: wheel at the lower stop, RESET, turn to the story, GO
+            dial_dirty = false;
+            save_settings();
+            puts("Story reset, dial re-armed at 1: turn the wheel to the story, then press A");
+#else
             save_settings();
             puts("Story reset. Press button to launch a new one");
+#endif
 
         } else if (buttons_pressed(BUTTON_MODE)) {
 #if HADISTORY_WITH_GPT
@@ -263,7 +292,6 @@ int main(void) {
                 ai_switch_pending = true;
                 gpt_wifi_connect();   // no-op if already connecting
                 led_breathe_start();
-                led_mode_blink_start();
             }
 #else
             puts("AI mode not available in this build.");
@@ -277,6 +305,9 @@ int main(void) {
         // Story mode only: the WiFi link of the AI mode would not survive the power-down
         if (!settings.ai_mode && absolute_time_diff_us(idle_since, get_absolute_time()) > IDLE_BEFORE_SLEEP_MS * 1000) {
             puts("Going to sleep, press any button to wake up.");
+#if HADISTORY_STORY_DIAL
+            if (dial_dirty) { save_settings(); dial_dirty = false; }   // keep the wheel position across the sleep
+#endif
             led_off();
             power_sleep();            // reboots on a button press, returns only on failure
             led_on();

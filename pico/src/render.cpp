@@ -123,11 +123,12 @@ render_layout_t render_text(const char *text) {
     return layout;
 }
 
-void render_page_counter(int page, int total) {
+void render_page_counter(int story_no, int page, int total) {
     PicoGraphics &g = display_graphics();
     g.set_font("bitmap8");
-    char counter[16];
-    snprintf(counter, sizeof counter, "%d/%d", page, total);
+    char counter[24];
+    if (story_no > 0) snprintf(counter, sizeof counter, "%d: %d/%d", story_no, page, total);   // dial number first
+    else snprintf(counter, sizeof counter, "%d/%d", page, total);
     // As in hadistory.py: text at portrait (20, 20) on a white box with a 5 px margin
     const int x = 20, y = 20, h = 16;
     int w = g.measure_text(counter, TEXT_SCALE);

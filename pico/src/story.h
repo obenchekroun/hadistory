@@ -1,4 +1,4 @@
-/* Story mode: pick a story at random, step through its pages, go back.
+/* Story mode: pick a story (at random, or by the dial with STORY_DIAL), step through its pages, go back.
  * Mirrors the "Story Mode" branches of the main loop in hadistory.py.
  */
 #ifndef HADISTORY_STORY_H

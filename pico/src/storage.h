@@ -23,6 +23,7 @@ typedef struct {
     char story[STORY_NAME_LEN];   // "" when no story is chosen
     int page;                     // 0 = none shown yet
     bool ai_mode;
+    int dial;                     // STORY_DIAL: wheel position 1..DIAL_POSITIONS, 0 = unknown
 } settings_t;
 
 typedef struct {

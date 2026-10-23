@@ -1,4 +1,4 @@
-/* Four active-low buttons with internal pull-ups.
+/* Four active-low buttons with internal pull-ups (plus the dial push button on RESET with STORY_DIAL).
  * buttons_poll() samples them once; buttons_pressed() reports a falling edge since
  * the previous poll, which mirrors the previous_*_state logic of hadistory.py.
  */

@@ -17,8 +17,14 @@ extern "C" {
 #include "pico/cyw43_arch.h"
 #endif
 
+// One wake-up slot per button role. With the story dial, the RESET slot watches the dial's push
+// button instead of the HAT button B (four slots only): the ritual starts by pressing the wheel.
 static const uint wake_pins[BUTTON_COUNT] = {
+#if HADISTORY_STORY_DIAL
+    BUTTON_PIN_EXECUTE, DIAL_PIN_SW, BUTTON_PIN_MODE, BUTTON_PIN_BACK
+#else
     BUTTON_PIN_EXECUTE, BUTTON_PIN_RESET, BUTTON_PIN_MODE, BUTTON_PIN_BACK
+#endif
 };
 static_assert(BUTTON_COUNT <= 4, "the RP2350 power manager has four GPIO wake-up slots");
 

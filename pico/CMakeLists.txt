@@ -24,6 +24,7 @@ option(WITH_GPT "Build the AI mode (OpenAI over WiFi). Requires a board with wir
 option(TLS_NO_VERIFY "AI mode: skip the TLS certificate check of api.openai.com (debug only, exposes the API key)" OFF)
 option(DEEP_SLEEP "Power the core off between pages in story mode (RP2350 power manager), any button reboots the board." ON)
 option(BATTERY_GAUGE "Battery bars on each page from the VSYS reading, display only." ON)
+option(STORY_DIAL "Story dial: KY-040 rotary encoder choosing the story by number (RESET re-arms it at 1, GO starts the story under the arrow)." OFF)
 set(STATUS_LED "EXTERNAL" CACHE STRING "Status LED: EXTERNAL (LED_PIN in hadistory_config.h) or ONBOARD (the board's own LED)")
 set_property(CACHE STATUS_LED PROPERTY STRINGS EXTERNAL ONBOARD)
 set(STORAGE "SDCARD" CACHE STRING "Where the stories live: SDCARD (FAT microSD) or FLASH (embedded in the firmware)")
@@ -140,6 +141,11 @@ if(BATTERY_GAUGE)
     list(APPEND my_lib hardware_adc)
 endif()
 
+# ---------------------------------------------------------------- story dial
+if(STORY_DIAL)
+    list(APPEND hadistory_SRC src/dial.cpp)
+endif()
+
 # ---------------------------------------------------------------- AI mode
 if(WITH_GPT)
     if(NOT PICO_CYW43_SUPPORTED)
@@ -187,6 +193,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     HADISTORY_WITH_GPT=$<BOOL:${WITH_GPT}>
     HADISTORY_DEEP_SLEEP=$<BOOL:${DEEP_SLEEP}>
     HADISTORY_BATTERY=$<BOOL:${BATTERY_GAUGE}>
+    HADISTORY_STORY_DIAL=$<BOOL:${STORY_DIAL}>
     ${STORAGE_DEFINE}
     ${LED_DEFINE}
     ${TLS_DEFINES}

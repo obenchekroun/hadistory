@@ -17,6 +17,7 @@ typedef struct {
     char story[STORY_NAME_LEN];
     int32_t page;
     uint32_t ai_mode;
+    int32_t dial;        // added with the story dial; an older record reads -1 here, clamped by dial_init()
 } settings_record_t;
 
 bool storage_init(void) {
@@ -56,6 +57,7 @@ bool storage_load_settings(settings_t *s) {
     snprintf(s->story, STORY_NAME_LEN, "%.*s", STORY_NAME_LEN - 1, rec->story);
     s->page = rec->page;
     s->ai_mode = rec->ai_mode != 0;
+    s->dial = rec->dial;
     return true;
 }
 
@@ -67,6 +69,7 @@ bool storage_save_settings(const settings_t *s) {
     snprintf(rec.story, STORY_NAME_LEN, "%s", s->story);
     rec.page = s->page;
     rec.ai_mode = s->ai_mode ? 1 : 0;
+    rec.dial = s->dial;
     memset(buf, 0xFF, sizeof buf);
     memcpy(buf, &rec, sizeof rec);
 

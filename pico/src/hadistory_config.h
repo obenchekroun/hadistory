@@ -31,6 +31,9 @@
 #ifndef HADISTORY_BATTERY
 #define HADISTORY_BATTERY 0       // -DBATTERY_GAUGE=ON sets it to 1
 #endif
+#ifndef HADISTORY_STORY_DIAL
+#define HADISTORY_STORY_DIAL 0    // -DSTORY_DIAL=ON sets it to 1
+#endif
 
 // ---------------------------------------------------------------------------
 // Display: Inky Impression 5.7" (UC8159, 600 x 448, 7 colours)
@@ -66,9 +69,12 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    // Status LED (PWM capable), and the mode LED (plain GPIO, on in AI mode)
+    // Status LED (PWM capable)
     #define LED_PIN              8
-    #define MODE_LED_PIN         16
+    // Story dial (STORY_DIAL=ON): KY-040 CLK / DT, and its push button, a second RESET
+    #define DIAL_PIN_CLK         6
+    #define DIAL_PIN_DT          7
+    #define DIAL_PIN_SW          9
 #elif defined(PIMORONI_PICO_PLUS2_RP2350) || defined(PIMORONI_PICO_PLUS2_W_RP2350)
     // Same mapping for now; adjust once the LiPo 2 / Plus 2 wiring is decided
     #define DISPLAY_SPI          spi0
@@ -87,7 +93,9 @@
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
     #define LED_PIN              8
-    #define MODE_LED_PIN         16
+    #define DIAL_PIN_CLK         6
+    #define DIAL_PIN_DT          7
+    #define DIAL_PIN_SW          9
 #else
     #error "Unsupported PICO_BOARD: add a pin mapping in src/hadistory_config.h"
 #endif
@@ -127,8 +135,14 @@
 // Battery gauge (BATTERY_GAUGE=ON): the cell voltage estimated from VSYS, see battery.cpp.
 // Display only: no action in the firmware depends on the level
 // ---------------------------------------------------------------------------
-#define BATTERY_DIODE_DROP_MV 250    // Schottky between the battery and VSYS, at the idle current: calibrate with a
-                                     // multimeter on the battery, USB unplugged (0 on a board with its own charger)
+#define BATTERY_DIODE_DROP_MV 580    // diode between the battery and VSYS, at the idle current. Measured 2026-10-21 on the
+                                     // prototype: cell 4.24 V on B+/B-, VSYS 3.66 V, a silicon diode (a Schottky gives about
+                                     // 250). Multimeter, USB unplugged, board idle. 0 on a board with its own charger.
+// ADC scale: the ADC reads VSYS / 3 over the nominal 3.3 V reference, and the real reference and the divider
+// are off by a few percent. Measured on USB: multimeter 4760 mV on pin 39 while the console said 4656 mV.
+// The reading is multiplied by METER / CONSOLE; set both equal to disable the correction.
+#define BATTERY_CAL_METER_MV   4760
+#define BATTERY_CAL_CONSOLE_MV 4656
 #define BATTERY_USB_MV        4300   // VSYS at or above this means USB power (4.7 V); a cell never gives more than 4.0 V after the diode
 #define BATTERY_BARS          4
 #define BATTERY_BAR_MV        { 4000, 3800, 3600, 3450 }   // cell voltage for 4, 3, 2 and 1 bars; below the last: empty
@@ -145,6 +159,13 @@
 #define GPT_TIMEOUT_S        60      // idle timeout of the chat request
 #define IMAGE_TIMEOUT_S      120     // idle timeout of the image request (127 s max, lwIP poll limit)
 #define STORY_MAX_LEN        PAGE_TEXT_MAX
+// ---------------------------------------------------------------------------
+// Story dial (STORY_DIAL=ON)
+// ---------------------------------------------------------------------------
+#define DIAL_POSITIONS       12      // numbers on the printed wheel; the travel is DIAL_POSITIONS - 1 detents
+#define DIAL_REVERSE         0       // 1 if the numbers go the wrong way for the wiring / mounting side
+#define DIAL_BLIP_MS         20      // status LED off this long at each counted detent
+
 #ifndef HADISTORY_TLS_NO_VERIFY
 #define HADISTORY_TLS_NO_VERIFY 0    // -DTLS_NO_VERIFY=ON sets it to 1
 #endif
