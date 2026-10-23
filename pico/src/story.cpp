@@ -13,6 +13,7 @@
 
 static story_info_t catalogue[MAX_STORIES];
 static int catalogue_size = 0;
+static char last_story[STORY_NAME_LEN];   // the story just left, not drawn again at random
 
 // Number at the end of a story name (story_10 -> 10), -1 without one
 static int story_number(const char *name) {
@@ -69,8 +70,18 @@ int story_page_count(const settings_t *settings) {
 }
 
 void story_reset(settings_t *settings) {
+    if (settings->story[0]) snprintf(last_story, STORY_NAME_LEN, "%s", settings->story);
     settings->story[0] = '\0';
     settings->page = 0;
+}
+
+// A story at random, not the one just left when there is a choice
+static const story_info_t *random_pick(void) {
+    const story_info_t *pick;
+    do {
+        pick = &catalogue[get_rand_32() % catalogue_size];
+    } while (catalogue_size > 1 && strcmp(pick->name, last_story) == 0);
+    return pick;
 }
 
 static bool show_current_page(const settings_t *settings) {
@@ -97,14 +108,22 @@ bool story_next_page(settings_t *settings) {
         story_reset(settings);
     }
     if (settings->story[0] == '\0') {
+        const story_info_t *pick;
 #if HADISTORY_STORY_DIAL
-        // The story under the arrow; a wheel position beyond the catalogue gives the last story
-        int pos = dial_position();
-        if (pos > catalogue_size) pos = catalogue_size;
-        const story_info_t *pick = &catalogue[pos - 1];
-        printf("Dial at %d: story %s\n", dial_position(), pick->name);
+        if (dial_moved()) {
+            // The wheel was turned since the last RESET / story: the story under the arrow
+            // (a position beyond the catalogue gives the last story)
+            int pos = dial_position();
+            if (pos > catalogue_size) pos = catalogue_size;
+            pick = &catalogue[pos - 1];
+            printf("Dial at %d: story %s\n", dial_position(), pick->name);
+        } else {
+            pick = random_pick();
+            printf("Dial untouched: story %s at random\n", pick->name);
+        }
+        dial_set_moved(false);   // the next pick needs a new turn of the wheel
 #else
-        const story_info_t *pick = &catalogue[get_rand_32() % catalogue_size];
+        pick = random_pick();
 #endif
         snprintf(settings->story, STORY_NAME_LEN, "%s", pick->name);
         settings->page = 0;

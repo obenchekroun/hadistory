@@ -24,6 +24,7 @@ typedef struct {
     int page;                     // 0 = none shown yet
     bool ai_mode;
     int dial;                     // STORY_DIAL: wheel position 1..DIAL_POSITIONS, 0 = unknown
+    bool dial_moved;              // STORY_DIAL: the wheel moved since the last RESET / story start (next A reads it)
 } settings_t;
 
 typedef struct {

@@ -20,6 +20,7 @@ static volatile uint8_t previous;    // last (CLK, DT) pair
 static volatile int quarter;         // quarter steps since the last rest
 static volatile int position = 1;
 static volatile int pending;         // detents counted since dial_take_steps()
+static volatile bool moved;          // a detent was counted since the last story start / re-arm
 
 static int clamp(int p) {
     if (p < 1) return 1;
@@ -44,6 +45,7 @@ static void on_edge(uint gpio, uint32_t events) {
     if (next != position) {          // past a stop nothing is counted: no blip either
         position = next;
         pending += step;
+        moved = true;
     }
 }
 
@@ -73,8 +75,12 @@ void dial_set_position(int p) {
     position = clamp(p);
     quarter = 0;
     pending = 0;
+    moved = false;
     restore_interrupts(ints);
 }
+
+bool dial_moved(void) { return moved; }
+void dial_set_moved(bool m) { moved = m; }
 
 int dial_take_steps(void) {
     uint32_t ints = save_and_disable_interrupts();

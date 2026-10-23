@@ -44,6 +44,7 @@ static bool sd_ok = false;
 static void save_settings(void) {
 #if HADISTORY_STORY_DIAL
     settings.dial = dial_position();
+    settings.dial_moved = dial_moved();
 #endif
     if (sd_ok && !storage_save_settings(&settings)) {
         puts("Could not save state");
@@ -167,6 +168,7 @@ int main(void) {
     story_init(&settings);
 #if HADISTORY_STORY_DIAL
     dial_init(settings.dial);
+    dial_set_moved(settings.dial_moved);   // a turn before the sleep still counts after the wake-up
     bool dial_dirty = false;    // position moved since the last save
 #endif
 
@@ -270,7 +272,7 @@ int main(void) {
             dial_set_position(1);   // the ritual: wheel at the lower stop, RESET, turn to the story, GO
             dial_dirty = false;
             save_settings();
-            puts("Story reset, dial re-armed at 1: turn the wheel to the story, then press A");
+            puts("Story reset, dial re-armed at 1: turn the wheel to a story, or press A for one at random");
 #else
             save_settings();
             puts("Story reset. Press button to launch a new one");

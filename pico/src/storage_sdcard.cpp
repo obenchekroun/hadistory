@@ -100,6 +100,8 @@ bool storage_load_settings(settings_t *s) {
             s->ai_mode = strcmp(line + 5, "AI") == 0;
         } else if (strncmp(line, "dial=", 5) == 0) {
             s->dial = atoi(line + 5);
+        } else if (strncmp(line, "dial_moved=", 11) == 0) {
+            s->dial_moved = atoi(line + 11) != 0;
         }
     }
     f_close(&f);
@@ -109,7 +111,7 @@ bool storage_load_settings(settings_t *s) {
 bool storage_save_settings(const settings_t *s) {
     FIL f;
     if (f_open(&f, SETTINGS_FILE, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) return false;
-    f_printf(&f, "story=%s\npage=%d\nmode=%s\ndial=%d\n", s->story, s->page, s->ai_mode ? "AI" : "local", s->dial);
+    f_printf(&f, "story=%s\npage=%d\nmode=%s\ndial=%d\ndial_moved=%d\n", s->story, s->page, s->ai_mode ? "AI" : "local", s->dial, s->dial_moved ? 1 : 0);
     f_close(&f);
     return true;
 }

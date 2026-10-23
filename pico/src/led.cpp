@@ -175,9 +175,10 @@ void led_mode_set(bool ai) {
     gpio_put(MODE_LED_PIN, ai);
 }
 
-// Bursts of hadistory.py at a mode change, on the mode LED: three_long_burst (AI) /
-// five_short_burst (story), blocking like the Python, then the steady state of the new mode.
+// Mode change: optionally the bursts of hadistory.py on the mode LED, three_long_burst (AI) /
+// five_short_burst (story), blocking like the Python; then the steady state of the new mode.
 void led_mode_announce(bool ai) {
+#if MODE_LED_BURSTS
     led_mode_set(false);
     int count = ai ? 3 : 5, ms = ai ? 800 : 250;
     for (int i = 0; i < count; i++) {
@@ -186,6 +187,7 @@ void led_mode_announce(bool ai) {
         gpio_put(MODE_LED_PIN, false);
         sleep_ms(ms);
     }
+#endif
     led_mode_set(ai);
 }
 

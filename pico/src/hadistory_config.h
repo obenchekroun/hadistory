@@ -133,6 +133,8 @@
 #define BUTTON_POLL_MS       100     // main loop period, as the 0.1 s sleep in hadistory.py
 #define POST_ACTION_PAUSE_MS 3000    // pause after a page is shown, as in hadistory.py
 #define IDLE_BEFORE_SLEEP_MS 20000   // DEEP_SLEEP: power the core off after this long without a button press
+#define MODE_LED_BURSTS      0       // 1: the mode LED first plays the bursts of hadistory.py at a mode change (3 long = AI,
+                                     // 5 short = story) before settling; 0: it just goes on or off, its state says it all
 #define STORIES_DIR          "/stories"        // SDCARD backend
 #define SETTINGS_FILE        "/currently.txt"  // SDCARD backend
 #define MAX_STORIES          64

@@ -191,7 +191,7 @@ rect(980, 724, 50, 12, "#f5deb3", "#8d5524", rx=2); text(1005, 720, "220 Ω", 9,
 wire([(1030, 730), (1040, 730)], C["LED2"])
 add('<circle cx="1050" cy="730" r="9" fill="#a5d6a7" stroke="#1b5e20" stroke-width="1.5"/>')   # LED
 add('<polygon points="1045,725 1045,735 1055,730" fill="#1b5e20"/>'); add('<line x1="1055" y1="725" x2="1055" y2="735" stroke="#1b5e20" stroke-width="2"/>')
-text(1060, 746, "LED sphère verte dLUX-dLITE : mode IA", 9, "end", "#222"); text(1060, 758, "fixe en mode IA, clignote pendant la connexion WiFi, salves au changement", 8.5, "end", "#555")
+text(1060, 746, "LED sphère verte dLUX-dLITE : mode IA", 9, "end", "#222"); text(1060, 758, "fixe en mode IA, clignote pendant la connexion WiFi", 8.5, "end", "#555")
 wire([(1059, 730), (1066, 730), (1066, p23[1]), (p23[0], p23[1])], C["GND"])              # cathode -> GND pin 23
 
 # ---------------------------------------------------------------- story dial, option STORY_DIAL: KY-040 on Pico pins 9 to 13
@@ -231,7 +231,7 @@ rows = [
     ("C", "bouton C", "Pico 6 (GP4)", "HAT 36 (GPIO16)", "changer de mode"),
     ("D", "bouton D", "Pico 7 (GP5)", "HAT 18 (GPIO24)", "page précédente"),
     ("LED", "LED", "Pico 20 (GP15)", "résistance 220 Ω, LED blanche, Pico 18 (GND)", "LED d'état : fixe prête, respire occupée, clignote erreur"),
-    ("LED2", "LED mode", "Pico 21 (GP16)", "résistance 220 Ω, LED verte, Pico 23 (GND)", "allumée en mode IA, clignote pendant la connexion WiFi, salves au changement"),
+    ("LED2", "LED mode", "Pico 21 (GP16)", "résistance 220 Ω, LED verte, Pico 23 (GND)", "allumée en mode IA, clignote pendant la connexion WiFi"),
     ("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "KY-040 CLK (GP6) / DT (GP7) / SW (GP8) / + (GP9 à 1)", "option STORY_DIAL : numéro d'histoire ; le poussoir vaut RESET"),
     ("VBUS", "VBUS", "Pico 40", "TP4056 IN+", "5 V de l'USB du Pico : charge la batterie"),
     ("VSYS", "VSYS", "Pico 39", "diode ← switch ← TP4056 B+", "alimentation sur batterie"),

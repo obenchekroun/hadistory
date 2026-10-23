@@ -18,6 +18,7 @@ typedef struct {
     int32_t page;
     uint32_t ai_mode;
     int32_t dial;        // added with the story dial; an older record reads -1 here, clamped by dial_init()
+    int32_t dial_moved;  // 1 = the wheel moved since the last RESET / story start (an older record reads -1: treated as moved)
 } settings_record_t;
 
 bool storage_init(void) {
@@ -58,6 +59,7 @@ bool storage_load_settings(settings_t *s) {
     s->page = rec->page;
     s->ai_mode = rec->ai_mode != 0;
     s->dial = rec->dial;
+    s->dial_moved = rec->dial_moved != 0;
     return true;
 }
 
@@ -70,6 +72,7 @@ bool storage_save_settings(const settings_t *s) {
     rec.page = s->page;
     rec.ai_mode = s->ai_mode ? 1 : 0;
     rec.dial = s->dial;
+    rec.dial_moved = s->dial_moved ? 1 : 0;
     memset(buf, 0xFF, sizeof buf);
     memcpy(buf, &rec, sizeof rec);
 
