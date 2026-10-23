@@ -4,6 +4,7 @@
  * firmware saturates its position at both ends, so the stops are the absolute reference of an
  * otherwise incremental encoder.
  *
+ * The module's "+" pin may be fed by a GPIO driven high (DIAL_PIN_VCC): it only feeds pull-ups.
  * The position is counted by interrupt while the board is awake (nothing counts during the deep
  * sleep, by choice: battery life). The ritual therefore re-arms it: wheel turned down to the stop,
  * RESET (dial_set_position(1)), wheel turned up to the story, GO. The dial is only read when a

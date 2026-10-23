@@ -49,6 +49,11 @@ static void on_edge(uint gpio, uint32_t events) {
 
 void dial_init(int saved) {
     position = clamp(saved);
+#if DIAL_PIN_VCC >= 0
+    gpio_init(DIAL_PIN_VCC);         // the module's "+": its two 10 k pull-ups, 0.3 mA at most
+    gpio_set_dir(DIAL_PIN_VCC, GPIO_OUT);
+    gpio_put(DIAL_PIN_VCC, true);
+#endif
     const uint pins[2] = { DIAL_PIN_CLK, DIAL_PIN_DT };
     for (int i = 0; i < 2; i++) {
         gpio_init(pins[i]);

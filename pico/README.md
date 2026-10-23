@@ -121,7 +121,7 @@ Build-time options:
 | `WITH_GPT` | `ON` builds the AI mode (`HADISTORY_WITH_GPT=1` in the code). Default `OFF`. |
 | `DEEP_SLEEP` | `ON` (default): 20 seconds after the last press in story mode (`IDLE_BEFORE_SLEEP_MS`) the RP2350 power manager switches the core off (state P1.7), any button powers it up, which reboots the firmware (`HADISTORY_DEEP_SLEEP=1`). `OFF` keeps the board awake and the USB console alive, for debugging. |
 | `BATTERY_GAUGE` | `ON` (default): battery bars on each page from the VSYS reading, display only (`HADISTORY_BATTERY=1`). `OFF` drops the module and the ADC. |
-| `STORY_DIAL` | `ON`: KY-040 story dial on `DIAL_PIN_CLK` / `DIAL_PIN_DT` / `DIAL_PIN_SW` (GP6 / GP7 / GP9), RESET re-arms it at 1, A starts the story under the arrow (`HADISTORY_STORY_DIAL=1`). Default `OFF`: stories picked at random. |
+| `STORY_DIAL` | `ON`: KY-040 story dial on `DIAL_PIN_CLK` / `DIAL_PIN_DT` / `DIAL_PIN_SW` (GP6 / GP7 / GP9, "+" from GP14), RESET re-arms it at 1, A starts the story under the arrow (`HADISTORY_STORY_DIAL=1`). Default `OFF`: stories picked at random. |
 | `STATUS_LED` | `EXTERNAL` (default): LED on `LED_PIN` (GP8). `ONBOARD`: the board's own LED, GP25 on the Pico Plus 2 with the same breathing effect; on the Pico 2 W the LED is on the wireless chip, no PWM, so busy is shown as a 1 Hz blink. |
 | `WIFI_SSID`, `WIFI_PASSWORD`, `OPENAI_API_KEY` | Credentials for the AI mode, via `-D` or `secrets.cmake`. |
 | `TLS_NO_VERIFY` | AI mode: `ON` skips the certificate check of `api.openai.com`. Debug only, it exposes the API key to anyone on the path. Default `OFF`: the server must chain to one of the roots in `src/openai_roots.h`. |
@@ -176,8 +176,10 @@ Story dial, `STORY_DIAL=ON` only (KY-040 module, its pins in the order GND, +, S
 | CLK | GP6 | 9 |
 | DT | GP7 | 10 |
 | SW (push button, acts as RESET) | GP9 | 12 |
-| + (the module's pull-ups) | 3V3 OUT | 36 |
+| + (the module's two 10 k pull-ups, 0.3 mA) | GP14, driven high by the firmware (`DIAL_PIN_VCC`) | 19 |
 | GND | GND | 8 |
+
+The five dial wires thus sit on neighbouring pins of the left column, and 3V3 OUT keeps its single wire to the HAT. Set `DIAL_PIN_VCC` to -1 to feed "+" from a real 3.3 V instead (HAT pin 17 is a free 3V3).
 
 microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 

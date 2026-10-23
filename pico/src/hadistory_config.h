@@ -71,10 +71,13 @@
     #define BUTTON_PIN_BACK      5
     // Status LED (PWM capable)
     #define LED_PIN              8
-    // Story dial (STORY_DIAL=ON): KY-040 CLK / DT, and its push button, a second RESET
+    // Story dial (STORY_DIAL=ON): KY-040 CLK / DT, its push button (a second RESET), and a GPIO
+    // driven high as the module's "+" (feeds only its two 10 k pull-ups): the whole dial sits on five
+    // neighbouring pins of the left column, no second wire on 3V3 OUT. -1 = wire "+" to 3V3 instead.
     #define DIAL_PIN_CLK         6
     #define DIAL_PIN_DT          7
     #define DIAL_PIN_SW          9
+    #define DIAL_PIN_VCC         14
 #elif defined(PIMORONI_PICO_PLUS2_RP2350) || defined(PIMORONI_PICO_PLUS2_W_RP2350)
     // Same mapping for now; adjust once the LiPo 2 / Plus 2 wiring is decided
     #define DISPLAY_SPI          spi0
@@ -96,6 +99,7 @@
     #define DIAL_PIN_CLK         6
     #define DIAL_PIN_DT          7
     #define DIAL_PIN_SW          9
+    #define DIAL_PIN_VCC         14
 #else
     #error "Unsupported PICO_BOARD: add a pin mapping in src/hadistory_config.h"
 #endif

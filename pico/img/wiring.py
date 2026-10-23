@@ -184,30 +184,57 @@ add('<polygon points="874,773 874,787 887,780" fill="#c2185b"/>'); add('<line x1
 text(880, 806, "LED sphère dLUX-dLITE", 9, "middle", "#222"); text(880, 818, "anode (patte longue) côté résistance", 9, "middle", "#555")
 wire([(892, 780), (930, 780), (930, 758), (748, 758), (748, p13[1]), (p13[0], p13[1])], C["GND"])   # cathode -> GND pin 13
 
-# ---------------------------------------------------------------- story dial, option STORY_DIAL: KY-040 on GP6 / GP7 / GP9, + on 3V3, GND pin 8
-KX, KY, KW, KH = 470, 640, 220, 96
-kpins = [("+", 604), ("GND", 620), ("CLK", 640), ("DT", 656), ("SW", 672)]
+# ---------------------------------------------------------------- story dial, option STORY_DIAL: KY-040 on GP6 / GP7 / GP9, "+" from GP14, GND pin 8
+# Drawn as a schematic: the D shaft turns two contacts (A = CLK, B = DT) that close to GND, 20 detents a turn;
+# the module adds a 10 k pull-up from each of them to its "+" pin; the push button SW closes to GND (no pull-up).
+KX, KY, KW, KH = 400, 640, 280, 170
 rect(KX, KY, KW, KH, "#1f5fa8", "#123c6b", rx=4)
-text(KX + 12, KY + 48, "KY-040", 13, "start", "#fff", "bold")
-text(KX + 12, KY + 64, "encodeur rotatif : cadran des histoires", 8, "start", "#cfd8dc")
-text(KX + 12, KY + 76, "option STORY_DIAL", 8, "start", "#cfd8dc")
-text(KX + 12, KY + 88, "ordre réel des broches du module : GND + SW DT CLK", 7, "start", "#cfd8dc")
-add(f'<circle cx="{KX + KW - 30}" cy="{KY + 62}" r="20" fill="#2e3a40" stroke="#111" stroke-width="1.5"/>')   # the knob
-for lbl, x in kpins:
-    pad(x, KY, 10); text(x, KY + 21, lbl, 7, "middle", "#fff")
-p8 = pico_pin(8); p9 = pico_pin(9); p10 = pico_pin(10); p12 = pico_pin(12); p36 = pico_pin(36)
-wire([(p8[0], p8[1]), (620, p8[1]), (620, KY)], C["GND"])                                   # GND pin 8
-wire([(p9[0], p9[1]), (640, p9[1]), (640, KY)], C["DIAL"])                                  # CLK GP6
-wire([(p10[0], p10[1]), (656, p10[1]), (656, KY)], C["DIAL"])                               # DT GP7
-wire([(p12[0], p12[1]), (672, p12[1]), (672, KY)], C["DIAL"])                               # SW GP9
-wire([(p36[0], p36[1]), (930, p36[1] - 8), (930, 110), (604, 110), (604, KY)], C["3V3"])    # + from 3V3 OUT, around the top
-text(770, 106, "3V3 OUT → KY-040 + (pull-ups du module)", 9, "middle", C["3V3"])
+text(KX + 12, KY + 22, "KY-040", 12, "start", "#fff", "bold")
+text(KX + 12, KY + 36, "encodeur rotatif", 8, "start", "#cfd8dc")
+# the shaft: knob seen from the top, D flat
+kc = (KX + 55, KY + 100)
+add(f'<circle cx="{kc[0]}" cy="{kc[1]}" r="28" fill="#2e3a40" stroke="#111" stroke-width="1.5"/>')
+add(f'<path d="M{kc[0]-9},{kc[1]-7} A11,11 0 1 1 {kc[0]+9},{kc[1]-7} Z" fill="#9e9e9e" stroke="#555" stroke-width="1"/>')   # D shaft
+add(f'<path d="M{kc[0]-36},{kc[1]} A36,36 0 0 1 {kc[0]},{kc[1]-36}" fill="none" stroke="#cfd8dc" stroke-width="1.2" stroke-dasharray="3,3"/>')
+text(kc[0], kc[1] - 40, "axe D, 20 crans / tour", 7.5, "middle", "#cfd8dc")
+add(f'<line x1="{kc[0]+30}" y1="{kc[1]}" x2="{KX + 140}" y2="{kc[1]}" stroke="#cfd8dc" stroke-width="1" stroke-dasharray="2,3"/>')   # mechanical link
+# pads on the top edge (external wires) and the internal nodes under them
+kp = {"GND": KX + 148, "CLK": KX + 191, "DT": KX + 234, "SW": KX + 277}
+for lbl, x in kp.items():
+    pad(x, KY, 10); text(x, KY + 20, lbl, 7.5, "middle", "#fff")
+GY = KY + 132                                                                  # GND bus
+add(f'<line x1="{kp["GND"]}" y1="{KY}" x2="{kp["GND"]}" y2="{GY}" stroke="#fff" stroke-width="1.5"/>')
+add(f'<line x1="{kp["GND"]}" y1="{GY}" x2="{kp["SW"]}" y2="{GY}" stroke="#fff" stroke-width="1.5"/>')
+for lbl, name in (("CLK", "A"), ("DT", "B"), ("SW", "poussoir")):
+    x = kp[lbl]; ny = KY + 62                                                  # node under the pad
+    add(f'<line x1="{x}" y1="{KY}" x2="{x}" y2="{ny}" stroke="#fff" stroke-width="1.5"/>')
+    add(f'<circle cx="{x}" cy="{ny}" r="2.2" fill="#fff"/>')
+    add(f'<line x1="{x}" y1="{ny}" x2="{x + 9}" y2="{ny + 34}" stroke="#fff" stroke-width="1.5"/>')     # contact blade, open
+    add(f'<line x1="{x}" y1="{ny + 40}" x2="{x}" y2="{GY}" stroke="#fff" stroke-width="1.5"/>')
+    add(f'<circle cx="{x}" cy="{ny + 40}" r="2.2" fill="#fff"/>')
+    text(x + 13, ny + 22, name, 7.5, "start", "#cfd8dc")
+    if lbl != "SW":                                                            # 10 k pull-up to "+", drawn as a stub with a flag
+        add(f'<line x1="{x}" y1="{ny}" x2="{x - 8}" y2="{ny}" stroke="#fff" stroke-width="1.5"/>')
+        rect(x - 24, ny - 4, 16, 8, "#f5deb3", "#8d5524", rx=1, sw=1)
+        add(f'<line x1="{x - 24}" y1="{ny}" x2="{x - 30}" y2="{ny}" stroke="#fff" stroke-width="1.5"/>')
+        text(x - 32, ny + 3, "+", 9, "end", "#ffe082", "bold")
+        text(x - 16, ny - 7, "10 k", 6.5, "middle", "#fff")
+pad(KX + KW, KY + 100, 10); text(KX + KW - 9, KY + 103, "+", 9, "end", "#ffe082", "bold")               # "+" pad, right edge
+text(KX + KW - 14, KY + 115, "3,3 V des pull-ups", 6.5, "end", "#cfd8dc")
+text(KX + 12, KY + KH - 22, "cadran des histoires, option STORY_DIAL", 8, "start", "#cfd8dc")
+text(KX + 12, KY + KH - 8, "ordre réel des broches du module : GND  +  SW  DT  CLK", 7, "start", "#cfd8dc")
+p8 = pico_pin(8); p9 = pico_pin(9); p10 = pico_pin(10); p12 = pico_pin(12); p19 = pico_pin(19)
+wire([(p8[0], p8[1]), (kp["GND"], p8[1]), (kp["GND"], KY)], C["GND"])                       # GND pin 8
+wire([(p9[0], p9[1]), (kp["CLK"], p9[1]), (kp["CLK"], KY)], C["DIAL"])                      # CLK GP6
+wire([(p10[0], p10[1]), (kp["DT"], p10[1]), (kp["DT"], KY)], C["DIAL"])                     # DT GP7
+wire([(p12[0], p12[1]), (kp["SW"], p12[1]), (kp["SW"], KY)], C["DIAL"])                     # SW GP9
+wire([(p19[0], p19[1]), (745, p19[1]), (745, KY + 100), (KX + KW, KY + 100)], C["DIAL"])   # "+" from GP14 (pin 19), driven high
 
 # ---------------------------------------------------------------- legend
 LX, LY = 40, 925
 text(LX, LY, "Légende", 13, "start", "#222", "bold")
 rows = [
-    ("3V3", "3V3 OUT", "Pico 36", "HAT 1, KY-040 +", "alimentation du HAT (le 5V du HAT reste libre) et du cadran"),
+    ("3V3", "3V3 OUT", "Pico 36", "HAT 1", "alimentation du HAT (le 5V du HAT reste libre)"),
     ("GND", "GND", "Pico 33 / 38 / 13 / 8", "HAT 6 / TP4056 IN- et B- / LED / KY-040", "masse commune, un fil par broche"),
     ("SCLK", "SCLK", "Pico 24 (GP18)", "HAT 23 (GPIO11)", "SPI0 horloge"),
     ("MOSI", "MOSI", "Pico 25 (GP19)", "HAT 19 (GPIO10)", "SPI0 données"),
@@ -220,7 +247,7 @@ rows = [
     ("C", "bouton C", "Pico 6 (GP4)", "HAT 36 (GPIO16)", "changer de mode"),
     ("D", "bouton D", "Pico 7 (GP5)", "HAT 18 (GPIO24)", "page précédente"),
     ("LED", "LED", "Pico 11 (GP8)", "résistance 220 Ω, LED, Pico 13 (GND)", "LED d'état : fixe prête, respire occupée, clignote erreur"),
-    ("DIAL", "cadran", "Pico 9 / 10 / 12", "KY-040 CLK (GP6) / DT (GP7) / SW (GP9)", "option STORY_DIAL : numéro d'histoire ; le poussoir vaut RESET"),
+    ("DIAL", "cadran", "Pico 9 / 10 / 12 / 19", "KY-040 CLK (GP6) / DT (GP7) / SW (GP9) / + (GP14 à 1)", "option STORY_DIAL : numéro d'histoire ; le poussoir vaut RESET"),
     ("VBUS", "VBUS", "Pico 40", "TP4056 IN+", "5 V de l'USB du Pico : charge la batterie"),
     ("VSYS", "VSYS", "Pico 39", "diode ← switch ← TP4056 B+", "alimentation sur batterie"),
 ]

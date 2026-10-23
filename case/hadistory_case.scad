@@ -23,13 +23,13 @@
 // behind a notched wall, thumbwheel with the numbers 1 to 12 on its rim, printed end stops) and
 // under it the slide switch, lying on the floor with its knob through the wall.
 //
-// Printed parts:  front (bezel), back (shell), cap (bump style), key (x4), wheel (story dial), plate (key
-//                 labels, glued on the top edge), swplate (ON / OFF beside the switch, glued on the left edge)
+// Printed parts:  front (bezel), back (shell), cap (bump style), key (x4), wheel (story dial), swkeeper (behind
+//                 the switch), plate (key labels, glued on the top edge), swplate (ON / OFF, glued on the left edge)
 // Render:  openscad -D 'part="back"' -o stl/bump/back.stl hadistory_case.scad   (-D 'style="box"' for the v7 box)
 // Units: mm. Printing grid 0.4 mm nozzle / 0.2 mm layers: heights on multiples of 0.2,
 // thin features on multiples of 0.4; smaller adjustments are not reproduced.
 
-part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "plate" | "swplate" | "assembly" | "closed" (all parts, opaque, for pictures)
+part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "swkeeper" | "plate" | "swplate" | "assembly" | "closed" (all parts, opaque, for pictures)
                      // | "section" (assembly cut at x = section_x, seen from +X)
 section_x = 85.6;    // through the HAT header strip and the cap
 // "bump": the body is as thin as the Pico allows (26 mm), the HAT Dupont block gets a separate cap on
@@ -107,8 +107,12 @@ sw_ear_h       =   4.0;    // ear height (Z), to measure
 sw_slot_l      =   8.0;    // knob travel slot through the left wall
 sw_slot_h      =   3.4;    // knob slot height
 sw_pad_t       =   1.2;    // pad under the body, so that the ears (centred on the body height) clear the floor
-sw_y           =  21.0;    // switch centre along the left wall: above the corner boss, under the lower HAT pad (Y 24 to 32,
+sw_y           =  21.5;    // switch centre along the left wall: above the corner boss, under the lower HAT pad (Y 24 to 32,
                            // 11 mm up), below the dial notch (from Y 33.5)
+sw_keeper_t    =   2.0;    // keeper behind the switch body, dropped in from above once the switch is in, held down by the HAT
+sw_keeper_w    =  14.8;
+sw_keeper_h    =  17.0;    // from the floor to 2 mm under the HAT
+sw_keeper_win  = [9.2, 6.6];   // window at its bottom for the pins and their Dupont housings
 led_sphere_d   =   9.9;    // Adafruit dLUX-dLITE sphere LEDs (5431): white = status, green = AI mode
 led_tube_t     =   1.2;    // LED tube wall; 1.6 on v4 made the tube overlap the PCB edge by 0.45 mm
 
@@ -366,8 +370,8 @@ module back() {
             translate([p[0], p[1], wall]) cylinder(d = led_sphere_d + 0.6, h = rim_z);
             hull() {   // open towards the inside up to h, closing with a 45 degree roof above (no support, printed floor down)
                 w = led_sphere_d + 4; h = shelf_z - led_sphere_d - wall - 1;
-                translate([p[0] - w/2, p[1], wall]) cube([w, led_sphere_d, h - wall]);
-                translate([p[0] - 0.01, p[1], h + w/2 - 0.01]) cube([0.02, led_sphere_d, 0.02]);
+                translate([p[0] - w/2, p[1], wall]) cube([w, 6, h - wall]);          // 6 deep: opens the inner half of the tube
+                translate([p[0] - 0.01, p[1], h + w/2 - 0.01]) cube([0.02, 6, 0.02]);
             }
         }
         // TP4056: window through the floor under its LEDs (module glued components down)
@@ -489,32 +493,39 @@ module tp_lip() {
 module led_tube(p) { translate([p[0], p[1], 0]) cylinder(d = led_sphere_d + 0.6 + 2*led_tube_t, h = rim_z); }
 
 // Slide switch lying on the floor against the left wall (v9: the right end of the chin went to the green
-// sphere, and at the rim the body would meet the HAT PCB, the side margin being 4.5 mm). Same principle
-// as the v7 cradle, turned on its side and lowered: the knob through the wall, the two ears sliding down
-// into grooves between the wall and a rib on each side, closed at their far ends (X, Y and rotation
-// located), the body on a pad one layer above its nominal underside so that the ears float just off the
-// groove bottoms. The bezel cannot hold it down from 12 mm up, so a lip on the back rib snaps over the
-// body's top edge instead (the rib is 1.2 thick to flex when the switch is pressed in). No glue, no screw.
+// sphere, and at the rim the body would meet the HAT PCB, the side margin being 4.5 mm). The knob slot
+// is a closed window (the wall goes on up to the rim under the HAT), so the switch cannot drop in from
+// above as in v7: it comes in from the inside, knob first through the slot, sliding towards the wall
+// until its ears touch it. Then: Y by the ears between two end blocks; down by the pad under the body;
+// up by a lip on each end block over the end of the ear (the ear slides under it on the last mm); and
+// inwards, against a push on the knob, by a keeper plate dropped behind the body between two guides
+// and held down by the HAT PCB, 2 mm above its top. The pins and their housings go through the
+// keeper's window. No glue, no screw, and the switch comes out again once the HAT is off.
 module switch_seat() {
     x0 = wall + sw_ear_t + 0.2;                       // knob face of the body
     z0 = wall + sw_pad_t;                             // body underside
-    ear_z0 = z0 + sw_body_t/2 - sw_ear_h/2;           // ear bottom
-    groove_w = sw_ear_t + 0.4; rib_t = 1.6;
-    ear_run = (sw_ear_len - sw_body_l)/2 + 0.4;       // groove length beyond the body
+    ear_top = z0 + sw_body_t/2 + sw_ear_h/2;          // 8.05
+    xk = x0 + sw_body_w + 0.2;                        // keeper, from the back of the body
     translate([x0 - 0.2, sw_y - sw_body_l/2 - 0.2, 0]) cube([sw_body_w + 0.4, sw_body_l + 0.4, z0]);   // pad
-    for (sgn = [-1, 1]) {                             // ear grooves
-        ya = sw_y + sgn*(sw_body_l/2 + 0.4); yb = sw_y + sgn*(sw_body_l/2 + 0.4 + ear_run + rib_t);
-        translate([wall - 0.01, min(ya, yb), 0]) difference() {
-            cube([groove_w + rib_t + 0.01, abs(yb - ya), z0 + sw_body_t]);
-            translate([-1, sgn < 0 ? rib_t : 0, ear_z0 - 0.05]) cube([groove_w + 1.01, ear_run, sw_body_t + 2]);
-        }
+    for (sgn = [-1, 1]) {
+        yb = sw_y + sgn*(sw_ear_len/2 + 0.2);                                                           // end block, inner face
+        translate([wall - 0.01, min(yb, yb + sgn*1.2), 0]) cube([2.01, 1.2, ear_top + 1.0]);
+        translate([wall - 0.01, min(yb, yb - sgn*1.2), ear_top + 0.2]) cube([1.41, 1.2, 0.8]);          // lip over the ear's end
+        yp = sw_y + sgn*(sw_keeper_w/2 - 2.8);                                                          // keeper guides: post behind
+        translate([xk + sw_keeper_t + 0.2, min(yp, yp + sgn*3.0), 0]) cube([2.2, 3.0, wall + 8]);
+        yf = sw_y + sgn*(sw_keeper_w/2 + 0.2);                                                          // and flank beside
+        translate([xk + 0.4, min(yf, yf + sgn*1.6), 0]) cube([sw_keeper_t + 2.0, 1.6, wall + 8]);
     }
-    xb = x0 + sw_body_w + 0.2;                        // back rib, with the snap lip
-    translate([xb, sw_y - sw_body_l/2 - 0.2, 0]) cube([1.2, sw_body_l + 0.4, z0 + sw_body_t + 1.2]);
-    translate([xb - 0.5, sw_y - sw_body_l/2 + 1.5, z0 + sw_body_t + 0.2]) hull() {
-        cube([0.51, sw_body_l - 3, 0.4]);
-        translate([0.5, 0, 0]) cube([0.01, sw_body_l - 3, 1.0]);
+}
+// Keeper plate, flat for printing: X along the wall, Y up (window at the bottom edge), Z its thickness
+module sw_keeper() {
+    difference() {
+        cube([sw_keeper_w, sw_keeper_h, sw_keeper_t]);
+        translate([sw_keeper_w/2 - sw_keeper_win[0]/2, -1, -1]) cube([sw_keeper_win[0], sw_keeper_win[1] + 1, sw_keeper_t + 2]);
     }
+}
+module sw_keeper_in_place() {
+    translate([wall + sw_ear_t + 0.2 + sw_body_w + 0.2, sw_y - sw_keeper_w/2, wall]) rotate([90, 0, 90]) sw_keeper();
 }
 
 // ---------------------------------------------------------------- story dial
@@ -662,6 +673,7 @@ module parts_preview() {
     hs = hdr_strip(); color("Silver", 0.4) translate([hs[0] - 2.5, hs[1], shelf_z - (hat_dupont_t - hat_pcb_t)])
         cube([hs[2] + 5, hs[3], hat_dupont_t - hat_pcb_t]);   // Dupont housings on the HAT header, 18 mm below the PCB
     switch_preview();
+    color("Orange") sw_keeper_in_place();
     encoder_preview();
     color("#2e3a40") wheel_in_place();
     color("White")     translate([led_pos()[0],  led_pos()[1],  rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
@@ -680,6 +692,7 @@ else if (part == "back") back();
 else if (part == "cap") translate([0, 0, wall + cap_flange_t]) rotate([180, 0, 0]) cap();   // flange down, dome up
 else if (part == "key") key();   // flat on its bottom face
 else if (part == "wheel") wheel();   // outer face down
+else if (part == "swkeeper") sw_keeper();   // flat
 else if (part == "plate") plate();   // flat, text up
 else if (part == "swplate") sw_plate();   // flat, text up; -D sw_on_left=false for the other variant
 else if (part == "closed") {
