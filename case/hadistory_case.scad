@@ -128,6 +128,10 @@ enc_bush_h     =   7.0;
 enc_shaft_d    =   6.0;    // D shaft, 13 long from the bushing end; CUT to the length echo()ed below
 enc_cx         =  17.0;    // encoder axis from the pin end of the PCB (to measure; 9 from the other end)
 enc_floor_recess = 0.8;    // the PCB sinks this much into the floor: 19 mm wide for 19 mm of room
+enc_hole_dy    =   7.8;    // the two mounting holes of the module: this far from the axis towards the far (no pin) end,
+enc_hole_dz    =  14.0;    // this far apart across the PCB (measured on the face plate printed earlier: 3.3 mm holes)
+enc_post_d     =   5.0;    // posts from the notch wall to the PCB, M3 self-tapping screws from behind the PCB
+enc_post_pilot =   2.5;
 wheel_d        =  21.0;    // thumbwheel: as big as the axis height allows, its bottom flush with the back face
 wheel_t        =  12.0;    // along X: 4 in the notch (nut recess and bushing inside), 8 proud of the edge
 wheel_nut_d    =  12.4;    // round recess for the M7 nut (10 AF, 11.5 across corners): the wheel turns around it
@@ -338,6 +342,7 @@ module back() {
             tp_lip();
             switch_seat();
             notch_wall();
+            enc_posts();
             for (p = led_positions()) led_tube(p);
         }
         for (b = bosses()) translate([b[0], b[1], 2]) cylinder(d = screw_pilot, h = rim_z);
@@ -350,6 +355,7 @@ module back() {
         translate([0, 0, -1]) linear_extrude(rim_z + 2) notch2d();
         translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = enc_bush_d + 0.4, h = wall + 2);
         translate([enc_x() - 0.4, enc_y0() - 0.5, wall - enc_floor_recess]) cube([enc_pcb_t + 0.8, enc_pcb_l + 1, enc_floor_recess + 0.01]);
+        for (h = enc_holes()) translate([enc_x() - 6.0, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = enc_post_pilot, h = 7);   // pilot holes in the posts
         // Key notches through the top wall and guides, from below the caps up to the rim, with the head step
         for (i = [0 : btn_n - 1]) {
             translate([btn_x(i) - key_w/2 - 0.2, pcb_y1 + cap_room - 1, key_z0 - 0.2]) cube([key_w + 0.4, ear_top + wall + 2, rim_z]);
@@ -483,15 +489,32 @@ module tp_lip() {
 module led_tube(p) { translate([p[0], p[1], 0]) cylinder(d = led_sphere_d + 0.6 + 2*led_tube_t, h = rim_z); }
 
 // Slide switch lying on the floor against the left wall (v9: the right end of the chin went to the green
-// sphere): knob through the wall, ears against the wall inner face, body on a pad so that the ears clear
-// the floor, a U of ribs around the body, a drop of glue. Nothing above it but the HAT, 12 mm up.
+// sphere, and at the rim the body would meet the HAT PCB, the side margin being 4.5 mm). Same principle
+// as the v7 cradle, turned on its side and lowered: the knob through the wall, the two ears sliding down
+// into grooves between the wall and a rib on each side, closed at their far ends (X, Y and rotation
+// located), the body on a pad one layer above its nominal underside so that the ears float just off the
+// groove bottoms. The bezel cannot hold it down from 12 mm up, so a lip on the back rib snaps over the
+// body's top edge instead (the rib is 1.2 thick to flex when the switch is pressed in). No glue, no screw.
 module switch_seat() {
-    x0 = wall + sw_ear_t + 0.2;                  // knob face
-    y0 = sw_y - sw_body_l/2 - 0.2;
-    l = sw_body_l + 0.4; d = sw_body_w + 0.4; h = wall + sw_pad_t + 3.0;
-    translate([x0 - 0.2, y0, 0]) cube([d + 0.2, l, wall + sw_pad_t]);                                    // pad
-    translate([x0 + d, y0 - 1.6, 0]) cube([1.6, l + 3.2, h]);                                             // back rib
-    for (y = [y0 - 1.6, y0 + l]) translate([wall + sw_ear_t + 0.4, y, 0]) cube([x0 + d + 1.6 - wall - sw_ear_t - 0.4, 1.6, h]);   // end ribs, beside the ears
+    x0 = wall + sw_ear_t + 0.2;                       // knob face of the body
+    z0 = wall + sw_pad_t;                             // body underside
+    ear_z0 = z0 + sw_body_t/2 - sw_ear_h/2;           // ear bottom
+    groove_w = sw_ear_t + 0.4; rib_t = 1.6;
+    ear_run = (sw_ear_len - sw_body_l)/2 + 0.4;       // groove length beyond the body
+    translate([x0 - 0.2, sw_y - sw_body_l/2 - 0.2, 0]) cube([sw_body_w + 0.4, sw_body_l + 0.4, z0]);   // pad
+    for (sgn = [-1, 1]) {                             // ear grooves
+        ya = sw_y + sgn*(sw_body_l/2 + 0.4); yb = sw_y + sgn*(sw_body_l/2 + 0.4 + ear_run + rib_t);
+        translate([wall - 0.01, min(ya, yb), 0]) difference() {
+            cube([groove_w + rib_t + 0.01, abs(yb - ya), z0 + sw_body_t]);
+            translate([-1, sgn < 0 ? rib_t : 0, ear_z0 - 0.05]) cube([groove_w + 1.01, ear_run, sw_body_t + 2]);
+        }
+    }
+    xb = x0 + sw_body_w + 0.2;                        // back rib, with the snap lip
+    translate([xb, sw_y - sw_body_l/2 - 0.2, 0]) cube([1.2, sw_body_l + 0.4, z0 + sw_body_t + 1.2]);
+    translate([xb - 0.5, sw_y - sw_body_l/2 + 1.5, z0 + sw_body_t + 0.2]) hull() {
+        cube([0.51, sw_body_l - 3, 0.4]);
+        translate([0.5, 0, 0]) cube([0.01, sw_body_l - 3, 1.0]);
+    }
 }
 
 // ---------------------------------------------------------------- story dial
@@ -499,6 +522,15 @@ module switch_seat() {
 module notch2d() { translate([-5, dial_y - notch_l/2]) rounded_rect(5 + dial_notch_d, notch_l, dial_notch_r); }
 // The wall behind the notch, X 4.5 to 6.5, closing the notch on three sides (the outer wall is cut away)
 module notch_wall() { translate([wall - 0.01, dial_y - notch_l/2 - wall, 0]) cube([dial_notch_d + 0.01, notch_l + 2*wall, rim_z]); }
+// Two posts from the notch wall to the encoder PCB, under its mounting holes, with a flat towards the
+// encoder body (the holes are only 0.3 mm beyond it); the screws come from behind the PCB
+function enc_holes() = [[dial_y - enc_hole_dy, dial_z - enc_hole_dz/2], [dial_y - enc_hole_dy, dial_z + enc_hole_dz/2]];
+module enc_posts() {
+    for (h = enc_holes()) translate([dial_notch_d + wall - 0.01, h[0], h[1]]) difference() {
+        rotate([0, 90, 0]) cylinder(d = enc_post_d, h = enc_body_h + 0.01);
+        translate([-1, enc_hole_dy - enc_body/2 - 0.2, -enc_post_d]) cube([enc_body_h + 2, enc_post_d, 2*enc_post_d]);   // flat, clear of the body
+    }
+}
 // Stop pin on the notch wall, at the bottom of the wheel, inside the arc groove of the wheel
 module stop_pin() {
     translate([dial_notch_d - stop_pin_h, dial_y, dial_z - stop_r]) rotate([0, 90, 0]) cylinder(d = stop_pin_d, h = stop_pin_h + 0.5);
