@@ -171,9 +171,14 @@
 // ---------------------------------------------------------------------------
 // Story dial (STORY_DIAL=ON)
 // ---------------------------------------------------------------------------
-#define DIAL_POSITIONS       12      // numbers on the printed wheel; the travel is DIAL_POSITIONS - 1 detents
-#define DIAL_REVERSE         0       // 1 if the numbers go the wrong way for the wiring / mounting side
-#define DIAL_BLIP_MS         20      // status LED off this long at each counted detent
+#define DIAL_POSITIONS       12      // numbers on the printed wheel; the travel is DIAL_POSITIONS - 1 steps (see dial.cpp)
+#define DIAL_DETENTS_PER_CYCLE 1     // detents per quadrature cycle of the encoder: 1 counts a step at every full cycle
+                                     // (two detents per number on an encoder with half a cycle per detent: fine on a
+                                     // 30-detent one, numbers 24 degrees apart), 2 counts a step at every detent (needed
+                                     // on a 20-detent encoder with half a cycle per detent: 18 degrees, two detents per
+                                     // number would exceed a turn)
+#define DIAL_REVERSE         1       // 1 if the numbers go the wrong way for the wiring / mounting side
+#define DIAL_BLIP_MS         20      // status LED off this long at each counted step
 
 #ifndef HADISTORY_TLS_NO_VERIFY
 #define HADISTORY_TLS_NO_VERIFY 0    // -DTLS_NO_VERIFY=ON sets it to 1

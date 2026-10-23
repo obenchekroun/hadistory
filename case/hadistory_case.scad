@@ -21,17 +21,21 @@
 // battery across the top, two sphere LEDs in the chin (white status left, green AI mode right),
 // push keys at the junction on the top wall. v9: on the LEFT edge, a story dial (KY-040 encoder
 // behind a notched wall, thumbwheel with the numbers 1 to 12 on its rim, printed end stops) and
-// under it the slide switch, lying on the floor with its knob through the wall.
+// under it the slide switch, lying on the floor with its knob through the wall. v10, after the
+// first print: the encoder's real lengths (12 mm bushing on a boss behind the wall), its holes
+// along the floor edge with the pins towards the bottom edge, and the switch dropped in from the
+// front into grooves through an opening of the wall covered by the ON / OFF plate.
 //
-// Printed parts:  front (bezel), back (shell), cap (bump style), key (x4), wheel (story dial), swkeeper (behind
-//                 the switch), plate (key labels, glued on the top edge), swplate (ON / OFF, glued on the left edge)
+// Printed parts:  front (bezel), back (shell), cap (bump style), key (x4), wheel (story dial),
+//                 plate (key labels, glued on the top edge), swplate (ON / OFF, glued on the left edge over the switch opening)
 // Render:  openscad -D 'part="back"' -o stl/bump/back.stl hadistory_case.scad   (-D 'style="box"' for the v7 box)
 // Units: mm. Printing grid 0.4 mm nozzle / 0.2 mm layers: heights on multiples of 0.2,
 // thin features on multiples of 0.4; smaller adjustments are not reproduced.
 
-part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "swkeeper" | "plate" | "swplate" | "assembly" | "closed" (all parts, opaque, for pictures)
-                     // | "section" (assembly cut at x = section_x, seen from +X)
+part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "plate" | "swplate" | "assembly" | "closed" (all parts, opaque, for pictures)
+                     // | "section" (assembly cut at x = section_x, section_w thick, seen from +X)
 section_x = 85.6;    // through the HAT header strip and the cap
+section_w = 1000;    // slab thickness kept beyond section_x (e.g. 30 with section_x = 2: the left wall seen from inside)
 // "bump": the body is as thin as the Pico allows (26 mm), the HAT Dupont block gets a separate cap on
 // the back; big corners, chamfered back edge, rounded bezel edge. "box": the v7 rectangular shell,
 // 33 mm deep everywhere. The insides (pads, key guides, switch seat, dial, LED tubes, keys) are the same.
@@ -98,61 +102,80 @@ bat_l          =  50.0;    // 103450 LiPo
 bat_w          =  34.0;
 bat_t          =  10.0;
 bat_clear      =   1.0;    // per side, inside the ribs
-sw_body_l      =  11.6;    // SS12F15 slide switch: body along X
-sw_body_w      =   6.0;    // body depth into the case (Y), knob face against the wall
+sw_body_l      =  11.6;    // SS12F15 slide switch: body along the wall (Y)
+sw_body_w      =   6.0;    // body depth into the case (X), knob face against the wall
 sw_body_t      =   5.7;    // body height (Z)
 sw_ear_len     =  19.4;    // overall length over the two mounting ears
 sw_ear_t       =   0.5;    // ear sheet thickness; the ears are in the plane of the knob face
 sw_ear_h       =   4.0;    // ear height (Z), to measure
-sw_slot_l      =   8.0;    // knob travel slot through the left wall
-sw_slot_h      =   3.4;    // knob slot height
+sw_slot_l      =   8.0;    // opening through the left wall for the knob: this wide, from the knob up to the rim (v10),
+sw_slot_h      =   3.4;    // the knob's travel slot being its lowest sw_slot_h; the ON / OFF plate covers the rest
 sw_pad_t       =   1.2;    // pad under the body, so that the ears (centred on the body height) clear the floor
-sw_y           =  21.5;    // switch centre along the left wall: above the corner boss, under the lower HAT pad (Y 24 to 32,
-                           // 11 mm up), below the dial notch (from Y 33.5)
-sw_keeper_t    =   2.0;    // keeper behind the switch body, dropped in from above once the switch is in, held down by the HAT
-sw_keeper_w    =  14.8;
-sw_keeper_h    =  17.0;    // from the floor to 2 mm under the HAT
-sw_keeper_win  = [9.2, 6.6];   // window at its bottom for the pins and their Dupont housings
+sw_y           =  21.5;    // switch centre along the left wall: above the corner boss, under the lower HAT pad (Y 32 to 40,
+                           // 11 mm up); the ears end 0.2 mm short of an end block each side
+sw_lip_t       =   1.6;    // lips over the ears, 0.4 off them, from the floor up to sw_lip_z: the ears slide down behind them
+sw_lip_z       =  10.0;
 led_sphere_d   =   9.9;    // Adafruit dLUX-dLITE sphere LEDs (5431): white = status, green = AI mode
 led_tube_t     =   1.2;    // LED tube wall; 1.6 on v4 made the tube overlap the PCB edge by 0.45 mm
 
 // ---------------------------------------------------------------- story dial (v9): KY-040 behind the left wall
-dial_y         =  47.0;    // wheel axis along Y: the free stretch of the left edge between the lower HAT pad (to 32)
-                           // and the panel flex (from 63.8)
+dial_y         =  54.6;    // wheel axis along Y: the encoder PCB starts 1.1 mm above the HAT's back module (to Y 44.4), the
+                           // notch wall then reaches into the panel flex span (from 63.8), where it is thinned
 dial_notch_d   =   4.5;    // notch in the left edge, from the outer face; the 2 mm wall behind it ends at X 6.5, just
                            // outside the HAT PCB (X 6.9), the wheel sinks into the notch, the nut hides in it
 dial_notch_r   =   2.0;    // plan radius of the notch corners
-enc_pcb_l      =  26.0;    // KY-040 module PCB, standing behind the notch wall, encoder towards the wall, pins up (+Y)
-enc_pcb_w      =  19.0;    // along Z: as tall as the room between floor and HAT, hence the floor recess below
+enc_pcb_l      =  26.1;    // KY-040 (HW-040) module PCB, along Y behind the notch wall, encoder towards the wall, the
+                           // right-angle header at one end: enc_pins_up true puts it at the upper end, the five pins
+                           // leaving towards the top edge and, the module being what it is, its two mounting holes
+                           // along the HAT-side edge (datasheet picture: PCB 26.1 x 18.6); false puts the pins towards
+                           // the bottom edge and the holes along the floor (v10 first draft: the housings then ran
+                           // under the HAT's back module)
+enc_pins_up    = true;
+enc_pcb_w      =  18.6;    // across (Z), standing in a recess of the floor, 1.2 mm under the HAT
 enc_pcb_t      =   1.6;
 enc_body       =  12.0;    // encoder body, square
-enc_body_h     =   6.5;    // PCB face to the bushing base (to measure)
-enc_bush_d     =   7.0;    // M7 x 0.75 threaded bushing, 7 long: 2 in the wall, 5 in the notch under the nut
-enc_bush_h     =   7.0;
-enc_shaft_d    =   6.0;    // D shaft, 13 long from the bushing end; CUT to the length echo()ed below
-enc_cx         =  17.0;    // encoder axis from the pin end of the PCB (to measure; 9 from the other end)
-enc_floor_recess = 0.8;    // the PCB sinks this much into the floor: 19 mm wide for 19 mm of room
-enc_hole_dy    =   7.8;    // the two mounting holes of the module: this far from the axis towards the far (no pin) end,
-enc_hole_dz    =  14.0;    // this far apart across the PCB (measured on the face plate printed earlier: 3.3 mm holes)
-enc_post_d     =   5.0;    // posts from the notch wall to the PCB, M3 self-tapping screws from behind the PCB
-enc_post_pilot =   2.5;
-wheel_d        =  21.0;    // thumbwheel: as big as the axis height allows, its bottom flush with the back face
-wheel_t        =  12.0;    // along X: 4 in the notch (nut recess and bushing inside), 8 proud of the edge
+enc_body_h     =   4.0;    // PCB face to the bushing base (measured on the first print: about 4)
+enc_bush_d     =   7.0;    // M7 x 0.75 threaded bushing
+enc_bush_h     =  12.0;    // bushing, base to end (measured: about 12, where v9 assumed 7)
+enc_bush_out   =   3.4;    // bushing beyond the outer face of the notch wall: the nut (2.3) and a mm of thread; the rest
+                           // of its length goes through the wall and a boss behind it, the body sits on the boss
+enc_shaft_d    =   6.0;    // D shaft, enc_shaft_h long beyond the bushing end; CUT to the length echo()ed below
+enc_shaft_h    =  12.0;
+enc_cx         =  17.0;    // encoder axis from the pin end of the PCB (9.1 from the other end; to measure)
+enc_hole_edge  =   2.6;    // mounting holes (3.3 mm): centre to the near long edge of the PCB, the floor edge here (to measure)
+enc_hole_dw    =   7.8;    // and to the axis, across the PCB (measured on the face plate printed earlier)
+enc_hole_dl    = [-5.5, 8.5];   // along the PCB from the axis, + towards the pins (same plate: 14 apart, 1.5 off centre)
+enc_floor_recess = 0.8;    // the PCB sinks this much into the floor
+enc_boss_w     =  12.0;    // boss behind the notch wall around the bushing, from the floor, as wide as the body
+enc_post_w     =   5.0;    // ribs from the floor under the holes, up to the PCB, M3 self-tapping screws from behind the
+enc_post_pilot =   2.5;    // PCB. Holes along the floor: a rib under each. Holes on the HAT side (pins up): a rib only
+                           // where it clears the encoder body, i.e. under the hole beyond the body (the other hole is
+                           // only 5.5 mm from the axis); the nut on the bushing holds the rest
+enc_rib_x0     =   7.5;    // ribs start here, clear of the panel flex folded over the PCB edge (X 6.3 to 7.1)
+wheel_d        =  18.4;    // thumbwheel: bottom 0.2 mm above the back face, the axis at 9.4 (holes on the HAT side); 21 with
+                           // the pins down and the axis at 11.6
+wheel_t        =  12.0;    // along X: 4 in the notch (nut recess and bushing end inside), 8 proud of the edge
 wheel_nut_d    =  12.4;    // round recess for the M7 nut (10 AF, 11.5 across corners): the wheel turns around it
 wheel_nut_h    =   3.0;
 wheel_bore_d   =   6.1;    // D bore for the 6 mm D shaft, blind, 1 mm cap: same as the knob cap printed earlier
 wheel_bore_flat=   1.7;    // flat this far from the axis (4.75 across from the flat to the round side)
 wheel_phase    =   0;      // degrees: turns the numbers and the stop groove about the D flat, so that at a detent
                            // the 1 sits under the arrow; measure the offset on the first print, set, reprint
-wheel_numbers  =  12;      // on the rim, every detent (18 degrees on a 20-detent KY-040), 1 at the lower stop
-wheel_step     =  18;
+wheel_numbers  =  12;      // on the rim, one per firmware step, 1 at the lower stop
+wheel_step     =  24;      // degrees between numbers = one firmware step. The KY-040 at hand has 30 detents a turn and half a
+                           // quadrature cycle per detent: the firmware counts every second detent, two detents per number, 24
+                           // degrees, 264 of travel. A 20-detent encoder would take 18 here and DIAL_DETENTS_PER_CYCLE 2 in the
+                           // firmware (two detents per number would need 396 degrees); wheel_18.stl is exported for it
+arrow_l        =   5.0;    // arrow engraved in the bezel margin, pointing at the number on top of the wheel: length, width, depth
+arrow_w        =   4.8;
+arrow_d        =   0.8;
 wheel_num_sz   =   2.8;
 wheel_num_d    =   0.6;    // engraved
-stop_r         =   8.15;   // stop pin on the notch wall, in an arc groove on the inner face of the wheel: travel
-stop_pin_d     =   2.0;    // (wheel_numbers - 1) * wheel_step, the groove ends are the stops
+stop_r         =   7.6;    // stop pin on the notch wall, in an arc groove on the inner face of the wheel: travel
+stop_pin_d     =   1.6;    // (wheel_numbers - 1) * wheel_step, the groove ends are the stops
 stop_pin_h     =   1.5;
-stop_groove_w  =   2.8;    // between the nut recess (r 6.2) and the rim (r 10.5)
-stop_groove_d  =   1.6;
+stop_groove_w  =   2.4;    // r 6.4 to 8.8 on the 18.4 wheel: it opens into the nut recess (r 6.2) on the inside, 0.4 of
+stop_groove_d  =   1.6;    // rim outside; hence no chamfer on the inner face of the wheel (it is in the notch anyway)
 
 // ---------------------------------------------------------------- design parameters
 wall           =   2.0;
@@ -179,6 +202,10 @@ boss_inset     = style == "bump" ? 6.0 : 3.2;    // corner bosses, from the oute
 dupont_slack   =  10.0;    // box: extra depth to handle the Dupont housings on the HAT
 hat_back_room  =   3.0;    // bump: clearance between the Pico top and the HAT underside, for the components on the
                            // back of the HAT PCB (to measure: the header itself is in the cap zone, not over the Pico)
+hat_mod        = [4, 4, 10, 26, 4];   // module with a connector on the back of the HAT near its lower left corner (measured):
+                           // [from the left PCB edge, from the bottom PCB edge, width along X, length along Y, height
+                           // below the PCB]. 4 mm tall, 1 more than hat_back_room: nothing may stand under it, which
+                           // is why the story dial sits above Y 44.4
 // Cap over the HAT Dupont block (bump style): a pillow on the back, inserted from inside through a hole
 // in the floor, its flange glued on the inner face of the floor. Centred on the header strip, which
 // runs X 83 to 88, Y 45 to 96; stops short of the battery rib above.
@@ -224,8 +251,7 @@ plate_word_sz  =   4.2;    // "RESET" is then about 15 mm wide for a 21.5 mm key
 // ON / OFF plate glued on the bottom edge under the switch knob, same construction. Two variants,
 // sw_on_left true or false, since which way is "on" depends on how the switch was wired.
 sw_on_left     = true;
-sw_plate_w     =  30.0;    // centred on the switch; the knob slot is 8 mm wide in the middle
-sw_plate_h     =   7.0;
+sw_plate_w     =  30.0;    // centred on the switch, over the wall opening (8 mm wide in the middle)
 sw_plate_sz    =   4.0;
 $fn            = 48;
 
@@ -269,18 +295,25 @@ function tp_pos()  = [wall + 1.0, 88];                       // bottom-left corn
 function bat_pos() = [26, out_h - wall - 4 - bat_w];         // lying across the top
 function led2_pos() = [95, led_pos()[1]];                                           // green sphere, right end of the chin
 function led_positions() = [led_pos(), led2_pos()];
-dial_z   = wall - enc_floor_recess + enc_pcb_w/2;    // 10.7: dial axis height, set by the encoder PCB standing on the recessed floor
-notch_l  = wheel_d + 6;                              // 27: notch length along the edge
-function enc_x()  = dial_notch_d + wall + enc_body_h;   // 13: wall-side face of the encoder PCB
-function enc_y0() = dial_y - (enc_pcb_l - enc_cx);      // 38: PCB lower end
+enc_z0   = wall - enc_floor_recess;                  // 1.2: encoder PCB bottom edge, in the floor recess; top edge 19.8
+enc_hole_z = enc_pins_up ? enc_z0 + enc_pcb_w - enc_hole_edge : enc_z0 + enc_hole_edge;   // 17.2 | 3.8
+dial_z   = enc_pins_up ? enc_hole_z - enc_hole_dw : enc_hole_z + enc_hole_dw;             // 9.4 | 11.6: dial axis height
+notch_l  = wheel_d + 6;                              // 24.4: notch length along the edge
+function enc_boss_x1() = dial_notch_d + enc_bush_h - enc_bush_out;   // 13.1: face of the boss, the encoder body against it
+function enc_x()  = enc_boss_x1() + enc_body_h;         // 17.1: wall-side face of the encoder PCB
+function enc_y0() = enc_pins_up ? dial_y + enc_cx - enc_pcb_l : dial_y - enc_cx;   // 45.5: PCB lower end
+function enc_y1() = enc_y0() + enc_pcb_l;               // 71.6
+function hat_mod_box() = [[pcb_x0 + hat_mod[0], pcb_y0 + hat_mod[1], shelf_z - hat_mod[4]], [hat_mod[2], hat_mod[3], hat_mod[4]]];
 function sw_slot_z0() = wall + sw_pad_t + (sw_body_t - sw_slot_h)/2;   // 4.35: knob slot bottom
+sw_plate_h = rim_z - 0.2 - sw_slot_z0() - sw_slot_h - plate_gap;    // 15.65 (bump): ON / OFF plate from plate_gap above the knob slot to the rim
 function hdr_strip() = let(p = hat_pt(hdr_x, hdr_y + hdr_wid/2))
     [pcb_x0 + p[0] - hdr_wid/2, pcb_y0 + p[1] - hdr_len, hdr_wid, hdr_len];
 function fpc_y() = [pcb_y0 + hat_pt(fpc_x1, 0)[1], pcb_y0 + hat_pt(fpc_x0, 0)[1]];   // flex span on the left edge
 // Pads: [edge, position along the edge]; edges: "L" "R" "B" "T". On top, between the keys, clear of
 // the protruding caps (v4 had none there: the PCB could ride up to the key guides, 1 mm or more off the
 // bottom lips, and shift at each key press)
-function pads() = [["L", 28], ["L", 112], ["R", 28], ["R", 112], ["B", 30], ["B", 68],   // clear of the LED, Pico screws and switch
+function pads() = [["L", 36], ["L", 112], ["R", 28], ["R", 112], ["B", 30], ["B", 68],   // clear of the LED, Pico screws, switch
+                   // (the lower left pad at 36, not 28: there it would be over the switch, which drops in from the front)
                    ["T", btn_mid(0)], ["T", btn_mid(2)]];
 
 // ---------------------------------------------------------------- front plate
@@ -322,7 +355,7 @@ module front() {
             cylinder(d1 = led_sphere_d + 0.8, d2 = led_sphere_d - 0.5, h = bezel_t + 2);
         // Story dial: the notch, and the arrow pointing at the number on top of the wheel
         translate([0, 0, -1]) linear_extrude(bezel_t + 2) notch2d();
-        translate([0, 0, bezel_t - 0.6]) linear_extrude(1) polygon([[dial_notch_d + 1.2, dial_y], [dial_notch_d + 4.4, dial_y + 1.8], [dial_notch_d + 4.4, dial_y - 1.8]]);
+        translate([0, 0, bezel_t - arrow_d]) linear_extrude(1) polygon([[dial_notch_d + 1.0, dial_y], [dial_notch_d + 1.0 + arrow_l, dial_y + arrow_w/2], [dial_notch_d + 1.0 + arrow_l, dial_y - arrow_w/2]]);
     }
 }
 
@@ -346,6 +379,7 @@ module back() {
             tp_lip();
             switch_seat();
             notch_wall();
+            enc_boss();
             enc_posts();
             for (p = led_positions()) led_tube(p);
         }
@@ -353,11 +387,12 @@ module back() {
         for (h = pico_holes()) translate([h[0], h[1], 1]) cylinder(d = 2.0, h = wall + pico_standoff + 1);
         // Pico micro-USB through the bottom wall, at the Pico PCB level
         translate([pico_pos()[0] + pico_w/2 - usb_cut_w/2, -1, wall + pico_standoff - 1]) cube([usb_cut_w, wall + 2, usb_cut_h]);
-        // Switch knob slot through the left wall
-        translate([-1, sw_y - sw_slot_l/2, sw_slot_z0()]) cube([wall + 2, sw_slot_l, sw_slot_h]);
-        // Story dial: notch in the left edge, bushing hole through its wall, floor recess under the encoder PCB
+        // Switch opening through the left wall: the knob slot, open up to the rim so that the switch drops in from the front
+        translate([-1, sw_y - sw_slot_l/2, sw_slot_z0()]) cube([wall + 2, sw_slot_l, rim_z]);
+        // Story dial: notch in the left edge, bushing hole through its wall and the boss (teardrop: it prints lying),
+        // floor recess under the encoder PCB
         translate([0, 0, -1]) linear_extrude(rim_z + 2) notch2d();
-        translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = enc_bush_d + 0.4, h = wall + 2);
+        translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(enc_bush_h - enc_bush_out + 1.01) teardrop2d(enc_bush_d + 0.4);
         translate([enc_x() - 0.4, enc_y0() - 0.5, wall - enc_floor_recess]) cube([enc_pcb_t + 0.8, enc_pcb_l + 1, enc_floor_recess + 0.01]);
         for (h = enc_holes()) translate([enc_x() - 6.0, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = enc_post_pilot, h = 7);   // pilot holes in the posts
         // Key notches through the top wall and guides, from below the caps up to the rim, with the head step
@@ -493,53 +528,55 @@ module tp_lip() {
 module led_tube(p) { translate([p[0], p[1], 0]) cylinder(d = led_sphere_d + 0.6 + 2*led_tube_t, h = rim_z); }
 
 // Slide switch lying on the floor against the left wall (v9: the right end of the chin went to the green
-// sphere, and at the rim the body would meet the HAT PCB, the side margin being 4.5 mm). The knob slot
-// is a closed window (the wall goes on up to the rim under the HAT), so the switch cannot drop in from
-// above as in v7: it comes in from the inside, knob first through the slot, sliding towards the wall
-// until its ears touch it. Then: Y by the ears between two end blocks; down by the pad under the body;
-// up by a lip on each end block over the end of the ear (the ear slides under it on the last mm); and
-// inwards, against a push on the knob, by a keeper plate dropped behind the body between two guides
-// and held down by the HAT PCB, 2 mm above its top. The pins and their housings go through the
-// keeper's window. No glue, no screw, and the switch comes out again once the HAT is off.
+// sphere), knob through the wall. v10: it drops in from the front, like the v7 cradle, through the wall
+// opening (as wide as the knob slot, open up to the rim): the ears slide down between the wall and a lip
+// at each end, an end block each side stops them along the wall, 0.2 mm each side, the body rests on its
+// pad. The bezel covers the opening at the rim, the ON / OFF
+// plate glued over it keeps the knob, hence the switch, from riding up. No glue on the switch, no screw;
+// the pins and their housings are free behind the body.
 module switch_seat() {
     x0 = wall + sw_ear_t + 0.2;                       // knob face of the body
     z0 = wall + sw_pad_t;                             // body underside
-    ear_top = z0 + sw_body_t/2 + sw_ear_h/2;          // 8.05
-    xk = x0 + sw_body_w + 0.2;                        // keeper, from the back of the body
+    xl = wall + 0.2 + sw_ear_t + 0.4;                 // lips, 0.4 off the ears
     translate([x0 - 0.2, sw_y - sw_body_l/2 - 0.2, 0]) cube([sw_body_w + 0.4, sw_body_l + 0.4, z0]);   // pad
     for (sgn = [-1, 1]) {
-        yb = sw_y + sgn*(sw_ear_len/2 + 0.2);                                                           // end block, inner face
-        translate([wall - 0.01, min(yb, yb + sgn*1.2), 0]) cube([2.01, 1.2, ear_top + 1.0]);
-        translate([wall - 0.01, min(yb, yb - sgn*1.2), ear_top + 0.2]) cube([1.41, 1.2, 0.8]);          // lip over the ear's end
-        yp = sw_y + sgn*(sw_keeper_w/2 - 2.8);                                                          // keeper guides: post behind
-        translate([xk + sw_keeper_t + 0.2, min(yp, yp + sgn*3.0), 0]) cube([2.2, 3.0, wall + 8]);
-        yf = sw_y + sgn*(sw_keeper_w/2 + 0.2);                                                          // and flank beside
-        translate([xk + 0.4, min(yf, yf + sgn*1.6), 0]) cube([sw_keeper_t + 2.0, 1.6, wall + 8]);
+        ye = sw_y + sgn*(sw_ear_len/2 + 0.2);                                                           // ear end, plus play
+        yl = sw_y + sgn*(sw_body_l/2 + 0.4);                                                            // lip, from 0.4 beyond the body
+        translate([xl, min(ye, yl), 0]) cube([sw_lip_t, abs(ye - yl), sw_lip_z]);                       // lip over the ear run
+        translate([wall - 0.01, min(ye, ye + sgn*1.6), 0]) cube([xl + sw_lip_t - wall + 0.01, 1.6, sw_lip_z]);   // end block
     }
-}
-// Keeper plate, flat for printing: X along the wall, Y up (window at the bottom edge), Z its thickness
-module sw_keeper() {
-    difference() {
-        cube([sw_keeper_w, sw_keeper_h, sw_keeper_t]);
-        translate([sw_keeper_w/2 - sw_keeper_win[0]/2, -1, -1]) cube([sw_keeper_win[0], sw_keeper_win[1] + 1, sw_keeper_t + 2]);
-    }
-}
-module sw_keeper_in_place() {
-    translate([wall + sw_ear_t + 0.2 + sw_body_w + 0.2, sw_y - sw_keeper_w/2, wall]) rotate([90, 0, 90]) sw_keeper();
 }
 
 // ---------------------------------------------------------------- story dial
 // Notch in the left edge (plan), through the shell and the bezel; the wheel sinks into it
 module notch2d() { translate([-5, dial_y - notch_l/2]) rounded_rect(5 + dial_notch_d, notch_l, dial_notch_r); }
 // The wall behind the notch, X 4.5 to 6.5, closing the notch on three sides (the outer wall is cut away)
-module notch_wall() { translate([wall - 0.01, dial_y - notch_l/2 - wall, 0]) cube([dial_notch_d + 0.01, notch_l + 2*wall, rim_z]); }
-// Two posts from the notch wall to the encoder PCB, under its mounting holes, with a flat towards the
-// encoder body (the holes are only 0.3 mm beyond it); the screws come from behind the PCB
-function enc_holes() = [[dial_y - enc_hole_dy, dial_z - enc_hole_dz/2], [dial_y - enc_hole_dy, dial_z + enc_hole_dz/2]];
+// Where the notch wall runs into the span of the panel flex (folded over the PCB edge, X 6.3 to 7.1, from 4 mm
+// under the PCB) it is thinned to 1.2 mm above Z 16, leaving 1.2 mm beyond the PCB edge for the fold
+module notch_wall() {
+    difference() {
+        translate([wall - 0.01, dial_y - notch_l/2 - wall, 0]) cube([dial_notch_d + 0.01, notch_l + 2*wall, rim_z]);
+        translate([wall + 3.7, fpc_y()[0] - 0.5, 16]) cube([dial_notch_d, out_h, rim_z]);
+    }
+}
+// Boss behind the notch wall, from the floor, taking the bushing length that the wall and the nut do not:
+// the encoder body sits on its face, the bushing hole runs through wall and boss
+module enc_boss() {
+    translate([dial_notch_d + wall - 0.01, dial_y - enc_boss_w/2, 0]) cube([enc_boss_x1() - dial_notch_d - wall + 0.01, enc_boss_w, dial_z + enc_body/2]);
+}
+// Hole section for a horizontal hole printed without support: a circle with a 45 degree roof (apex towards -X,
+// which rotate([0, 90, 0]) turns into +Z)
+module teardrop2d(d) { hull() { circle(d = d); translate([-d/2*sqrt(2), 0]) square(0.01, center = true); } }
+// Two ribs from the floor under the mounting holes of the module (both along its floor edge), from the
+// notch wall to the PCB, with the pilot holes; the screws come from behind the PCB
+function enc_holes() = [for (dl = enc_hole_dl) [dial_y + (enc_pins_up ? dl : -dl), enc_hole_z]];
 module enc_posts() {
-    for (h = enc_holes()) translate([dial_notch_d + wall - 0.01, h[0], h[1]]) difference() {
-        rotate([0, 90, 0]) cylinder(d = enc_post_d, h = enc_body_h + 0.01);
-        translate([-1, enc_hole_dy - enc_body/2 - 0.2, -enc_post_d]) cube([enc_body_h + 2, enc_post_d, 2*enc_post_d]);   // flat, clear of the body
+    for (h = enc_holes()) {
+        d = h[0] - dial_y;                                                   // hole along the PCB from the axis
+        // rib span along Y: the hole plus enc_post_w/2 each side, kept 0.2 clear of the body when the holes are on its level
+        lo = enc_pins_up ? max(abs(d) - enc_post_w/2, enc_body/2 + 0.2) : abs(d) - enc_post_w/2;
+        hi = abs(d) + enc_post_w/2;
+        if (hi - lo >= 3.6) translate([enc_rib_x0, dial_y + (d > 0 ? lo : -hi), 0]) cube([enc_x() - enc_rib_x0, hi - lo, h[1] + enc_post_w/2]);
     }
 }
 // Stop pin on the notch wall, at the bottom of the wheel, inside the arc groove of the wheel
@@ -558,14 +595,14 @@ module arc2d(r0, r1, a0, a1) {
 // at the groove end at local angle 0, the groove runs counter-clockwise to the upper stop.
 // Placed in the case with rotate([0, 90, 0]) at X = dial_notch_d - 0.5 - wheel_t: local -X becomes +Z.
 stop_half = asin(stop_pin_d/2/stop_r) + 2;                 // half pin angle plus 0.3 mm of clearance
-wheel_bush_z = (dial_notch_d + wall - enc_bush_h) - (dial_notch_d - 0.5 - wheel_t);   // bushing end, in the wheel frame
+wheel_bush_z = (dial_notch_d - enc_bush_out) - (dial_notch_d - 0.5 - wheel_t);   // 9.1: bushing end, in the wheel frame
+shaft_keep   = wheel_bush_z - 1.0 - 0.3;                   // 7.8: shaft to keep beyond the bushing end, 0.3 short of the bore's cap
 module wheel() {
     r = wheel_d/2; t = wheel_t; travel = (wheel_numbers - 1)*wheel_step;
     difference() {
         union() {
-            translate([0, 0, 0.8]) cylinder(r = r, h = t - 1.6);
-            cylinder(r1 = r - 0.8, r2 = r, h = 0.8);
-            translate([0, 0, t - 0.8]) cylinder(r1 = r, r2 = r - 0.8, h = 0.8);
+            translate([0, 0, 0.8]) cylinder(r = r, h = t - 0.8);
+            cylinder(r1 = r - 0.8, r2 = r, h = 0.8);   // chamfer on the outer face only, the inner one sits in the notch
         }
         translate([0, 0, t - wheel_nut_h]) cylinder(d = wheel_nut_d, h = wheel_nut_h + 1);                 // nut recess
         translate([0, 0, wheel_bush_z - 0.7]) cylinder(d = enc_bush_d + 1.0, h = t);                       // bushing clearance
@@ -586,18 +623,19 @@ module wheel_in_place() { translate([dial_notch_d - 0.5 - wheel_t, dial_y, dial_
 // KY-040 module and the switch, for the previews
 module encoder_preview() {
     color("#1f5fa8") translate([enc_x(), enc_y0(), wall - enc_floor_recess]) cube([enc_pcb_t, enc_pcb_l, enc_pcb_w]);
-    color("Silver") translate([dial_notch_d + wall, dial_y - enc_body/2, dial_z - enc_body/2]) cube([enc_body_h, enc_body, enc_body]);
-    color("Silver") translate([dial_notch_d + wall - enc_bush_h, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = enc_bush_d, h = enc_bush_h);
+    color("Silver") translate([enc_boss_x1(), dial_y - enc_body/2, dial_z - enc_body/2]) cube([enc_body_h, enc_body, enc_body]);
+    color("Silver") translate([dial_notch_d - enc_bush_out, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = enc_bush_d, h = enc_bush_h);
     color("Silver") translate([dial_notch_d - 2.3, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = 11.5, h = 2.3, $fn = 6);   // nut
-    color("Gainsboro") translate([dial_notch_d - 0.5 - wheel_t + 1.0, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = enc_shaft_d, h = wheel_t - 1.0 + wall + 2);
-    for (i = [0 : 4]) color("Black") translate([enc_x() + enc_pcb_t, enc_y0() + enc_pcb_l - 3.5, dial_z - 5.08 + 2.54*i - 1.2]) cube([6 + 14, 2.4, 2.4]);   // pins and housings
+    color("Gainsboro") translate([dial_notch_d - enc_bush_out - shaft_keep, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = enc_shaft_d, h = shaft_keep);   // shaft, cut
+    for (i = [0 : 4]) color("Black")                                       // right-angle header: pins and housings along the PCB, away from it
+        translate([enc_x() - 2.6, enc_pins_up ? enc_y1() : enc_y0() - 14, enc_pins_up ? enc_z0 + 1.3 + 2.54*i - 1.2 : enc_z0 + enc_pcb_w - 1.3 - 2.54*i - 1.2]) cube([2.6, 14, 2.4]);
 }
 module switch_preview() {
     color("White") translate([wall + sw_ear_t + 0.2, sw_y - sw_body_l/2, wall + sw_pad_t]) cube([sw_body_w, sw_body_l, sw_body_t]);
     color("Silver") translate([wall + 0.2, sw_y - sw_ear_len/2, wall + sw_pad_t + sw_body_t/2 - sw_ear_h/2]) cube([sw_ear_t, sw_ear_len, sw_ear_h]);
     color("Gainsboro") translate([-1.5, sw_y - 1.3, sw_slot_z0() + 0.4]) cube([wall + 2, 2.6, 2.6]);   // knob
 }
-// ON / OFF plate glued on the left edge above the knob slot, text facing out and reading with the device face up
+// ON / OFF plate glued on the left edge over the switch opening, above the knob slot, text facing out and reading with the device face up
 module sw_plate_in_place() {
     translate([0, sw_y + sw_plate_w/2, sw_plate_z0()]) multmatrix([[0, 0, -1, 0], [-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]) sw_plate();
 }
@@ -641,8 +679,8 @@ module plate() {
                                  halign = "center", valign = "baseline");
     }
 }
-// ON / OFF plate: glued on the bottom wall under the knob slot, read with the display facing you
-// and the bottom edge tilted towards you, i.e. the display side up: local Y = +Z of the case.
+// ON / OFF plate: glued on the left wall over the switch opening, from plate_gap above the knob slot
+// to the rim; it reads with the device face up, i.e. local Y = +Z of the case.
 module sw_plate(on_left = sw_on_left) {
     label_plate(sw_plate_w, sw_plate_h) for (p = [[-9, on_left ? "ON" : "OFF"], [9, on_left ? "OFF" : "ON"]])
         translate([sw_plate_w/2 + p[0], 1.6]) text(p[1], size = sw_plate_sz, font = plate_font,
@@ -659,6 +697,7 @@ module hat() {
     color("Silver", 0.5) translate([s[0], s[1], shelf_z - (hat_dupont_t - hat_pcb_t)]) cube([s[2], s[3], hat_dupont_t - hat_pcb_t]);
     for (i = [0 : btn_n - 1]) color("Red") translate([btn_x(i) - btn_cap_w/2, pcb_y1, shelf_z - 0.6 - btn_cap_h]) cube([btn_cap_w, btn_protrusion, btn_cap_h]);
     f = fpc_y(); color("Orange", 0.6) translate([pcb_x0 - 0.6, f[0], shelf_z - 4]) cube([0.8, f[1] - f[0], 4 + hat_pcb_t]);
+    m = hat_mod_box(); color("Crimson", 0.7) translate(m[0]) cube(m[1]);   // module on the back of the HAT, lower left
 }
 module parts_preview() {
     pp = pico_pos(); color("Green") translate([pp[0], pp[1], wall + pico_standoff]) cube([pico_w, pico_l, pico_t]);
@@ -673,7 +712,6 @@ module parts_preview() {
     hs = hdr_strip(); color("Silver", 0.4) translate([hs[0] - 2.5, hs[1], shelf_z - (hat_dupont_t - hat_pcb_t)])
         cube([hs[2] + 5, hs[3], hat_dupont_t - hat_pcb_t]);   // Dupont housings on the HAT header, 18 mm below the PCB
     switch_preview();
-    color("Orange") sw_keeper_in_place();
     encoder_preview();
     color("#2e3a40") wheel_in_place();
     color("White")     translate([led_pos()[0],  led_pos()[1],  rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
@@ -692,7 +730,6 @@ else if (part == "back") back();
 else if (part == "cap") translate([0, 0, wall + cap_flange_t]) rotate([180, 0, 0]) cap();   // flange down, dome up
 else if (part == "key") key();   // flat on its bottom face
 else if (part == "wheel") wheel();   // outer face down
-else if (part == "swkeeper") sw_keeper();   // flat
 else if (part == "plate") plate();   // flat, text up
 else if (part == "swplate") sw_plate();   // flat, text up; -D sw_on_left=false for the other variant
 else if (part == "closed") {
@@ -716,7 +753,7 @@ else if (part == "section") intersection() {
         hat();
         translate([0, 0, rim_z]) front();
     }
-    translate([section_x, -1, -20]) cube([out_w, out_h + 2, 80]);
+    translate([section_x, -1, -20]) cube([section_w, out_h + 2, 80]);
 }
 else {
     back();
@@ -724,6 +761,8 @@ else {
     %parts_preview();
     hat();
     %translate([0, 0, rim_z]) front();
-    echo(shaft_cut_mm = wheel_bush_z - 1.0, dial_z = dial_z, notch = [dial_y - notch_l/2, dial_y + notch_l/2]);   // shaft length to keep beyond the bushing end
+    echo(shaft_keep_mm = shaft_keep, shaft_cut_off_mm = enc_shaft_h - shaft_keep, dial_z = dial_z, notch = [dial_y - notch_l/2, dial_y + notch_l/2],
+         wheel_travel_deg = (wheel_numbers - 1)*wheel_step + 2*stop_half, hat_module_to_encoder_pcb_mm = enc_y0() - (hat_mod_box()[0][1] + hat_mod[3]),
+         enc_pcb_y = [enc_y0(), enc_y0() + enc_pcb_l], enc_pcb_x = enc_x(), sw_to_notch_wall_mm = (dial_y - notch_l/2 - wall) - (sw_y + sw_ear_len/2));
     echo(out = [out_w, out_h, rim_z + bezel_t], shelf_z = shelf_z, key_z0 = key_z0, key_h = key_h, header_strip = hdr_strip(), flex_y = fpc_y(), keys = [for (i = [0:3]) btn_x(i)], pico_holes = pico_holes());
 }
