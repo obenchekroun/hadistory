@@ -21,7 +21,7 @@ Scope compared to the Pi version:
 | Battery operation | To be tested, see Power |
 | Battery gauge (`BATTERY_GAUGE=ON`) | Calibrated on the prototype (ADC scale and diode drop measured, 2026-10-21); bars to check against the cell voltage |
 | Mode LED and robot badge | Written, to be tested: green sphere on in AI mode, bursts at a mode change, robot top-left of the AI pages |
-| Story dial (`STORY_DIAL=ON`) | Written, to be tested: KY-040 on GP6 / GP7 / GP9, story number in the page counter |
+| Story dial (`STORY_DIAL=ON`) | Written, to be tested: KY-040 on Pico pins 9 to 13, story number in the page counter |
 
 ## Use
 
@@ -44,7 +44,7 @@ Waiting for next button press...
 
 Two sphere LEDs, one question each. Status LED (white, left of the chin): solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, off = asleep. Mode LED (green, right of the chin): on = AI mode, off = story mode, blinking = joining the WiFi after a press on C; it goes off again if the network cannot be joined (with the error blink on the status LED). At a mode change, and at a cold boot, it first plays the bursts of the Pi version, 3 long (0.8 s) for AI or 5 short (0.25 s) for story, then settles; the status LED never bursts for the mode. On the page itself, the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep. In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
 
-Story dial (`STORY_DIAL=ON`): a KY-040 rotary encoder on the left edge of the enclosure, a thumbwheel with the numbers 1 to 12 on its rim (`DIAL_POSITIONS`) and an arrow on the case, see `case/README.md`. Printed end stops limit the wheel to 11 detents; the firmware counts the detents by interrupt while awake and saturates at 1 and 12, so the stops are the reference of an otherwise incremental encoder. Nothing counts during the deep sleep, by choice (battery life), so the ritual re-arms it: turn the wheel down to the stop, press the wheel (or B), which wakes the board, forgets the story and sets the dial to 1, turn up to the number under the arrow, press A: that story starts at page 1, and its number is shown before the page counter top-left (`3: 1/9`). While a story is being read the wheel changes nothing; at the end of a story, A starts the one under the arrow again (no more random pick: the AI mode is the random one). Each counted detent blinks the status LED off for 20 ms (`DIAL_BLIP_MS`): no blink means the wheel is past a stop in the firmware's count, i.e. desynchronised, and the ritual fixes it. Stories are ordered by the number at the end of their folder name (`story_2` before `story_10`); a wheel position beyond the catalogue gives the last story. The push button of the dial takes the wake-up slot of button B, which then only works awake (the RP2350 has four wake-up slots). In AI mode the dial is ignored for now.
+Story dial (`STORY_DIAL=ON`): a KY-040 rotary encoder on the left edge of the enclosure, wired on Pico pins 9 to 13 in the module's own pin order, a thumbwheel with the numbers 1 to 12 on its rim (`DIAL_POSITIONS`) and an arrow on the case, see `case/README.md`. Printed end stops limit the wheel to 11 detents; the firmware counts the detents by interrupt while awake and saturates at 1 and 12, so the stops are the reference of an otherwise incremental encoder. Nothing counts during the deep sleep, by choice (battery life), so the ritual re-arms it: turn the wheel down to the stop, press the wheel (or B), which wakes the board, forgets the story and sets the dial to 1, turn up to the number under the arrow, press A: that story starts at page 1, and its number is shown before the page counter top-left (`3: 1/9`). While a story is being read the wheel changes nothing; at the end of a story, A starts the one under the arrow again (no more random pick: the AI mode is the random one). Each counted detent blinks the status LED off for 20 ms (`DIAL_BLIP_MS`): no blink means the wheel is past a stop in the firmware's count, i.e. desynchronised, and the ritual fixes it. Stories are ordered by the number at the end of their folder name (`story_2` before `story_10`); a wheel position beyond the catalogue gives the last story. The push button of the dial takes the wake-up slot of button B, which then only works awake (the RP2350 has four wake-up slots). In AI mode the dial is ignored for now.
 
 Battery (`BATTERY_GAUGE=ON`): each page carries a battery symbol in its top-right corner, 4 bars when full, red with one bar or none when low, a lightning bolt when the USB is plugged. The gauge is informative only: the firmware never refuses an action, powers off or changes mode because of the level; when the cell is really empty the protection circuit of the battery module cuts the power. See "Battery gauge" under Power and battery.
 
@@ -122,8 +122,8 @@ Build-time options:
 | `WITH_GPT` | `ON` builds the AI mode (`HADISTORY_WITH_GPT=1` in the code). Default `OFF`. |
 | `DEEP_SLEEP` | `ON` (default): 20 seconds after the last press in story mode (`IDLE_BEFORE_SLEEP_MS`) the RP2350 power manager switches the core off (state P1.7), any button powers it up, which reboots the firmware (`HADISTORY_DEEP_SLEEP=1`). `OFF` keeps the board awake and the USB console alive, for debugging. |
 | `BATTERY_GAUGE` | `ON` (default): battery bars on each page from the VSYS reading, display only (`HADISTORY_BATTERY=1`). `OFF` drops the module and the ADC. |
-| `STORY_DIAL` | `ON`: KY-040 story dial on `DIAL_PIN_CLK` / `DIAL_PIN_DT` / `DIAL_PIN_SW` (GP6 / GP7 / GP9, "+" from GP14), RESET re-arms it at 1, A starts the story under the arrow (`HADISTORY_STORY_DIAL=1`). Default `OFF`: stories picked at random. |
-| `STATUS_LED` | `EXTERNAL` (default): LED on `LED_PIN` (GP8). `ONBOARD`: the board's own LED, GP25 on the Pico Plus 2 with the same breathing effect; on the Pico 2 W the LED is on the wireless chip, no PWM, so busy is shown as a 1 Hz blink. |
+| `STORY_DIAL` | `ON`: KY-040 story dial on `DIAL_PIN_CLK` / `DIAL_PIN_DT` / `DIAL_PIN_SW` / `DIAL_PIN_VCC` (GP6 / GP7 / GP8 / GP9, Pico pins 9 to 12, GND on 13), RESET re-arms it at 1, A starts the story under the arrow (`HADISTORY_STORY_DIAL=1`). Default `OFF`: stories picked at random. |
+| `STATUS_LED` | `EXTERNAL` (default): LED on `LED_PIN` (GP15, pin 20). `ONBOARD`: the board's own LED, GP25 on the Pico Plus 2 with the same breathing effect; on the Pico 2 W the LED is on the wireless chip, no PWM, so busy is shown as a 1 Hz blink. |
 | `WIFI_SSID`, `WIFI_PASSWORD`, `OPENAI_API_KEY` | Credentials for the AI mode, via `-D` or `secrets.cmake`. |
 | `TLS_NO_VERIFY` | AI mode: `ON` skips the certificate check of `api.openai.com`. Debug only, it exposes the API key to anyone on the path. Default `OFF`: the server must chain to one of the roots in `src/openai_roots.h`. |
 
@@ -133,7 +133,7 @@ Build-time options:
 
 *Everything on one picture: display HAT header, buttons, status and mode LEDs, story dial (option), TP4056, battery, switch and diode (`img/wiring.svg`, generated by `img/wiring.py`). The HAT header is drawn as seen from the back of the HAT, the side the wires plug into: pin 1 (3V3) top right, odd pins on the right column. The microSD breakout of `STORAGE=SDCARD` is not drawn.*
 
-Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the display HAT (the Inky Impression), and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40). Any Pico GND pin does for any ground; the ones below keep one wire per pin: 33 for the HAT, 38 for the TP4056, 13 for the status LED, 23 for the mode LED, 8 for the dial. The "Display HAT GPIO" column is the Raspberry Pi GPIO number the HAT expects on that pin, as in the Pimoroni pinout; it is only there to find your way on the HAT, nothing on the Pico uses it.
+Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the display HAT (the Inky Impression), and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40). Any Pico GND pin does for any ground; the ones below keep one wire per pin: 33 for the HAT, 38 for the TP4056, 18 for the status LED, 23 for the mode LED, 13 for the dial. The "Display HAT GPIO" column is the Raspberry Pi GPIO number the HAT expects on that pin, as in the Pimoroni pinout; it is only there to find your way on the HAT, nothing on the Pico uses it.
 
 Power. The display HAT runs from 3V3 alone: its 5V pin only feeds its small expansion header (Pimoroni schematic), so it can stay unconnected. That is what makes battery operation simple.
 
@@ -167,24 +167,24 @@ Status LED, external as on the Pi version (`STATUS_LED=EXTERNAL`, the default). 
 
 | Element | Pico | Pico pin |
 |---|---|---|
-| Status LED anode through a 220 ohm resistor | GP8 | 11 |
-| Status LED cathode | GND | 13 |
+| Status LED anode through a 220 ohm resistor | GP15 | 20 |
+| Status LED cathode | GND | 18 |
 | Mode LED (green sphere) anode through a 220 ohm resistor | GP16 | 21 |
 | Mode LED cathode | GND | 23 |
 
 The mode LED is a plain on/off output (`MODE_LED_PIN`); apart from the bursts at a mode change it is lit in AI mode only, when the board is awake with the WiFi anyway, so it costs nothing in story mode.
 
-Story dial, `STORY_DIAL=ON` only (KY-040 module, its pins in the order GND, +, SW, DT, CLK):
+Story dial, `STORY_DIAL=ON` only. The KY-040 module's pins, in their order on the module (CLK, DT, SW, +, GND), go to five consecutive Pico pins, 9 to 13, in the same order: a straight five-wire ribbon, nothing crosses.
 
 | KY-040 pin | Pico | Pico pin |
 |---|---|---|
 | CLK | GP6 | 9 |
 | DT | GP7 | 10 |
-| SW (push button, acts as RESET) | GP9 | 12 |
-| + (the module's two 10 k pull-ups, 0.3 mA) | GP14, driven high by the firmware (`DIAL_PIN_VCC`) | 19 |
-| GND | GND | 8 |
+| SW (push button, acts as RESET) | GP8 | 11 |
+| + (the module's two 10 k pull-ups, 0.3 mA) | GP9, driven high by the firmware (`DIAL_PIN_VCC`) | 12 |
+| GND | GND | 13 |
 
-The five dial wires thus sit on neighbouring pins of the left column, and 3V3 OUT keeps its single wire to the HAT. Set `DIAL_PIN_VCC` to -1 to feed "+" from a real 3.3 V instead (HAT pin 17 is a free 3V3).
+3V3 OUT keeps its single wire to the HAT. Set `DIAL_PIN_VCC` to -1 to feed "+" from a real 3.3 V instead (HAT pin 17 is a free 3V3). The status LED moved from GP8 to GP15 (pin 20, GND on 18) to free pin 11 for this run.
 
 microSD breakout (SPI, 3.3 V), `STORAGE=SDCARD` only:
 

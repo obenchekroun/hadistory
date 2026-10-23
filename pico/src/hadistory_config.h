@@ -69,16 +69,17 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    // Status LED (PWM capable, white sphere) and the mode LED (plain GPIO, green sphere: on in AI mode)
-    #define LED_PIN              8
+    // Status LED (PWM capable, white sphere, pin 20 with GND on 18) and the mode LED (plain GPIO,
+    // green sphere: on in AI mode)
+    #define LED_PIN              15
     #define MODE_LED_PIN         16
-    // Story dial (STORY_DIAL=ON): KY-040 CLK / DT, its push button (a second RESET), and a GPIO
-    // driven high as the module's "+" (feeds only its two 10 k pull-ups): the whole dial sits on five
-    // neighbouring pins of the left column, no second wire on 3V3 OUT. -1 = wire "+" to 3V3 instead.
+    // Story dial (STORY_DIAL=ON): the five pins of the KY-040 in its own order, CLK DT SW + GND, on
+    // the five consecutive Pico pins 9 to 13 (GP6 GP7 GP8 GP9 GND): a straight 5-wire ribbon. "+" is a
+    // GPIO driven high, it feeds only the module's two 10 k pull-ups. -1 = wire "+" to 3V3 instead.
     #define DIAL_PIN_CLK         6
     #define DIAL_PIN_DT          7
-    #define DIAL_PIN_SW          9
-    #define DIAL_PIN_VCC         14
+    #define DIAL_PIN_SW          8
+    #define DIAL_PIN_VCC         9
 #elif defined(PIMORONI_PICO_PLUS2_RP2350) || defined(PIMORONI_PICO_PLUS2_W_RP2350)
     // Same mapping for now; adjust once the LiPo 2 / Plus 2 wiring is decided
     #define DISPLAY_SPI          spi0
@@ -96,12 +97,12 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    #define LED_PIN              8
+    #define LED_PIN              15
     #define MODE_LED_PIN         16
     #define DIAL_PIN_CLK         6
     #define DIAL_PIN_DT          7
-    #define DIAL_PIN_SW          9
-    #define DIAL_PIN_VCC         14
+    #define DIAL_PIN_SW          8
+    #define DIAL_PIN_VCC         9
 #else
     #error "Unsupported PICO_BOARD: add a pin mapping in src/hadistory_config.h"
 #endif
