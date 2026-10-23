@@ -20,7 +20,7 @@ Scope compared to the Pi version:
 | Deep sleep between pages (`DEEP_SLEEP=ON`) | Working on the Pico 2 W: RP2350 power manager, wake-up and action on the button that woke the board |
 | Battery operation | To be tested, see Power |
 | Battery gauge (`BATTERY_GAUGE=ON`) | Calibrated on the prototype (ADC scale and diode drop measured, 2026-10-21); bars to check against the cell voltage |
-| Robot badge | Written, to be tested: robot top-left of the AI pages |
+| Mode LED and robot badge | Written, to be tested: green sphere on in AI mode, bursts at a mode change, robot top-left of the AI pages |
 | Story dial (`STORY_DIAL=ON`) | Written, to be tested: KY-040 on GP6 / GP7 / GP9, story number in the page counter |
 
 ## Use
@@ -40,9 +40,9 @@ Waiting for next button press...
 | A, execute | Next page; when none is running or the last page was shown, starts a story: at random, or the one under the dial with `STORY_DIAL=ON` | Generates and shows a new page |
 | D, go back | Previous page | — |
 | B, reset | Forgets the current story, the next A starts a new one. With `STORY_DIAL=ON` the push button of the dial does the same, and both re-arm the dial at 1 | Same |
-| C, change mode | Starts the WiFi connection if needed (LED breathing), then switches to AI mode: 3 long bursts; if the network cannot be joined within 30 s the switch is refused with the error blink | Switches to story mode: 5 short bursts |
+| C, change mode | Starts the WiFi connection if needed (status LED breathing, mode LED blinking), then switches to AI mode: 3 long bursts on the mode LED, which then stays on; if the network cannot be joined within 30 s the switch is refused with the error blink and the mode LED goes off | Switches to story mode: 5 short bursts on the mode LED, which then stays off |
 
-LED patterns, those of the Pi version: solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, 3 long bursts (0.8 s) = switched to AI mode, 5 short bursts (0.25 s) = switched to story mode (both also at a cold boot, for the mode restored), off = asleep. A second LED for the mode was considered and dropped: its tube in the chin of the enclosure blocked the Dupont housings on the Pico's first pins. On the page itself, the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep. In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
+Two sphere LEDs, one question each. Status LED (white, left of the chin): solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, off = asleep. Mode LED (green, right of the chin): on = AI mode, off = story mode, blinking = joining the WiFi after a press on C; it goes off again if the network cannot be joined (with the error blink on the status LED). At a mode change, and at a cold boot, it first plays the bursts of the Pi version, 3 long (0.8 s) for AI or 5 short (0.25 s) for story, then settles; the status LED never bursts for the mode. On the page itself, the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep. In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
 
 Story dial (`STORY_DIAL=ON`): a KY-040 rotary encoder on the left edge of the enclosure, a thumbwheel with the numbers 1 to 12 on its rim (`DIAL_POSITIONS`) and an arrow on the case, see `case/README.md`. Printed end stops limit the wheel to 11 detents; the firmware counts the detents by interrupt while awake and saturates at 1 and 12, so the stops are the reference of an otherwise incremental encoder. Nothing counts during the deep sleep, by choice (battery life), so the ritual re-arms it: turn the wheel down to the stop, press the wheel (or B), which wakes the board, forgets the story and sets the dial to 1, turn up to the number under the arrow, press A: that story starts at page 1, and its number is shown before the page counter top-left (`3: 1/9`). While a story is being read the wheel changes nothing; at the end of a story, A starts the one under the arrow again (no more random pick: the AI mode is the random one). Each counted detent blinks the status LED off for 20 ms (`DIAL_BLIP_MS`): no blink means the wheel is past a stop in the firmware's count, i.e. desynchronised, and the ritual fixes it. Stories are ordered by the number at the end of their folder name (`story_2` before `story_10`); a wheel position beyond the catalogue gives the last story. The push button of the dial takes the wake-up slot of button B, which then only works awake (the RP2350 has four wake-up slots). In AI mode the dial is ignored for now.
 
@@ -60,6 +60,7 @@ pico/
     ├── hadistory_config.h  pins per board, display geometry, behaviour constants
     ├── led.cpp/.h          status LED: solid = waiting, breathing = busy (timer driven), rapid blink = error,
     │                       external GPIO (PWM) or onboard LED, including the cyw43-driven one of the Pico 2 W;
+    │                       mode LED: plain GPIO, on in AI mode, bursts at a mode change, blinking while the WiFi is joined
     ├── buttons.cpp/.h      4 active-low buttons, edge detection (the dial push button counts as RESET)
     ├── dial.cpp/.h         STORY_DIAL: KY-040 quadrature decoding by interrupt, position 1..12 saturated at the printed stops
     ├── display.cpp/.h      PicoGraphics 3-bit frame buffer + Pimoroni UC8159 driver; the only path to the panel
@@ -130,9 +131,9 @@ Build-time options:
 
 ![Wiring of the Pico version](img/wiring.png)
 
-*Everything on one picture: display HAT header, buttons, status LED, story dial (option), TP4056, battery, switch and diode (`img/wiring.svg`, generated by `img/wiring.py`). The HAT header is drawn as seen from the back of the HAT, the side the wires plug into: pin 1 (3V3) top right, odd pins on the right column. The microSD breakout of `STORAGE=SDCARD` is not drawn.*
+*Everything on one picture: display HAT header, buttons, status and mode LEDs, story dial (option), TP4056, battery, switch and diode (`img/wiring.svg`, generated by `img/wiring.py`). The HAT header is drawn as seen from the back of the HAT, the side the wires plug into: pin 1 (3V3) top right, odd pins on the right column. The microSD breakout of `STORAGE=SDCARD` is not drawn.*
 
-Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the display HAT (the Inky Impression), and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40). Any Pico GND pin does for any ground; the ones below keep one wire per pin: 33 for the HAT, 38 for the TP4056, 13 for the status LED, 8 for the dial. The "Display HAT GPIO" column is the Raspberry Pi GPIO number the HAT expects on that pin, as in the Pimoroni pinout; it is only there to find your way on the HAT, nothing on the Pico uses it.
+Physical pin numbers are those of the 40-pin headers: the Raspberry Pi header of the display HAT (the Inky Impression), and the Pico header (the Pico Plus 2 keeps the Pico layout for pins 1 to 40). Any Pico GND pin does for any ground; the ones below keep one wire per pin: 33 for the HAT, 38 for the TP4056, 13 for the status LED, 23 for the mode LED, 8 for the dial. The "Display HAT GPIO" column is the Raspberry Pi GPIO number the HAT expects on that pin, as in the Pimoroni pinout; it is only there to find your way on the HAT, nothing on the Pico uses it.
 
 Power. The display HAT runs from 3V3 alone: its 5V pin only feeds its small expansion header (Pimoroni schematic), so it can stay unconnected. That is what makes battery operation simple.
 
@@ -168,6 +169,10 @@ Status LED, external as on the Pi version (`STATUS_LED=EXTERNAL`, the default). 
 |---|---|---|
 | Status LED anode through a 220 ohm resistor | GP8 | 11 |
 | Status LED cathode | GND | 13 |
+| Mode LED (green sphere) anode through a 220 ohm resistor | GP16 | 21 |
+| Mode LED cathode | GND | 23 |
+
+The mode LED is a plain on/off output (`MODE_LED_PIN`); apart from the bursts at a mode change it is lit in AI mode only, when the board is awake with the WiFi anyway, so it costs nothing in story mode.
 
 Story dial, `STORY_DIAL=ON` only (KY-040 module, its pins in the order GND, +, SW, DT, CLK):
 

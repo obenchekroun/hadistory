@@ -69,8 +69,9 @@
     #define BUTTON_PIN_RESET     3
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
-    // Status LED (PWM capable)
+    // Status LED (PWM capable, white sphere) and the mode LED (plain GPIO, green sphere: on in AI mode)
     #define LED_PIN              8
+    #define MODE_LED_PIN         16
     // Story dial (STORY_DIAL=ON): KY-040 CLK / DT, its push button (a second RESET), and a GPIO
     // driven high as the module's "+" (feeds only its two 10 k pull-ups): the whole dial sits on five
     // neighbouring pins of the left column, no second wire on 3V3 OUT. -1 = wire "+" to 3V3 instead.
@@ -96,6 +97,7 @@
     #define BUTTON_PIN_MODE      4
     #define BUTTON_PIN_BACK      5
     #define LED_PIN              8
+    #define MODE_LED_PIN         16
     #define DIAL_PIN_CLK         6
     #define DIAL_PIN_DT          7
     #define DIAL_PIN_SW          9

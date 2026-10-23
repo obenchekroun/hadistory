@@ -142,7 +142,57 @@ static void bursts(int count, int on_ms, int off_ms) {
 
 #endif  // HADISTORY_LED_CYW43
 
-// Patterns of hadistory.py, whatever the LED
+// Error pattern of hadistory.py, whatever the status LED
 void led_rapid_blink(void)       { bursts(19, 100, 100); }
-void led_five_short_bursts(void) { bursts(5, 250, 250); }
-void led_three_long_bursts(void) { bursts(3, 800, 800); }
+
+// ============================================================================
+// Mode LED: a plain GPIO, 2 Hz blink on a hardware timer while the WiFi is joined
+// ============================================================================
+static repeating_timer_t mode_timer;
+static volatile bool mode_blinking = false;
+static bool mode_state = false;
+
+static bool mode_tick(repeating_timer_t *t) {
+    (void)t;
+    if (!mode_blinking) return false;
+    mode_state = !mode_state;
+    gpio_put(MODE_LED_PIN, mode_state);
+    return true;
+}
+
+void led_mode_init(void) {
+    gpio_init(MODE_LED_PIN);
+    gpio_set_dir(MODE_LED_PIN, GPIO_OUT);
+    gpio_put(MODE_LED_PIN, false);
+}
+
+void led_mode_set(bool ai) {
+    if (mode_blinking) {
+        mode_blinking = false;
+        cancel_repeating_timer(&mode_timer);
+    }
+    mode_state = ai;
+    gpio_put(MODE_LED_PIN, ai);
+}
+
+// Bursts of hadistory.py at a mode change, on the mode LED: three_long_burst (AI) /
+// five_short_burst (story), blocking like the Python, then the steady state of the new mode.
+void led_mode_announce(bool ai) {
+    led_mode_set(false);
+    int count = ai ? 3 : 5, ms = ai ? 800 : 250;
+    for (int i = 0; i < count; i++) {
+        gpio_put(MODE_LED_PIN, true);
+        sleep_ms(ms);
+        gpio_put(MODE_LED_PIN, false);
+        sleep_ms(ms);
+    }
+    led_mode_set(ai);
+}
+
+void led_mode_blink_start(void) {
+    if (mode_blinking) return;
+    mode_blinking = true;
+    mode_state = true;
+    gpio_put(MODE_LED_PIN, true);
+    add_repeating_timer_ms(250, mode_tick, NULL, &mode_timer);
+}

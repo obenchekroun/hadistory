@@ -50,10 +50,10 @@ static void save_settings(void) {
     }
 }
 
-// Same bursts as hadistory.py: 3 long = AI mode, 5 short = story mode
+// The mode LED says it: bursts of hadistory.py (3 long = AI, 5 short = story), then on = AI mode
 static void announce_mode(void) {
     puts(settings.ai_mode ? "Switching to AI mode." : "Switching to local story mode.");
-    if (settings.ai_mode) led_three_long_bursts(); else led_five_short_bursts();
+    led_mode_announce(settings.ai_mode);
 }
 
 static void wait_for_press(void) {
@@ -98,6 +98,7 @@ int main(void) {
 #endif
 
     led_init();
+    led_mode_init();
     buttons_init();
     display_init();
 #if HADISTORY_BATTERY
@@ -180,6 +181,7 @@ int main(void) {
 #if HADISTORY_DEEP_SLEEP
         if (wake_button < BUTTON_COUNT) buttons_inject_press(wake_button);   // act on the button that woke us
 #endif
+        led_mode_set(settings.ai_mode);   // no announcement on a wake-up, just the state
     } else {
         announce_mode();
     }
@@ -221,6 +223,7 @@ int main(void) {
             } else if (wifi == WIFI_FAILED) {
                 ai_switch_pending = false;
                 puts("AI mode refused: no WiFi. Staying in story mode.");
+                led_mode_set(false);
                 led_breathe_stop();
                 led_rapid_blink();
                 led_on();
@@ -292,6 +295,7 @@ int main(void) {
                 ai_switch_pending = true;
                 gpt_wifi_connect();   // no-op if already connecting
                 led_breathe_start();
+                led_mode_blink_start();
             }
 #else
             puts("AI mode not available in this build.");
