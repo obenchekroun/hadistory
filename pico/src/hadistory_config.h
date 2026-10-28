@@ -177,7 +177,7 @@
                                      // a 20-detent encoder of the same kind (18 degrees, wheel_18.stl: two detents per
                                      // number would exceed a turn there)
 #define DIAL_REVERSE         1       // 1 if the numbers go the wrong way for the wiring / mounting side
-#define DIAL_BLIP_MS         20      // status LED off this long at each counted step
+#define DIAL_BLIP_MS         50      // status LED off this long at each counted step
 
 #ifndef HADISTORY_TLS_NO_VERIFY
 #define HADISTORY_TLS_NO_VERIFY 0    // -DTLS_NO_VERIFY=ON sets it to 1

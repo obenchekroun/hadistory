@@ -169,9 +169,12 @@ wheel_nut      = false;    // true: the M7 nut on the bushing, hidden in a round
 wheel_nut_d    =  12.4;    // round recess for the M7 nut (10 AF, 11.5 across corners): the wheel turns around it
 wheel_nut_h    =   3.0;
 wheel_bore_d   =   6.1;    // D bore for the 6 mm D shaft, blind, 1 mm cap: same as the knob cap printed earlier
-wheel_bore_flat=   1.7;    // flat this far from the axis (4.75 across from the flat to the round side)
-wheel_phase    =   0;      // degrees: turns the numbers and the stop groove about the D flat, so that at a detent
-                           // the 1 sits under the arrow; measure the offset on the first print, set, reprint
+wheel_bore_flat=   1.7;    // flat this far from the axis (4.7 across from the flat to the round side). The play on the flat
+                           // sets how far the wheel can turn on the shaft, 0.2 mm is about +/- 4 degrees: measure the shaft
+                           // across the flat and set this to half the round diameter plus the measure minus 3, plus 0.1
+wheel_phase    =  12;      // degrees: turns the numbers and the stop groove about the D flat, so that at a detent
+                           // the 1 sits under the arrow; measure the offset on a print, set, reprint the wheel. 0 put
+                           // the arrow between the numbers at the detents (v10c print), i.e. half a step off: 12
 wheel_numbers  =  12;      // on the rim, one per firmware step, 1 at the lower stop
 wheel_step     =  24;      // degrees between numbers = one firmware step. The KY-040 at hand has 30 detents a turn and half a
                            // quadrature cycle per detent: the firmware counts every second detent, two detents per number, 24
@@ -189,6 +192,12 @@ stop_groove_d  =   1.6;    // (v10d: the v10c groove was 2 mm wide, 0.2 a side a
                            // recess kept the pin out of it, so it opens almost to the rim and the inner chamfer thins to 0.4);
                            // nut: open into the nut recess, 0.4 of rim and no chamfer on that face
 stop_r         = (stop_groove_r[0] + stop_groove_r[1])/2;   // 7.2
+stop_clear     =   3;      // degrees the groove ends run past the first and last number: against the stop the wheel sits this
+                           // far PAST the end detent, never short of it. The firmware counts the detents from the stop and
+                           // forgives a wheel held up to 9 degrees past the detent at RESET (the spring-back is expected), but
+                           // not one held short of it (the first detent would then count as a whole one): the D play of the
+                           // bore (wheel_bore_flat, about +/- 4 degrees with 0.2 mm on the flat) must stay inside -3 .. +9,
+                           // so the middle of that window, 3, and the flat as tight as the print allows
 stop_groove_w  = stop_groove_r[1] - stop_groove_r[0];       // 4.0
 
 // ---------------------------------------------------------------- design parameters
@@ -632,7 +641,7 @@ module arc2d(r0, r1, a0, a1) {
 // Numbers engraved on the rim, 1 on top (local -X) when the wheel is at the lower stop; the pin then sits
 // at the groove end at local angle 0, the groove runs counter-clockwise to the upper stop.
 // Placed in the case with rotate([0, 90, 0]) at X = dial_notch_d - 0.5 - wheel_t: local -X becomes +Z.
-stop_half = asin(stop_pin_d/2/stop_r) + 2;                 // half pin angle plus 0.3 mm of clearance
+stop_half = asin(stop_pin_d/2/stop_r) + stop_clear;        // half pin angle plus the end clearance
 wheel_bush_z = (dial_notch_d - enc_bush_out) - (dial_notch_d - 0.5 - wheel_t);   // 9.1: bushing end, in the wheel frame
 shaft_keep   = wheel_bush_z - 1.0 - 0.3;                   // 7.8: shaft to keep beyond the bushing end, 0.3 short of the bore's cap
 module wheel() {
