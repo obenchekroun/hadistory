@@ -45,7 +45,7 @@ static void save_settings(void) {
 #if HADISTORY_STORY_DIAL
     settings.dial = dial_position();
     settings.dial_moved = dial_moved();
-    settings.dial_rest_low = dial_rest_low();
+    settings.dial_detents = dial_detents();
 #endif
     if (sd_ok && !storage_save_settings(&settings)) {
         puts("Could not save state");
@@ -74,7 +74,7 @@ static void battery_update(void) {
 
 int main(void) {
     stdio_init_all();
-    sleep_ms(5000);
+    //sleep_ms(5000);
 #if HADISTORY_DEEP_SLEEP
     // Waking from deep sleep is a reboot: no console delay then, the reader is waiting.
     // The button that woke us is captured right away, before any delay, while it is
@@ -168,9 +168,8 @@ int main(void) {
     }
     story_init(&settings);
 #if HADISTORY_STORY_DIAL
-    dial_init(settings.dial);
+    dial_init(settings.dial, settings.dial_detents);
     dial_set_moved(settings.dial_moved);   // a turn before the sleep still counts after the wake-up
-    dial_set_rest_low(settings.dial_rest_low);   // which detents count, found at the stop on the last RESET
     bool dial_dirty = false;    // position moved since the last save
 #endif
 
@@ -274,7 +273,7 @@ int main(void) {
             dial_set_position(1);   // the ritual: wheel at the lower stop, RESET, turn to the story, GO
             dial_dirty = false;
             save_settings();
-            printf("Story reset, dial re-armed at 1 (counting at the both-%s rest): turn the wheel to a story, or press A for one at random\n", dial_rest_low() ? "low" : "high");
+            puts("Story reset, dial re-armed at 1: turn the wheel to a story, or press A for one at random");
 #else
             save_settings();
             puts("Story reset. Press button to launch a new one");
