@@ -4,7 +4,7 @@ Port of hadistory to the RP2350 (Raspberry Pi Pico 2 W, Pimoroni Pico Plus 2 / P
 
 Scope compared to the Pi version:
 - **Story mode**: pages made of a JPEG illustration and a text, either on a microSD card (`STORAGE=SDCARD`) or embedded in the firmware (`STORAGE=FLASH`). The firmware composes the page with its bitmap font. Pages are prepared by `tools/prepare_pages.py`, see `tools/README.md`.
-- **AI mode** (optional, `WITH_GPT=ON`): OpenAI text and image generation over WiFi, no embedded models. The WiFi is joined on demand and the switch to AI mode is refused without network.
+- **AI mode** (optional, `WITH_GPT=ON`): OpenAI text and image generation over WiFi, no embedded models. The WiFi is joined on demand, from a list of known networks tried in order (home, grandparents...), and the switch to AI mode is refused without network.
 - 4 buttons (execute, reset, change mode, go back) and a status LED, same behaviour as the Pi version, plus a robot badge on the AI pages.
 - **Battery gauge** (`BATTERY_GAUGE=ON`, the default): battery bars in the top-right corner of each page. Display only, nothing in the firmware depends on the level.
 
@@ -40,7 +40,7 @@ Waiting for next button press...
 | A, execute | Next page; when none is running or the last page was shown, starts a story: at random (never the one just left), or, with `STORY_DIAL=ON` and the wheel turned since the last RESET or story, the one under the arrow | Generates and shows a new page |
 | D, go back | Previous page | — |
 | B, reset | Forgets the current story, the next A starts a new one. With `STORY_DIAL=ON` the push button of the dial does the same, and both re-arm the dial at 1 | Same |
-| C, change mode | Starts the WiFi connection if needed (status LED breathing, mode LED blinking), then switches to AI mode: mode LED on; if the network cannot be joined within 30 s the switch is refused with the error blink and the mode LED goes off | Switches to story mode: mode LED off |
+| C, change mode | Starts the WiFi connection if needed (status LED breathing, mode LED blinking): a scan, then the known networks in range joined in turn, 15 s each; then switches to AI mode: mode LED on; if none can be joined the switch is refused with the error blink and the mode LED goes off | Switches to story mode: mode LED off |
 
 Two sphere LEDs, one question each. Status LED (white, left of the chin): solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, off = asleep. Mode LED (green, right of the chin): on = AI mode, off = story mode, blinking = joining the WiFi after a press on C; it goes off again if the network cannot be joined (with the error blink on the status LED). Its steady state is the whole message; the bursts of the Pi version at a mode change (3 long for AI, 5 short for story) are kept behind `MODE_LED_BURSTS` in `hadistory_config.h`, off by default. The status LED never says anything about the mode. On the page itself, the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep. In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
 
@@ -54,7 +54,7 @@ Battery (`BATTERY_GAUGE=ON`): each page carries a battery symbol in its top-righ
 pico/
 ├── CMakeLists.txt          build configuration and options
 ├── main.cpp                button loop and mode switching (port of the Python main loop)
-├── secrets.cmake.example   WiFi / OpenAI credentials template (copy to secrets.cmake, ignored by git)
+├── secrets.cmake.example   OpenAI key and WiFi networks template (copy to secrets.cmake, ignored by git)
 ├── img/                    wiring diagram (wiring.py generates wiring.svg, rendered to wiring.png)
 └── src/
     ├── hadistory_config.h  pins per board, display geometry, behaviour constants
@@ -72,6 +72,7 @@ pico/
     ├── stories_embedded.h  catalogue type for the generated stories_table.c (FLASH)
     ├── story.cpp/.h        story mode logic
     ├── power.cpp/.h        deep sleep: core powered off until a button is pressed (built with DEEP_SLEEP=ON)
+    ├── wifi.cpp/.h         WITH_GPT: known networks (built in from secrets.cmake, plus a flash store), scan and ordered join in the background
     ├── gpt.cpp/.h          AI mode pipeline (built only with WITH_GPT=ON)
     ├── https.cpp/.h        blocking HTTPS POST on lwIP altcp_tls + mbedtls, streamed and de-chunked body
     ├── json.cpp/.h         JSON escaping and string extraction, enough for the OpenAI API
@@ -102,7 +103,7 @@ cmake -S pico -B pico/build-flash -DPICO_BOARD=pimoroni_pico_plus2_rp2350 -DSTOR
 make -C pico/build-flash -j8
 
 # Story + AI mode (needs a board with wireless)
-cp pico/secrets.cmake.example pico/secrets.cmake   # then fill it in
+cp pico/secrets.cmake.example pico/secrets.cmake   # then fill it in: OpenAI key, WiFi networks in order of preference
 cmake -S pico -B pico/build-gpt -DPICO_BOARD=pico2_w -DSTORAGE=SDCARD -DWITH_GPT=ON
 make -C pico/build-gpt -j8
 ```
@@ -124,7 +125,8 @@ Build-time options:
 | `BATTERY_GAUGE` | `ON` (default): battery bars on each page from the VSYS reading, display only (`HADISTORY_BATTERY=1`). `OFF` drops the module and the ADC. |
 | `STORY_DIAL` | `ON`: KY-040 story dial on `DIAL_PIN_CLK` / `DIAL_PIN_DT` / `DIAL_PIN_SW` / `DIAL_PIN_VCC` (GP6 / GP7 / GP8 / GP9, Pico pins 9 to 12, GND on 13), RESET re-arms it at 1, A starts the story under the arrow (`HADISTORY_STORY_DIAL=1`). Default `OFF`: stories picked at random. |
 | `STATUS_LED` | `EXTERNAL` (default): LED on `LED_PIN` (GP15, pin 20). `ONBOARD`: the board's own LED, GP25 on the Pico Plus 2 with the same breathing effect; on the Pico 2 W the LED is on the wireless chip, no PWM, so busy is shown as a 1 Hz blink. |
-| `WIFI_SSID`, `WIFI_PASSWORD`, `OPENAI_API_KEY` | Credentials for the AI mode, via `-D` or `secrets.cmake`. |
+| `OPENAI_API_KEY` | OpenAI key for the AI mode, via `-D` or `secrets.cmake`. |
+| `WIFI_NETWORKS` | Known networks for the AI mode, a list of name / password pairs tried in that order (`"home;pw1;grandparents;pw2"` on the command line, pairs on separate lines in `secrets.cmake`; a semicolon inside one is written `\;`). `WIFI_SSID` / `WIFI_PASSWORD`, the older single-network form, still work and come first. CMake writes them to `build/generated/wifi_networks.h`; changing `secrets.cmake` reconfigures. See "AI mode" for the join order. |
 | `TLS_NO_VERIFY` | AI mode: `ON` skips the certificate check of `api.openai.com`. Debug only, it exposes the API key to anyone on the path. Default `OFF`: the server must chain to one of the roots in `src/openai_roots.h`. |
 
 ## Wiring (default mapping in `hadistory_config.h`, Pico 2 W and Pico Plus 2)
@@ -272,7 +274,7 @@ The thresholds (`BATTERY_BAR_MV`) are 150 to 200 mV apart and a LiPo spends most
 
 Port of the online mode of `pi/hadistory.py`, with `gpt-4o-mini` for the text and `gpt-image-2` for the illustration (models in `hadistory_config.h`). The prompt is built like the Pi version from `prompts/prompts.txt` (only that file; `prompts_en.txt` and `prompts_examples.txt` are not used), which is embedded in the firmware at build time, so editing it means rebuilding. Each line is a theme drawn at random with equal chances; a `3:` prefix gives a line three chances, and `[a|b|c]`, `(a|b)` or `{a|b}` groups pick one option at random inside a line. The French incipit and excipit around the theme are in `src/prompt.cpp`.
 
-The WiFi is only joined when needed: at boot if the saved mode is the AI mode, or when button C asks for it. The join runs in the background in the cyw43 driver and the main loop polls the link, so the buttons stay responsive meanwhile and the story mode never waits for the network. In AI mode a lost link is re-joined automatically; a generation requested while the link is down fails with the error blink.
+The WiFi is only joined when needed: at boot if the saved mode is the AI mode, or when button C asks for it. The firmware knows several networks (`WIFI_NETWORKS` in `secrets.cmake`, built into the image at configure time; `src/wifi.cpp`), so the device works at home and at the grandparents' alike. An attempt starts with a scan of the air (a few seconds, `WIFI_SCAN_TIMEOUT_MS` at most), then joins the known networks the scan has seen, in the order of the list, `WIFI_JOIN_TIMEOUT_MS` (15 s) each, until one is up; a network the scan has not seen (a hidden name) is only tried, blind and with `WIFI_CONNECT_TIMEOUT_MS` (30 s), when none was seen. The console names the networks found and the one joined. Next to the built-in list, a store in the flash sector before the settings one (`wifi_store_add()`, `WIFI_STORE_MAX` 4, the newest replacing the oldest) is ready for a set-up portal to add networks at run time; a stored network with the name of a built-in one replaces its password. The join runs in the background in the cyw43 driver and the main loop polls the link, so the buttons stay responsive meanwhile and the story mode never waits for the network. In AI mode a lost link is re-joined automatically; a generation requested while the link is down fails with the error blink.
 
 Requests go to `api.openai.com` over TLS 1.2 with the server certificate verified against the two roots in `src/openai_roots.h`. If OpenAI changes its certificate chain one day, update that file (the roots were taken from the macOS system keychain) or build with `TLS_NO_VERIFY=ON` temporarily. The board has no clock, so certificate dates are not checked.
 

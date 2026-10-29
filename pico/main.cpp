@@ -23,6 +23,7 @@
 #include "story.h"
 #if HADISTORY_WITH_GPT
 #include "gpt.h"
+#include "wifi.h"
 #endif
 #if HADISTORY_WITH_GPT || HADISTORY_LED_CYW43
 #include "pico/cyw43_arch.h"
@@ -174,8 +175,8 @@ int main(void) {
 #endif
 
 #if HADISTORY_WITH_GPT
-    gpt_init();
-    if (settings.ai_mode) gpt_wifi_connect();   // resume in AI mode: join in the background
+    wifi_init();
+    if (settings.ai_mode) wifi_connect();   // resume in AI mode: join in the background
     bool ai_switch_pending = false;             // button C pressed, waiting for the WiFi
 #else
     settings.ai_mode = false;   // no AI mode in this build
@@ -213,7 +214,7 @@ int main(void) {
 #endif
 
 #if HADISTORY_WITH_GPT
-        wifi_state_t wifi = gpt_wifi_poll();
+        wifi_state_t wifi = wifi_poll();
         if (ai_switch_pending) {
             // The switch to AI mode completes only once the network is there
             if (wifi == WIFI_UP) {
@@ -233,7 +234,7 @@ int main(void) {
             }
             any_press = true;   // keep the board awake while connecting
         } else if (settings.ai_mode && (wifi == WIFI_OFF || wifi == WIFI_FAILED)) {
-            gpt_wifi_connect();   // link lost or failed at boot: keep trying while in AI mode
+            wifi_connect();   // link lost or failed at boot: keep trying while in AI mode
         }
 #endif
 
@@ -296,7 +297,7 @@ int main(void) {
                 // Not connected yet: join in the background, switch when the link is up
                 puts("Connecting to the WiFi before switching to AI mode...");
                 ai_switch_pending = true;
-                gpt_wifi_connect();   // no-op if already connecting
+                wifi_connect();   // no-op if already scanning or joining
                 led_breathe_start();
                 led_mode_blink_start();
             }

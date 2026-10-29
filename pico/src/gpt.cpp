@@ -5,6 +5,7 @@
  *                shared image buffer, then JPEG decoded and dithered into the display.
  */
 #include "gpt.h"
+#include "wifi.h"
 #include "hadistory_config.h"
 #include "https.h"
 #include "json.h"
@@ -40,71 +41,6 @@ static void accumulate(const uint8_t *data, size_t len, void *ctx) {
 static void print_elapsed(const char *what, absolute_time_t t0) {
     int64_t s = absolute_time_diff_us(t0, get_absolute_time()) / 1000000;
     printf("%s in %02lldh%02lldm%02llds\n", what, s / 3600, (s % 3600) / 60, s % 60);
-}
-
-// ---------------------------------------------------------------------------
-// WiFi, non blocking: the join runs in the cyw43 driver, the main loop polls the link
-// ---------------------------------------------------------------------------
-static wifi_state_t wifi_state = WIFI_OFF;
-static absolute_time_t wifi_deadline;
-
-const char *gpt_wifi_state_name(wifi_state_t s) {
-    switch (s) {
-    case WIFI_CONNECTING: return "connecting";
-    case WIFI_UP: return "up";
-    case WIFI_FAILED: return "failed";
-    default: return "off";
-    }
-}
-
-void gpt_init(void) {
-    // cyw43_arch_init() is done once in main()
-    cyw43_arch_enable_sta_mode();
-}
-
-void gpt_wifi_connect(void) {
-    if (wifi_state == WIFI_CONNECTING || wifi_state == WIFI_UP) return;
-    printf("WiFi: connecting to %s ...\n", WIFI_SSID);
-    if (cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK)) {
-        puts("WiFi: cannot start the connection");
-        wifi_state = WIFI_FAILED;
-        return;
-    }
-    wifi_state = WIFI_CONNECTING;
-    wifi_deadline = make_timeout_time_ms(WIFI_CONNECT_TIMEOUT_MS);
-}
-
-static int link_status(void) {
-    cyw43_arch_lwip_begin();
-    int st = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-    cyw43_arch_lwip_end();
-    return st;
-}
-
-wifi_state_t gpt_wifi_poll(void) {
-    if (wifi_state == WIFI_CONNECTING) {
-        int st = link_status();
-        if (st == CYW43_LINK_UP) {
-            wifi_state = WIFI_UP;
-            puts("WiFi: connected");
-        } else if (st < 0 || time_reached(wifi_deadline)) {
-            wifi_state = WIFI_FAILED;
-            printf("WiFi: connection failed (%s)\n",
-                   st == CYW43_LINK_NONET ? "network not found" :
-                   st == CYW43_LINK_BADAUTH ? "bad password" :
-                   st == CYW43_LINK_FAIL ? "join failed" : "timeout");
-        }
-    } else if (wifi_state == WIFI_UP) {
-        if (link_status() != CYW43_LINK_UP) {
-            wifi_state = WIFI_OFF;
-            puts("WiFi: link lost");
-        }
-    }
-    return wifi_state;
-}
-
-bool gpt_wifi_up(void) {
-    return gpt_wifi_poll() == WIFI_UP;
 }
 
 static bool get_story(const char *prompt) {
@@ -234,8 +170,8 @@ static bool get_image(const char *story) {
 bool gpt_generate_page(void) {
     static char prompt[1024];
 
-    if (!gpt_wifi_up()) {
-        printf("AI mode: WiFi is %s, cannot generate\n", gpt_wifi_state_name(wifi_state));
+    if (!wifi_up()) {
+        printf("AI mode: WiFi is %s, cannot generate\n", wifi_state_name(wifi_poll()));
         return false;
     }
     puts("Creating a new story...");

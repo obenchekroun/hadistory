@@ -164,7 +164,11 @@
 #define IMAGE_MODEL          "gpt-image-2"
 #define IMAGE_QUALITY        "low"   // gpt-image quality: low, medium, high, auto (time, cost and size)
 #define IMAGE_COMPRESSION    40      // JPEG compression 0-100 asked to the API, keeps the image in IMAGE_MAX_BYTES
-#define WIFI_CONNECT_TIMEOUT_MS 30000 // give up joining the network after this
+#define WIFI_SCAN_TIMEOUT_MS  8000   // the scan for the known networks is given up after this (2 to 4 s usually)
+#define WIFI_JOIN_TIMEOUT_MS 15000   // joining a network the scan has seen
+#define WIFI_CONNECT_TIMEOUT_MS 30000 // joining a network the scan has not seen (hidden name): tried only when none was seen
+#define WIFI_MAX_NETWORKS    8       // known networks at most: built in (secrets.cmake) plus stored in flash
+#define WIFI_STORE_MAX       4       // networks the flash store keeps (the newest replaces the oldest)
 #define GPT_TIMEOUT_S        60      // idle timeout of the chat request
 #define IMAGE_TIMEOUT_S      120     // idle timeout of the image request (127 s max, lwIP poll limit)
 #define STORY_MAX_LEN        PAGE_TEXT_MAX
