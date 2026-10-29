@@ -141,6 +141,7 @@ static absolute_time_t deadline;
 static int order[WIFI_MAX_NETWORKS];   // candidates to try, in order
 static int order_count;
 static int current = -1;               // index in order[] of the one being joined
+static int tries;                      // joins started on it
 static char current_ssid[WIFI_SSID_MAX + 1];
 static absolute_time_t scan_t0;
 
@@ -208,22 +209,29 @@ static int link_status(void) {
     return st;
 }
 
-// Start joining the next candidate of order[]; WIFI_FAILED when none is left
+// Start a join on the current candidate of order[]: false when the driver refuses
+static bool join_current(void) {
+    candidate_t *c = &cand[order[current]];
+    bool open = c->cred.password[0] == 0;
+    tries++;
+    if (c->seen) printf("WiFi: joining %s (%d dBm%s) ...\n", c->cred.ssid, c->rssi, tries > 1 ? ", again" : "");
+    else printf("WiFi: joining %s (not seen by the scan%s) ...\n", c->cred.ssid, tries > 1 ? ", again" : "");
+    if (cyw43_arch_wifi_connect_async(c->cred.ssid, open ? NULL : c->cred.password,
+                                      open ? CYW43_AUTH_OPEN : CYW43_AUTH_WPA2_AES_PSK) != 0) {
+        puts("WiFi: cannot start the join");
+        return false;
+    }
+    strcpy(current_ssid, c->cred.ssid);
+    state = WIFI_CONNECTING;
+    deadline = make_timeout_time_ms(c->seen ? WIFI_JOIN_TIMEOUT_MS : WIFI_CONNECT_TIMEOUT_MS);
+    return true;
+}
+
+// Move on to the next candidate of order[]; WIFI_FAILED when none is left
 static void join_next(void) {
     while (++current < order_count) {
-        candidate_t *c = &cand[order[current]];
-        bool open = c->cred.password[0] == 0;
-        if (c->seen) printf("WiFi: joining %s (%d dBm) ...\n", c->cred.ssid, c->rssi);
-        else printf("WiFi: joining %s (not seen by the scan) ...\n", c->cred.ssid);
-        if (cyw43_arch_wifi_connect_async(c->cred.ssid, open ? NULL : c->cred.password,
-                                          open ? CYW43_AUTH_OPEN : CYW43_AUTH_WPA2_AES_PSK) != 0) {
-            puts("WiFi: cannot start the join");
-            continue;
-        }
-        strcpy(current_ssid, c->cred.ssid);
-        state = WIFI_CONNECTING;
-        deadline = make_timeout_time_ms(c->seen ? WIFI_JOIN_TIMEOUT_MS : WIFI_CONNECT_TIMEOUT_MS);
-        return;
+        tries = 0;
+        if (join_current()) return;
     }
     puts("WiFi: no known network could be joined");
     state = WIFI_FAILED;
@@ -281,6 +289,9 @@ wifi_state_t wifi_poll(void) {
                    st == CYW43_LINK_NONET ? "network not found" :
                    st == CYW43_LINK_BADAUTH ? "bad password" :
                    st == CYW43_LINK_FAIL ? "join failed" : "timeout");
+            // The chip answers "not found" now and then to a join started right after a scan, and
+            // the next try passes: a quick failure other than a bad password gets WIFI_JOIN_TRIES
+            if (st < 0 && st != CYW43_LINK_BADAUTH && tries < WIFI_JOIN_TRIES && join_current()) break;
             join_next();
         }
         break;

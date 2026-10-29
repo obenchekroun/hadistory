@@ -75,7 +75,7 @@ static void battery_update(void) {
 
 int main(void) {
     stdio_init_all();
-    sleep_ms(5000);
+    //sleep_ms(5000);
 #if HADISTORY_DEEP_SLEEP
     // Waking from deep sleep is a reboot: no console delay then, the reader is waiting.
     // The button that woke us is captured right away, before any delay, while it is
