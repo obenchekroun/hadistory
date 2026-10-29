@@ -108,6 +108,8 @@ cmake -S pico -B pico/build-gpt -DPICO_BOARD=pico2_w -DSTORAGE=SDCARD -DWITH_GPT
 make -C pico/build-gpt -j8
 ```
 
+Each `cmake` run ends with a summary of the build it configured: board, storage (and what is embedded, at which quality), dial, deep sleep, gauge, LED, and for the AI mode whether `secrets.cmake` was found, whether the key is set and the WiFi networks in their order (names only). Check it before `make` when several build directories are around.
+
 Flashing: put the board in BOOTSEL mode (hold BOOTSEL while plugging the USB, or on the Pico Plus 2 hold BOOT, press RESET, release both) and copy `hadistory.uf2` to the `RP2350` volume, or use `picotool load -f -x pico/build/hadistory.uf2` from application mode: `-f` reboots the running firmware into BOOTSEL over USB, the only way once the board is in its case. The board must be awake (in the deep sleep its USB is off: press a button first, the sleep comes 20 s after the last press, `IDLE_BEFORE_SLEEP_MS`), switched on, and no serial monitor may hold the port: close minicom first.
 
 Console: USB serial, 115200 baud, e.g. `minicom -b 115200 -o -D /dev/tty.usbmodem*`. Messages printed before the monitor is attached are lost: the boot does not wait for it (the 2 s wait of the bring-up was removed), so attach the monitor before resetting the board, or build with `-DDEEP_SLEEP=OFF` and read the lines printed at each press.

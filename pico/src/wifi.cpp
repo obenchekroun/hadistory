@@ -142,6 +142,14 @@ static int order[WIFI_MAX_NETWORKS];   // candidates to try, in order
 static int order_count;
 static int current = -1;               // index in order[] of the one being joined
 static char current_ssid[WIFI_SSID_MAX + 1];
+static absolute_time_t scan_t0;
+
+// Everything the scan hears, for the console: distinct names, best signal (the join only needs
+// the seen flags of the candidates, this is to judge the scan itself)
+#define HEARD_MAX 16
+static struct { char ssid[WIFI_SSID_MAX + 1]; int16_t rssi; uint8_t channel; } heard[HEARD_MAX];
+static volatile int heard_count;       // distinct names kept (HEARD_MAX at most)
+static volatile int heard_results;     // results delivered by the driver, hidden names included
 
 const char *wifi_state_name(wifi_state_t s) {
     switch (s) {
@@ -168,7 +176,22 @@ void wifi_init(void) {
 // Called by the driver for each access point found (NULL at the end on some versions)
 static int scan_result(void *env, const cyw43_ev_scan_result_t *r) {
     (void)env;
-    if (!r || r->ssid_len == 0) return 0;
+    if (!r) return 0;
+    heard_results++;
+    if (r->ssid_len == 0 || r->ssid_len > WIFI_SSID_MAX) return 0;
+    int h;
+    for (h = 0; h < heard_count; h++)
+        if (strlen(heard[h].ssid) == r->ssid_len && memcmp(heard[h].ssid, r->ssid, r->ssid_len) == 0) break;
+    if (h == heard_count && heard_count < HEARD_MAX) {
+        memcpy(heard[h].ssid, r->ssid, r->ssid_len);
+        heard[h].ssid[r->ssid_len] = 0;
+        heard[h].rssi = r->rssi;
+        heard[h].channel = (uint8_t)r->channel;
+        heard_count++;
+    } else if (h < heard_count && r->rssi > heard[h].rssi) {
+        heard[h].rssi = r->rssi;
+        heard[h].channel = (uint8_t)r->channel;
+    }
     for (int i = 0; i < cand_count; i++) {
         size_t l = strlen(cand[i].cred.ssid);
         if (l != r->ssid_len || memcmp(cand[i].cred.ssid, r->ssid, l) != 0) continue;
@@ -213,7 +236,9 @@ static void scan_done(void) {
     int seen = 0;
     for (int i = 0; i < cand_count; i++) if (cand[i].seen) { order[order_count++] = i; seen++; }
     if (seen == 0) for (int i = 0; i < cand_count; i++) order[order_count++] = i;
-    printf("WiFi: scan done, %d of %d known network(s) in range\n", seen, cand_count);
+    printf("WiFi: scan done in %lld ms, %d result(s), %d name(s) heard, %d of %d known network(s) in range\n",
+           absolute_time_diff_us(scan_t0, get_absolute_time()) / 1000, heard_results, heard_count, seen, cand_count);
+    for (int h = 0; h < heard_count; h++) printf("WiFi:   %-32s %4d dBm  ch %d\n", heard[h].ssid, heard[h].rssi, heard[h].channel);
     current = -1;
     join_next();
 }
@@ -228,6 +253,9 @@ void wifi_connect(void) {
     }
     cyw43_wifi_scan_options_t opts;
     memset(&opts, 0, sizeof opts);
+    memset(heard, 0, sizeof heard);
+    heard_count = heard_results = 0;
+    scan_t0 = get_absolute_time();
     if (cyw43_wifi_scan(&cyw43_state, &opts, NULL, scan_result) == 0) {
         printf("WiFi: scanning for %d known network(s) ...\n", cand_count);
         state = WIFI_SCANNING;
