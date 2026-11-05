@@ -89,6 +89,7 @@ bool storage_load_settings(settings_t *s) {
     FIL f;
     char line[64];
     memset(s, 0, sizeof *s);
+    s->dial_zero = -1;            // not calibrated unless the file says so
     if (f_open(&f, SETTINGS_FILE, FA_READ) != FR_OK) return false;
     while (f_gets(line, sizeof line, &f)) {
         char *nl = strchr(line, '\n'); if (nl) *nl = '\0';
@@ -104,6 +105,8 @@ bool storage_load_settings(settings_t *s) {
             s->dial_moved = atoi(line + 11) != 0;
         } else if (strncmp(line, "dial_detents=", 13) == 0) {
             s->dial_detents = atoi(line + 13);
+        } else if (strncmp(line, "dial_zero=", 10) == 0) {
+            s->dial_zero = atoi(line + 10);
         }
     }
     f_close(&f);
@@ -113,7 +116,7 @@ bool storage_load_settings(settings_t *s) {
 bool storage_save_settings(const settings_t *s) {
     FIL f;
     if (f_open(&f, SETTINGS_FILE, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) return false;
-    f_printf(&f, "story=%s\npage=%d\nmode=%s\ndial=%d\ndial_moved=%d\ndial_detents=%d\n", s->story, s->page, s->ai_mode ? "AI" : "local", s->dial, s->dial_moved ? 1 : 0, s->dial_detents);
+    f_printf(&f, "story=%s\npage=%d\nmode=%s\ndial=%d\ndial_moved=%d\ndial_detents=%d\ndial_zero=%d\n", s->story, s->page, s->ai_mode ? "AI" : "local", s->dial, s->dial_moved ? 1 : 0, s->dial_detents, s->dial_zero);
     f_close(&f);
     return true;
 }

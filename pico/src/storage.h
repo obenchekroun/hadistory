@@ -25,7 +25,8 @@ typedef struct {
     bool ai_mode;
     int dial;                     // STORY_DIAL: wheel position 1..DIAL_POSITIONS, 0 = unknown
     bool dial_moved;              // STORY_DIAL: the wheel moved since the last RESET / story start (next A reads it)
-    int dial_detents;             // STORY_DIAL: detents from the lower stop (finer than dial, the position between two numbers)
+    int dial_detents;             // STORY_DIAL=KY040: detents from the lower stop (finer than dial, the position between two numbers)
+    int dial_zero;                // STORY_DIAL=AS5600: raw angle of the "1" found by the calibration, -1 = none
 } settings_t;
 
 typedef struct {

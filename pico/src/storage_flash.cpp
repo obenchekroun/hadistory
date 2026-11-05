@@ -20,6 +20,7 @@ typedef struct {
     int32_t dial;        // added with the story dial; an older record reads -1 here, clamped by dial_init()
     int32_t dial_moved;  // 1 = the wheel moved since the last RESET / story start (an older record reads -1: treated as moved)
     int32_t dial_detents;    // detents from the lower stop (an older record reads -1 or a stale value: dial_init() falls back on dial)
+    int32_t dial_zero;       // AS5600 raw angle of the "1" (an older record reads -1: not calibrated)
 } settings_record_t;
 
 bool storage_init(void) {
@@ -62,6 +63,7 @@ bool storage_load_settings(settings_t *s) {
     s->dial = rec->dial;
     s->dial_moved = rec->dial_moved != 0;
     s->dial_detents = rec->dial_detents;
+    s->dial_zero = rec->dial_zero;
     return true;
 }
 
@@ -76,6 +78,7 @@ bool storage_save_settings(const settings_t *s) {
     rec.dial = s->dial;
     rec.dial_moved = s->dial_moved ? 1 : 0;
     rec.dial_detents = s->dial_detents;
+    rec.dial_zero = s->dial_zero;
     memset(buf, 0xFF, sizeof buf);
     memcpy(buf, &rec, sizeof rec);
 

@@ -11,6 +11,16 @@
 
 // Pulls in the SDK board header so that the board macros used below are defined,
 // whatever the include order (this file is force-included first, see CMakeLists.txt).
+// From SDK 2.2 the board headers carry pico_board_cmake_set() lines, for CMake to read, which
+// pico.h turns into nothing before it includes pico/config.h: the same two definitions are
+// needed here, spelt exactly as in pico.h so that its own are harmless repeats. (pico.h itself
+// is not included: it would put the whole platform layer in front of every third-party source.)
+#ifndef pico_board_cmake_set
+#define pico_board_cmake_set(x, y)
+#endif
+#ifndef pico_board_cmake_set_default
+#define pico_board_cmake_set_default(x, y)
+#endif
 #include "pico/config.h"
 
 // ---------------------------------------------------------------------------
@@ -32,7 +42,13 @@
 #define HADISTORY_BATTERY 0       // -DBATTERY_GAUGE=ON sets it to 1
 #endif
 #ifndef HADISTORY_STORY_DIAL
-#define HADISTORY_STORY_DIAL 0    // -DSTORY_DIAL=ON sets it to 1
+#define HADISTORY_STORY_DIAL 0    // 1 with -DSTORY_DIAL=KY040 (or ON) or AS5600, which also set one of the two below
+#endif
+#ifndef HADISTORY_DIAL_KY040
+#define HADISTORY_DIAL_KY040 0    // incremental encoder with detents and a push button (dial.cpp)
+#endif
+#ifndef HADISTORY_DIAL_AS5600
+#define HADISTORY_DIAL_AS5600 0   // absolute magnetic angle sensor on I2C (dial_as5600.cpp)
 #endif
 
 // ---------------------------------------------------------------------------
@@ -50,7 +66,9 @@
 // ---------------------------------------------------------------------------
 // Pins
 // ---------------------------------------------------------------------------
-#if defined(RASPBERRYPI_PICO2_W) || defined(RASPBERRYPI_PICO2)
+// The Waveshare RP2350B-Plus-W (pico/boards/waveshare_rp2350b_plus_w.h) has the Pico 2 W's GPIOs on
+// header pins 1 to 29, which is all this mapping uses: same wiring.
+#if defined(RASPBERRYPI_PICO2_W) || defined(RASPBERRYPI_PICO2) || defined(WAVESHARE_RP2350B_PLUS_W)
     // Display on hardware SPI0
     #define DISPLAY_SPI          spi0
     #define DISPLAY_PIN_SCK      18
@@ -80,6 +98,13 @@
     #define DIAL_PIN_DT          7
     #define DIAL_PIN_SW          8
     #define DIAL_PIN_VCC         9
+    // AS5600 (STORY_DIAL=AS5600) on the same five Pico pins, 9 to 13: SDA SCL DIR VCC GND, I2C1. VCC
+    // is the same GPIO driven high (the sensor is off during the deep sleep), DIR is driven low
+    // (-1 = tied to GND on the module). DIAL_PIN_VCC -1 = fed from 3V3: then it also draws asleep.
+    #define DIAL_I2C             i2c1
+    #define DIAL_PIN_SDA         6
+    #define DIAL_PIN_SCL         7
+    #define DIAL_PIN_DIR         8
 #elif defined(PIMORONI_PICO_PLUS2_RP2350) || defined(PIMORONI_PICO_PLUS2_W_RP2350)
     // Same mapping for now; adjust once the LiPo 2 / Plus 2 wiring is decided
     #define DISPLAY_SPI          spi0
@@ -103,6 +128,13 @@
     #define DIAL_PIN_DT          7
     #define DIAL_PIN_SW          8
     #define DIAL_PIN_VCC         9
+    // AS5600 (STORY_DIAL=AS5600) on the same five Pico pins, 9 to 13: SDA SCL DIR VCC GND, I2C1. VCC
+    // is the same GPIO driven high (the sensor is off during the deep sleep), DIR is driven low
+    // (-1 = tied to GND on the module). DIAL_PIN_VCC -1 = fed from 3V3: then it also draws asleep.
+    #define DIAL_I2C             i2c1
+    #define DIAL_PIN_SDA         6
+    #define DIAL_PIN_SCL         7
+    #define DIAL_PIN_DIR         8
 #else
     #error "Unsupported PICO_BOARD: add a pin mapping in src/hadistory_config.h"
 #endif
@@ -175,7 +207,7 @@
 #define IMAGE_TIMEOUT_S      120     // idle timeout of the image request (127 s max, lwIP poll limit)
 #define STORY_MAX_LEN        PAGE_TEXT_MAX
 // ---------------------------------------------------------------------------
-// Story dial (STORY_DIAL=ON)
+// Story dial (STORY_DIAL=KY040 or AS5600)
 // ---------------------------------------------------------------------------
 #define DIAL_POSITIONS       12      // numbers on the printed wheel; the travel is DIAL_POSITIONS - 1 steps (see dial.cpp)
 #define DIAL_DETENTS_PER_STEP 2      // detents between two numbers of the wheel: 2 on the 30-detent KY-040 at hand
@@ -183,6 +215,12 @@
                                      // a 20-detent encoder of the same kind (18 degrees, wheel_18.stl: two detents per
                                      // number would exceed a turn there)
 #define DIAL_REVERSE         1       // 1 if the numbers go the wrong way for the wiring / mounting side
+#define DIAL_STEP_DEG        24      // AS5600: degrees between two numbers of the wheel (wheel_step of the case model)
+#define DIAL_HYST_DEG        3       // AS5600: the number changes this far past the middle between two numbers
+#define DIAL_POLL_MS         30      // AS5600: the angle is read this often while awake
+#define DIAL_ZERO_RAW        (-1)    // AS5600: raw angle (0..4095) of the "1" when none is saved; -1 = calibrate first
+#define DIAL_CALIBRATE_HOLD_MS 3000  // AS5600: RESET (B) held this long with the 1 under the arrow saves the zero
+#define DIAL_AS5600_PM       2       // AS5600 power mode: 0 = 6.5 mA, 1 = 3.4 mA, 2 = 1.8 mA (a reading every 20 ms), 3 = 1.5 mA
 #define DIAL_BLIP_MS         50      // status LED off this long at each counted step
 
 #ifndef HADISTORY_TLS_NO_VERIFY

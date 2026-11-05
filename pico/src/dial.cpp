@@ -67,7 +67,8 @@ static void on_edge(uint gpio, uint32_t events) {
     }
 }
 
-void dial_init(int saved_position, int saved_detents) {
+void dial_init(int saved_position, int saved_detents, int saved_zero) {
+    (void)saved_zero;
     if (saved_detents < 0 || saved_detents > DETENTS_MAX || 1 + saved_detents / DIAL_DETENTS_PER_STEP != saved_position) {
         int p = saved_position < 1 ? 1 : saved_position > DIAL_POSITIONS ? DIAL_POSITIONS : saved_position;
         saved_detents = (p - 1) * DIAL_DETENTS_PER_STEP;   // older or inconsistent record: from the position alone
@@ -93,6 +94,8 @@ void dial_init(int saved_position, int saved_detents) {
 
 int dial_position(void) { return position; }
 int dial_detents(void) { return detents; }
+int dial_zero(void) { return -1; }
+void dial_sleep(void) {}
 
 void dial_set_position(int p) {
     uint32_t ints = save_and_disable_interrupts();
@@ -109,6 +112,8 @@ void dial_set_position(int p) {
     quarter = (previous == 0 || previous == 3) ? 0 : (DIAL_REVERSE ? 1 : -1);
     restore_interrupts(ints);
 }
+
+bool dial_calibrate(void) { dial_set_position(1); return true; }
 
 bool dial_moved(void) { return moved; }
 void dial_set_moved(bool m) { moved = m; }

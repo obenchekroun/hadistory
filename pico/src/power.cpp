@@ -5,7 +5,7 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 extern "C" {
-#include "hardware/powman.h"   // no C++ guards in SDK 2.1.0
+#include "hardware/powman.h"   // no C++ guards in SDK 2.1.0 (2.3.1 has them: harmless)
 }
 #include "hardware/structs/powman.h"
 #include "hardware/structs/scb.h"
@@ -17,10 +17,11 @@ extern "C" {
 #include "pico/cyw43_arch.h"
 #endif
 
-// One wake-up slot per button role. With the story dial, the RESET slot watches the dial's push
-// button instead of the HAT button B (four slots only): the ritual starts by pressing the wheel.
+// One wake-up slot per button role. With the KY-040 story dial, the RESET slot watches the dial's
+// push button instead of the HAT button B (four slots only): the ritual starts by pressing the
+// wheel. The AS5600 has no push button: B keeps its slot.
 static const uint wake_pins[BUTTON_COUNT] = {
-#if HADISTORY_STORY_DIAL
+#if HADISTORY_DIAL_KY040
     BUTTON_PIN_EXECUTE, DIAL_PIN_SW, BUTTON_PIN_MODE, BUTTON_PIN_BACK
 #else
     BUTTON_PIN_EXECUTE, BUTTON_PIN_RESET, BUTTON_PIN_MODE, BUTTON_PIN_BACK

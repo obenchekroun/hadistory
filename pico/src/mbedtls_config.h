@@ -1,7 +1,9 @@
 /* mbedtls configuration for the AI mode (WITH_GPT=ON), from pico-examples
  * pico_w/wifi/mbedtls_config_examples_common.h: TLS 1.2 client, ECDHE-ECDSA and RSA,
  * certificate parsing. MBEDTLS_HAVE_TIME_DATE is left undefined on purpose: without a
- * clock the certificate validity dates cannot be checked. */
+ * clock the certificate validity dates cannot be checked.
+ * Written for mbedtls 2.28 (Pico SDK 2.1.x) and 3.6 (SDK 2.2 and later): the three options
+ * marked "3.x" are unknown to 2.28, which ignores them. */
 #ifndef HADISTORY_MBEDTLS_CONFIG_H
 #define HADISTORY_MBEDTLS_CONFIG_H
 
@@ -14,6 +16,7 @@
 
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #define MBEDTLS_HAVE_TIME
+#define MBEDTLS_PLATFORM_MS_TIME_ALT       /* 3.x: mbedtls_ms_time() comes from the SDK (pico_mbedtls), not from the C library */
 
 #define MBEDTLS_CIPHER_MODE_CBC
 #define MBEDTLS_ECP_DP_SECP256R1_ENABLED
@@ -42,6 +45,8 @@
 #define MBEDTLS_SHA1_C
 #define MBEDTLS_SHA224_C
 #define MBEDTLS_SHA256_C
+#define MBEDTLS_SHA384_C                   /* 3.x: SHA-384 is its own option (2.28 had it inside SHA512_C); the GTS root
+                                          * and its intermediates are signed with it */
 #define MBEDTLS_SHA512_C
 #define MBEDTLS_SSL_CLI_C
 #define MBEDTLS_SSL_TLS_C
@@ -58,6 +63,9 @@
 #define MBEDTLS_ECP_C
 #define MBEDTLS_ECDSA_C
 #define MBEDTLS_ASN1_WRITE_C
+
+/* 3.x: faster ECC on the NIST curves, the handshake is mostly that */
+#define MBEDTLS_ECP_NIST_OPTIM
 
 /* Certificate parsing (PEM roots embedded in openai_roots.h) */
 #define MBEDTLS_PEM_PARSE_C

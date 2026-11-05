@@ -1,5 +1,8 @@
 # Generates pico/img/wiring.svg: Fritzing-like wiring of the hadistory Pico version.
+#   python3 wiring.py wiring.svg            story dial drawn as the KY-040 (STORY_DIAL=KY040)
+#   python3 wiring.py wiring_as5600.svg as5600   story dial drawn as the AS5600 (STORY_DIAL=AS5600)
 import sys
+DIAL = sys.argv[2].lower() if len(sys.argv) > 2 else "ky040"
 
 W, H = 1500, 1280
 out = []
@@ -194,32 +197,53 @@ add('<polygon points="1045,725 1045,735 1055,730" fill="#1b5e20"/>'); add('<line
 text(1060, 746, "LED sphère verte dLUX-dLITE : mode IA", 9, "end", "#222"); text(1060, 758, "fixe en mode IA, clignote pendant la connexion WiFi", 8.5, "end", "#555")
 wire([(1059, 730), (1066, 730), (1066, p23[1]), (p23[0], p23[1])], C["GND"])              # cathode -> GND pin 23
 
-# ---------------------------------------------------------------- story dial, option STORY_DIAL: KY-040 on Pico pins 9 to 13
-# The module's five pins, in their own order (CLK DT SW + GND, top to bottom), face the five consecutive
-# Pico pins 9 to 13 at the same heights: five straight wires, a ribbon.
-dpins = [("CLK", 9), ("DT", 10), ("SW", 11), ("+", 12), ("GND", 13)]
+# ---------------------------------------------------------------- story dial, option STORY_DIAL, on Pico pins 9 to 13
+# KY-040: the module's five pins, in their own order (CLK DT SW + GND, top to bottom), face the five
+# consecutive Pico pins 9 to 13 at the same heights: five straight wires, a ribbon.
+# AS5600: the same five Pico pins, SDA SCL DIR VCC GND (I2C1 on GP6 / GP7); the pads of the module are
+# not in that order, the wires go by name.
 KX, KW = 500, 140
 KY0 = row_y(8) - 22; KY1 = row_y(12) + 22                                       # block spanning the five rows
-rect(KX, KY0, KW, KY1 - KY0, "#1f5fa8", "#123c6b", rx=4)
-text(KX + 10, KY0 + 18, "KY-040", 12, "start", "#fff", "bold")
-text(KX + 10, KY0 + 31, "encodeur rotatif, 20 crans", 7.5, "start", "#cfd8dc")
-text(KX + 10, KY0 + 42, "cadran des histoires", 7.5, "start", "#cfd8dc")
-text(KX + 10, KY0 + 53, "option STORY_DIAL", 7.5, "start", "#cfd8dc")
-kc = (KX + 38, KY1 - 34)                                                        # the knob, D shaft, seen from the top
-add(f'<circle cx="{kc[0]}" cy="{kc[1]}" r="22" fill="#2e3a40" stroke="#111" stroke-width="1.5"/>')
-add(f'<path d="M{kc[0]-6},{kc[1]-5} A7.5,7.5 0 1 1 {kc[0]+6},{kc[1]-5} Z" fill="#9e9e9e" stroke="#555" stroke-width="1"/>')
+if DIAL == "as5600":
+    dpins = [("SDA", 9), ("SCL", 10), ("DIR", 11), ("VCC", 12), ("GND", 13)]
+    rect(KX, KY0, KW, KY1 - KY0, "#6a1b9a", "#38006b", rx=4)
+    text(KX + 10, KY0 + 18, "AS5600", 12, "start", "#fff", "bold")
+    text(KX + 10, KY0 + 31, "capteur d'angle magnétique, I2C", 7.5, "start", "#e1bee7")
+    text(KX + 10, KY0 + 42, "cadran des histoires", 7.5, "start", "#e1bee7")
+    text(KX + 10, KY0 + 53, "option STORY_DIAL=AS5600", 7.5, "start", "#e1bee7")
+    kc = (KX + 38, KY1 - 34)                                                    # the chip, and the magnet over it
+    add(f'<rect x="{kc[0]-13}" y="{kc[1]-13}" width="26" height="26" fill="#212121" stroke="#111" stroke-width="1.5"/>')
+    add(f'<path d="M{kc[0]},{kc[1]-9} A9,9 0 0 1 {kc[0]},{kc[1]+9} Z" fill="#e53935" stroke="#555" stroke-width="1"/>')
+    add(f'<path d="M{kc[0]},{kc[1]-9} A9,9 0 0 0 {kc[0]},{kc[1]+9} Z" fill="#1e88e5" stroke="#555" stroke-width="1"/>')
+    text(kc[0] + 20, kc[1] + 3, "aimant", 7, "start", "#e1bee7")
+    caption = "fils par nom ; OUT / GPO / PGO libres"
+else:
+    dpins = [("CLK", 9), ("DT", 10), ("SW", 11), ("+", 12), ("GND", 13)]
+    rect(KX, KY0, KW, KY1 - KY0, "#1f5fa8", "#123c6b", rx=4)
+    text(KX + 10, KY0 + 18, "KY-040", 12, "start", "#fff", "bold")
+    text(KX + 10, KY0 + 31, "encodeur rotatif, 30 crans", 7.5, "start", "#cfd8dc")
+    text(KX + 10, KY0 + 42, "cadran des histoires", 7.5, "start", "#cfd8dc")
+    text(KX + 10, KY0 + 53, "option STORY_DIAL=KY040", 7.5, "start", "#cfd8dc")
+    kc = (KX + 38, KY1 - 34)                                                    # the knob, D shaft, seen from the top
+    add(f'<circle cx="{kc[0]}" cy="{kc[1]}" r="22" fill="#2e3a40" stroke="#111" stroke-width="1.5"/>')
+    add(f'<path d="M{kc[0]-6},{kc[1]-5} A7.5,7.5 0 1 1 {kc[0]+6},{kc[1]-5} Z" fill="#9e9e9e" stroke="#555" stroke-width="1"/>')
+    caption = "broches du module de haut en bas : CLK DT SW + GND"
 for lbl, n in dpins:
     x, y, _ = pico_pin(n)
     pad(KX + KW, y, 10); text(KX + KW - 9, y + 3, lbl, 7.5, "end", "#fff")
     wire([(x, y), (KX + KW, y)], C["GND"] if lbl == "GND" else C["DIAL"])
-text(KX + KW / 2, KY1 + 14, "broches du module de haut en bas : CLK DT SW + GND", 6.5, "middle", "#555")
+text(KX + KW / 2, KY1 + 14, caption, 6.5, "middle", "#555")
+DIAL_NAME = "AS5600" if DIAL == "as5600" else "KY-040"
+DIAL_ROW = (("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "AS5600 SDA (GP6) / SCL (GP7) / DIR (GP8 à 0) / VCC (GP9 à 1)", "option STORY_DIAL=AS5600 : numéro d'histoire, angle absolu ; alimenté par GP9, éteint en veille")
+            if DIAL == "as5600" else
+            ("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "KY-040 CLK (GP6) / DT (GP7) / SW (GP8) / + (GP9 à 1)", "option STORY_DIAL=KY040 : numéro d'histoire ; le poussoir vaut RESET"))
 
 # ---------------------------------------------------------------- legend
 LX, LY = 40, 925
 text(LX, LY, "Légende", 13, "start", "#222", "bold")
 rows = [
     ("3V3", "3V3 OUT", "Pico 36", "HAT 1", "alimentation du HAT (le 5V du HAT reste libre)"),
-    ("GND", "GND", "Pico 33 / 38 / 18 / 23 / 13", "HAT 6 / TP4056 IN- et B- / LED / LED mode / KY-040", "masse commune, un fil par broche"),
+    ("GND", "GND", "Pico 33 / 38 / 18 / 23 / 13", "HAT 6 / TP4056 IN- et B- / LED / LED mode / " + DIAL_NAME, "masse commune, un fil par broche"),
     ("SCLK", "SCLK", "Pico 24 (GP18)", "HAT 23 (GPIO11)", "SPI0 horloge"),
     ("MOSI", "MOSI", "Pico 25 (GP19)", "HAT 19 (GPIO10)", "SPI0 données"),
     ("CS", "CS", "Pico 22 (GP17)", "HAT 24 (GPIO8)", "sélection"),
@@ -232,7 +256,7 @@ rows = [
     ("D", "bouton D", "Pico 7 (GP5)", "HAT 18 (GPIO24)", "page précédente"),
     ("LED", "LED", "Pico 20 (GP15)", "résistance 220 Ω, LED blanche, Pico 18 (GND)", "LED d'état : fixe prête, respire occupée, clignote erreur"),
     ("LED2", "LED mode", "Pico 21 (GP16)", "résistance 220 Ω, LED verte, Pico 23 (GND)", "allumée en mode IA, clignote pendant la connexion WiFi"),
-    ("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "KY-040 CLK (GP6) / DT (GP7) / SW (GP8) / + (GP9 à 1)", "option STORY_DIAL : numéro d'histoire ; le poussoir vaut RESET"),
+    DIAL_ROW,
     ("VBUS", "VBUS", "Pico 40", "TP4056 IN+", "5 V de l'USB du Pico : charge la batterie"),
     ("VSYS", "VSYS", "Pico 39", "diode ← switch ← TP4056 B+", "alimentation sur batterie"),
 ]

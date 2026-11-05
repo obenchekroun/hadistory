@@ -33,10 +33,12 @@
 // Units: mm. Printing grid 0.4 mm nozzle / 0.2 mm layers: heights on multiples of 0.2,
 // thin features on multiples of 0.4; smaller adjustments are not reproduced.
 
-part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "plate" | "swplate" | "swbar" | "assembly" | "closed" (all parts, opaque, for pictures)
+part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "plate" | "swplate" | "swbar" | "axle" | "cradle" (AS5600) | "assembly" | "closed" (all parts, opaque, for pictures)
                      // | "section" (assembly cut at x = section_x, section_w thick, seen from +X)
 section_x = 85.6;    // through the HAT header strip and the cap
 section_w = 1000;    // slab thickness kept beyond section_x (e.g. 30 with section_x = 2: the left wall seen from inside)
+section_y = -1;      // the slab also starts at this Y and is section_yw long (e.g. section_x=-20 section_w=60 section_y=76:
+section_yw = 1000;   // cut through the dial axis, seen from -Y)
 // "bump": the body is as thin as the Pico allows (26 mm), the HAT Dupont block gets a separate cap on
 // the back; big corners, chamfered back edge, rounded bezel edge. "box": the v7 rectangular shell,
 // 33 mm deep everywhere. The insides (pads, key guides, switch seat, dial, LED tubes, keys) are the same.
@@ -159,6 +161,33 @@ enc_post_pilot =   2.5;    // PCB. Holes along the floor: a rib under each. Hole
                            // where it clears the encoder body, i.e. under the hole beyond the body (the other hole is
                            // only 5.5 mm from the axis); the nut on the bushing holds the rest
 enc_rib_x0     =   7.5;    // ribs start here, clear of the panel flex folded over the PCB edge (X 6.3 to 7.1)
+// Story dial sensor. "ky040": the KY-040 incremental encoder above (v10), its shaft carries the wheel.
+// "as5600" (v11, sensor not yet at hand: every as_ value is to be measured): an AS5600 magnetic angle
+// sensor. Same wheel, pressed on a printed axle (part "axle") that copies the KY-040's bushing and D
+// shaft and turns in the same bore through the notch wall and a shorter boss; the axle's inner end is
+// a flange holding the diametric magnet, facing the chip of the breakout, which stands across the axis
+// behind it. The board is as tall as the room under the HAT allows and then some: the axis comes down
+// (the wheel dips under the back face) and the board's lower edge goes through a slot of the floor into
+// a pocket of a separate cradle (part "cradle") it is screwed on, dropped in from inside like the cap.
+dial_sensor    = "ky040";  // "ky040" | "as5600"
+as_pcb         =  23.0;    // AS5600 breakout, square, chip in the middle (23 on most, 22 on some)
+as_pcb_t       =   1.6;
+as_chip_h      =   1.5;    // SOIC-8 above the PCB
+as_gap         =   1.6;    // magnet face to the chip (0.5 to 3 mm allowed); the axle's end play, 0.8, comes off it
+as_top_gap     =   0.6;    // board top edge under the HAT PCB
+as_hole_edge   =   2.5;    // mounting holes, centre to the two near edges (the two upper ones are used)
+as_hole_pilot  =   2.5;    // M3 self-tapping; 2.0 for M2.5 holes
+as_boss_l      =   4.0;    // boss behind the notch wall: with the wall a 6 mm bearing
+as_journal_d   =   7.0;    // axle journal: the diameter of the KY-040 bushing, same 7.4 bore, same wheel
+as_axle_play   =   0.3;    // flange to boss
+as_flange_d    =  12.0;    // inner flange: keeps the axle in, holds the magnet
+as_flange_t    =   3.2;
+as_magnet_d    =   6.0;    // diametric magnet supplied with the module (6 x 2.5 usually), pressed into the flange face
+as_magnet_h    =   2.5;
+as_play        =  [0.6, 1.0, 0.3];   // cradle pocket around the board: chip side, back (solder joints), ends
+as_pocket_wall =   1.2;
+as_plate_t     =   2.0;    // upright behind the board, with two standoffs for its upper holes and a window for the wires
+as_standoff    =   1.0;
 wheel_d        =  21.0;    // thumbwheel: bottom 1.1 mm above the back face with the axis at 11.6 (22.8 would be flush); the
                            // size the user found right for the detents, not to be reduced (18.4 max with enc_pins_up)
 wheel_t        =  12.0;    // along X: 4 in the notch (nut recess and bushing end inside), 8 proud of the edge
@@ -320,7 +349,22 @@ function led2_pos() = [95, led_pos()[1]];                                       
 function led_positions() = [led_pos(), led2_pos()];
 enc_z0   = wall - enc_floor_recess;                  // 1.2: encoder PCB bottom edge, in the floor recess; top edge 19.8
 enc_hole_z = enc_pins_up ? enc_z0 + enc_pcb_w - enc_hole_edge : enc_z0 + enc_hole_edge;   // 17.2 | 3.8
-dial_z   = enc_pins_up ? enc_hole_z - enc_hole_dw : enc_hole_z + enc_hole_dw;             // 9.4 | 11.6: dial axis height
+dial_z_ky = enc_pins_up ? enc_hole_z - enc_hole_dw : enc_hole_z + enc_hole_dw;            // 9.4 | 11.6: KY-040 axis height
+as5600   = dial_sensor == "as5600";
+// AS5600: the board's top edge under the HAT sets the axis, 8.9 in bump (11.6 in box, as the KY-040)
+dial_z   = as5600 ? min(shelf_z - as_top_gap - as_pcb/2, dial_z_ky) : dial_z_ky;
+function as_boss_x1() = dial_notch_d + wall + as_boss_l;                                   // 10.5: boss face
+function as_flange_x() = [as_boss_x1() + as_axle_play, as_boss_x1() + as_axle_play + as_flange_t];   // 10.8 to 14.0, magnet face at 14.0
+function as_pcb_x() = as_flange_x()[1] + as_gap + as_chip_h;                               // 17.1: chip side of the board
+function as_pcb_z0() = dial_z - as_pcb/2;                                                  // -2.6 | 0.1: board lower edge
+function as_holes() = [for (sy = [-1, 1]) [dial_y + sy*(as_pcb/2 - as_hole_edge), as_pcb_z0() + as_pcb - as_hole_edge]];
+// Cradle: pocket inside X/Y, outside X/Y, bottom (outer face), and the hole it goes through in the floor
+function as_in_x()  = [as_pcb_x() - as_play[0], as_pcb_x() + as_pcb_t + as_play[1]];      // 16.5 to 19.7
+function as_out_x() = [as_in_x()[0] - as_pocket_wall, as_in_x()[1] + as_plate_t];         // 15.3 to 21.7
+function as_in_y()  = [dial_y - as_pcb/2 - as_play[2], dial_y + as_pcb/2 + as_play[2]];
+function as_out_y() = [as_in_y()[0] - as_pocket_wall, as_in_y()[1] + as_pocket_wall];
+function as_pocket_z0() = as_pcb_z0() - 0.3 - as_pocket_wall;                              // -4.1 | -1.4: proud of the back face
+as_flange_z = 1.2;                                                                         // cradle flange on the floor
 notch_l  = wheel_d + 6;                              // 24.4: notch length along the edge
 function enc_boss_x1() = dial_notch_d + enc_bush_h - enc_bush_out;   // 13.1: face of the boss, the encoder body against it
 function enc_x()  = enc_boss_x1() + enc_body_h;         // 17.1: wall-side face of the encoder PCB
@@ -403,8 +447,7 @@ module back() {
             tp_lip();
             switch_seat();
             notch_wall();
-            enc_boss();
-            enc_posts();
+            if (as5600) as_boss(); else { enc_boss(); enc_posts(); }
             for (p = led_positions()) led_tube(p);
         }
         for (b = bosses()) translate([b[0], b[1], 2]) cylinder(d = screw_pilot, h = rim_z);
@@ -417,10 +460,16 @@ module back() {
         // Story dial: notch in the left edge, bushing hole through its wall and the boss (teardrop: it prints lying),
         // floor recess under the encoder PCB
         translate([0, 0, -1]) linear_extrude(rim_z + 2) notch2d();
+        if (as5600) {
+            // AS5600: the axle's bore through wall and boss, and the slot of the floor the cradle drops into
+            translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(as_boss_x1() - dial_notch_d + 1.01) teardrop2d(as_journal_d + 0.4);
+            translate([as_out_x()[0] - 0.2, as_out_y()[0] - 0.2, -1]) cube([as_out_x()[1] - as_out_x()[0] + 0.4, as_out_y()[1] - as_out_y()[0] + 0.4, wall + 2]);
+        } else {
         translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(enc_bush_h - enc_bush_out + 1.01) teardrop2d(enc_bush_d + 0.4);
         translate([enc_x() - enc_recess_play[0], enc_y0() - enc_recess_play[1], wall - enc_floor_recess])
             cube([enc_pcb_t + 2*enc_recess_play[0], enc_pcb_l + 2*enc_recess_play[1], enc_floor_recess + 0.01]);
         for (h = enc_holes()) translate([enc_x() - 6.0, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = enc_post_pilot, h = 7);   // pilot holes in the posts
+        }
         // Key notches through the top wall and guides, from below the caps up to the rim, with the head step
         for (i = [0 : btn_n - 1]) {
             translate([btn_x(i) - key_w/2 - 0.2, pcb_y1 + cap_room - 1, key_z0 - 0.2]) cube([key_w + 0.4, ear_top + wall + 2, rim_z]);
@@ -611,6 +660,59 @@ module enc_boss() {
         translate([wall + 3.7, fpc_y()[0] - 0.5, 16]) cube([enc_rib_x0 - wall - 3.7, out_h, rim_z]);   // flex fold room, as the notch wall
     }
 }
+// AS5600: the boss is only a bearing, wall plus boss 6 mm long, 6 mm above the axis
+module as_boss() {
+    translate([dial_notch_d + wall - 0.01, dial_y - enc_boss_w/2, 0]) cube([as_boss_x1() - dial_notch_d - wall + 0.01, enc_boss_w, dial_z + enc_boss_w/2]);
+}
+// AS5600 axle, as printed: flange down, the magnet pocket open on the bed. Flange, journal (the KY-040
+// bushing's diameter and reach, 3.4 mm into the wheel), then the D the wheel is pressed on, flat 0.1 closer
+// than the wheel's. The magnet goes in flush with the flange face, pressed on a flat surface.
+function axle_journal_l() = as_flange_x()[0] - (dial_notch_d - enc_bush_out);   // 9.7
+module dial_axle() {
+    lj = axle_journal_l(); f = wheel_bore_flat - 0.1;
+    difference() {
+        union() {
+            cylinder(d = as_flange_d, h = as_flange_t);
+            translate([0, 0, as_flange_t]) cylinder(d = as_journal_d, h = lj);
+            translate([0, 0, as_flange_t + lj]) intersection() {
+                linear_extrude(shaft_keep) difference() {
+                    circle(d = enc_shaft_d);
+                    translate([-enc_shaft_d, -enc_shaft_d - f]) square([2*enc_shaft_d, enc_shaft_d]);
+                }
+                cylinder(d1 = enc_shaft_d + 2*shaft_keep - 0.8, d2 = enc_shaft_d - 0.8, h = shaft_keep);   // 0.4 chamfer on the tip
+            }
+        }
+        translate([0, 0, -0.01]) cylinder(d = as_magnet_d + 0.1, h = as_magnet_h + 0.2);
+    }
+}
+module dial_axle_in_place() { translate([as_flange_x()[1], dial_y, dial_z]) rotate([0, -90, 0]) dial_axle(); }
+// AS5600 cradle, in the case frame: a pocket for the board's lower edge, hanging through the slot of the floor
+// (proud of the back face, as the cap is), a flange resting on the floor on three sides (glued, as the cap),
+// an upright behind the board with two standoffs for its upper holes and a window for the wires. The board is
+// screwed on before the cradle drops in; solder the wires on the chip side or keep the joints under 1 mm.
+// Printed on the back of the upright: holes vertical, the pocket's front wall is a 24 mm bridge.
+module dial_cradle() {
+    ix = as_in_x(); ox = as_out_x(); iy = as_in_y(); oy = as_out_y(); z0 = as_pocket_z0();
+    top = as_pcb_z0() + as_pcb - 0.2;
+    difference() {
+        union() {
+            translate([ox[0], oy[0], z0]) cube([ox[1] - ox[0], oy[1] - oy[0], wall + as_flange_z - z0]);                    // pocket
+            translate([ox[0] - 1.1, oy[0] - 2.5, wall]) cube([ox[1] - ox[0] + 1.1, oy[1] - oy[0] + 5, as_flange_z]);          // flange
+            translate([ix[1], oy[0], wall]) cube([as_plate_t, oy[1] - oy[0], top - wall]);                                   // upright
+            for (h = as_holes()) translate([ix[1] - as_standoff, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = 4.4, h = as_standoff + 0.01);
+        }
+        translate([ix[0], iy[0], z0 + as_pocket_wall]) cube([ix[1] - ix[0], iy[1] - iy[0], wall + as_flange_z - z0]);          // the board's room, in the pocket
+        for (h = as_holes()) translate([ix[1] - as_standoff - 1, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = as_hole_pilot, h = as_plate_t + as_standoff + 2);
+        translate([ix[1] - 0.01, dial_y - 6, wall + as_flange_z + 2.4]) cube([as_plate_t + 1, 12, top - wall - as_flange_z - 2.4 - 6.4]);   // window
+    }
+}
+module as5600_preview() {
+    color("#6a1b9a") translate([as_pcb_x(), dial_y - as_pcb/2, as_pcb_z0()]) cube([as_pcb_t, as_pcb, as_pcb]);
+    color("Black") translate([as_pcb_x() - as_chip_h, dial_y - 2.5, dial_z - 2]) cube([as_chip_h, 5, 4]);
+    color("Silver") translate([as_flange_x()[1] - as_magnet_h, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = as_magnet_d, h = as_magnet_h + 0.02);
+    color("Gainsboro") dial_axle_in_place();
+    color("SteelBlue") dial_cradle();
+}
 // Hole section for a horizontal hole printed without support: a circle with a 45 degree roof (apex towards -X,
 // which rotate([0, 90, 0]) turns into +Z)
 module teardrop2d(d) { hull() { circle(d = d); translate([-d/2*sqrt(2), 0]) square(0.01, center = true); } }
@@ -760,7 +862,7 @@ module parts_preview() {
     hs = hdr_strip(); color("Silver", 0.4) translate([hs[0] - 2.5, hs[1], shelf_z - (hat_dupont_t - hat_pcb_t)])
         cube([hs[2] + 5, hs[3], hat_dupont_t - hat_pcb_t]);   // Dupont housings on the HAT header, 18 mm below the PCB
     switch_preview();
-    encoder_preview();
+    if (as5600) as5600_preview(); else encoder_preview();
     color("#2e3a40") wheel_in_place();
     color("White")     translate([led_pos()[0],  led_pos()[1],  rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
     color("LimeGreen") translate([led2_pos()[0], led2_pos()[1], rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
@@ -782,6 +884,8 @@ else if (part == "wheel") wheel();   // outer face down
 else if (part == "plate") plate();   // flat, text up
 else if (part == "swplate") sw_plate();   // flat, text up; -D sw_on_left=false for the other variant
 else if (part == "swbar") sw_bar();   // flat
+else if (part == "axle") dial_axle();   // AS5600: flange down
+else if (part == "cradle") translate([0, 0, as_out_x()[1]]) rotate([0, 90, 0]) translate([0, -dial_y, 0]) dial_cradle();   // AS5600: on the back of its upright
 else if (part == "closed") {
     back();
     if (style == "bump") color("SteelBlue") cap();
@@ -789,6 +893,7 @@ else if (part == "closed") {
     color("White")     translate([led_pos()[0],  led_pos()[1],  rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
     color("LimeGreen") translate([led2_pos()[0], led2_pos()[1], rim_z + bezel_t - led_sphere_d/2 + 1.5]) sphere(d = led_sphere_d);
     color("#2e3a40") wheel_in_place();
+    if (as5600) color("SteelBlue") dial_cradle();
     color("Gainsboro") translate([-1.5, sw_y - 1.3, sw_slot_z0() + 0.4]) cube([wall + 2, 2.6, 2.6]);
     for (i = [0 : btn_n - 1]) color("Gainsboro") translate([btn_x(i) - key_shaft_w()/2, out_h + key_proud, key_z0 + 0.2]) mirror([0, 1, 0]) key();
     color("DimGray") translate([plate_x0(), out_h, key_z0 - 0.2 - plate_gap]) rotate([-90, 0, 0]) plate();
@@ -803,7 +908,7 @@ else if (part == "section") intersection() {
         hat();
         translate([0, 0, rim_z]) front();
     }
-    translate([section_x, -1, -20]) cube([section_w, out_h + 2, 80]);
+    translate([section_x, section_y, -20]) cube([section_w, section_yw, 80]);
 }
 else {
     back();
@@ -815,5 +920,8 @@ else {
          wheel_travel_deg = (wheel_numbers - 1)*wheel_step + 2*stop_half, hat_module_to_encoder_pcb_mm = enc_y0() - (hat_mod_box()[0][1] + hat_mod[3]),
          hat_module_to_dial_housings_mm = enc_housings_y()[0] - (hat_mod_box()[0][1] + hat_mod[3]), dial_housings_y = enc_housings_y(), tp_y = [tp_pos()[1], tp_pos()[1] + tp_l],
          enc_pcb_y = [enc_y0(), enc_y0() + enc_pcb_l], enc_pcb_x = enc_x(), sw_to_notch_wall_mm = (dial_y - notch_l/2 - wall) - (sw_y + sw_ear_len/2));
+    if (as5600) echo(as5600 = "v11", dial_z = dial_z, wheel_under_back_mm = wheel_d/2 - dial_z, board_x = [as_pcb_x(), as_pcb_x() + as_pcb_t], board_y = [dial_y - as_pcb/2, dial_y + as_pcb/2],
+         board_z = [as_pcb_z0(), as_pcb_z0() + as_pcb], board_top_under_hat_mm = shelf_z - as_pcb_z0() - as_pcb, cradle_proud_of_back_mm = -as_pocket_z0(), cradle_x = as_out_x(), cradle_y = as_out_y(),
+         magnet_gap_mm = [as_gap - 0.5, as_gap + as_axle_play], axle_len = as_flange_t + axle_journal_l() + shaft_keep, holes = as_holes(), cradle_to_tp_mm = tp_pos()[1] - (as_out_y()[1] + 2.5));
     echo(out = [out_w, out_h, rim_z + bezel_t], shelf_z = shelf_z, key_z0 = key_z0, key_h = key_h, header_strip = hdr_strip(), flex_y = fpc_y(), keys = [for (i = [0:3]) btn_x(i)], pico_holes = pico_holes());
 }

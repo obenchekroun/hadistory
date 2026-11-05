@@ -1,4 +1,6 @@
-/* Story dial (built with STORY_DIAL=ON): a KY-040 rotary encoder on the left edge of the
+/* Story dial (built with STORY_DIAL=KY040 or AS5600), two sensors behind one interface.
+ *
+ * STORY_DIAL=KY040 (dial.cpp; ON means this): a KY-040 rotary encoder on the left edge of the
  * enclosure, a thumbwheel with the numbers 1 to DIAL_POSITIONS on its rim and an arrow on the
  * case. The wheel's travel is limited by printed end stops to DIAL_POSITIONS - 1 steps of
  * DIAL_DETENTS_PER_STEP detents (two on the 30-detent KY-040, one on a 20-detent one), the
@@ -17,15 +19,27 @@
  * count divided by DIAL_DETENTS_PER_STEP, rounded down: the numbers sit on the even detents from
  * the stop, and a stray detent at the stop (wheel pressed past its detent at RESET, a glitch of
  * the lines when the wheel is pushed) never shifts them.
+ *
+ * STORY_DIAL=AS5600 (dial_as5600.cpp): the same wheel on a printed axle carrying a magnet, over an
+ * AS5600 magnetic angle sensor on I2C. The angle is absolute: the position is read, not counted,
+ * at boot and while awake, so it is right after a deep sleep and there is no ritual. RESET only
+ * clears the "moved" flag; a wheel found on another number at boot than the saved one counts as
+ * moved. No detents and no push button: button B keeps its wake-up slot. The angle of the "1" is
+ * learnt once (dial_calibrate(): the 1 under the arrow, RESET held 3 s) and saved.
  */
 #ifndef HADISTORY_DIAL_H
 #define HADISTORY_DIAL_H
 
-void dial_init(int position, int detents);   // restores the saved state (the detent count when consistent with the
-                                  // position, else the position alone, clamped), starts counting
+void dial_init(int position, int detents, int zero);   // KY-040: restores the saved state (the detent count when
+                                  // consistent with the position, else the position alone, clamped), starts counting.
+                                  // AS5600: powers the sensor, takes the saved zero and reads the position
 int  dial_position(void);         // 1 .. DIAL_POSITIONS
-int  dial_detents(void);          // detents from the lower stop (saved with the settings, restored at boot)
-void dial_set_position(int p);    // re-arm: the wheel is at that position (RESET: 1, the lower stop); clears moved
+int  dial_detents(void);          // KY-040: detents from the lower stop (saved with the settings, restored at boot)
+int  dial_zero(void);             // AS5600: raw angle of the "1" (saved with the settings), -1 = not calibrated
+void dial_set_position(int p);    // RESET. KY-040: re-arm, the wheel is at that position (1, the lower stop); AS5600:
+                                  // the position is the wheel's. Both clear moved
+bool dial_calibrate(void);        // AS5600: the 1 is under the arrow now; false without sensor or magnet. KY-040: re-arm at 1
+void dial_sleep(void);            // before the deep sleep: AS5600 powered off (nothing to do for the KY-040)
 bool dial_moved(void);            // the wheel moved since the last dial_set_moved(false) / dial_set_position()
 void dial_set_moved(bool moved);  // cleared when a story starts; restored from the settings at boot
 int  dial_take_steps(void);       // net detents counted since the last call (0 = nothing moved)

@@ -8,7 +8,8 @@
  *   WITH_GPT            adds the AI mode (OpenAI over WiFi); off = story mode only
  *   DEEP_SLEEP          core powered off between pages, any button reboots the board (story mode)
  *   BATTERY_GAUGE       battery bars on each page, display only
- *   STORY_DIAL          KY-040 story dial: RESET re-arms it at 1, GO starts the story under the arrow
+ *   STORY_DIAL          story dial, GO starts the story under the arrow: KY040 (incremental, RESET re-arms it
+ *                       at 1) or AS5600 (absolute magnetic sensor, read at boot)
  ********************************************************************************/
 
 #include <stdio.h>
@@ -47,6 +48,7 @@ static void save_settings(void) {
     settings.dial = dial_position();
     settings.dial_moved = dial_moved();
     settings.dial_detents = dial_detents();
+    settings.dial_zero = dial_zero();
 #endif
     if (sd_ok && !storage_save_settings(&settings)) {
         puts("Could not save state");
@@ -166,12 +168,19 @@ int main(void) {
     } else {
         puts("No saved state, starting on local story mode.");
         memset(&settings, 0, sizeof settings);
+        settings.dial_zero = -1;
     }
     story_init(&settings);
 #if HADISTORY_STORY_DIAL
-    dial_init(settings.dial, settings.dial_detents);
+    dial_init(settings.dial, settings.dial_detents, settings.dial_zero);
     dial_set_moved(settings.dial_moved);   // a turn before the sleep still counts after the wake-up
     bool dial_dirty = false;    // position moved since the last save
+#if HADISTORY_DIAL_AS5600
+    // Absolute sensor: a wheel found on another number than the saved one was turned while asleep
+    if (dial_position() != settings.dial) { dial_set_moved(true); dial_dirty = true; }
+    absolute_time_t reset_down_since = get_absolute_time();
+    bool reset_hold_done = true;   // armed by a press of RESET
+#endif
 #endif
 
 #if HADISTORY_WITH_GPT
@@ -211,6 +220,23 @@ int main(void) {
 #endif
             if (!quiet) { led_off(); sleep_ms(DIAL_BLIP_MS); led_on(); }
         }
+#if HADISTORY_DIAL_AS5600
+        // Calibration: the 1 under the arrow, RESET (B) held DIAL_CALIBRATE_HOLD_MS; three blips = saved
+        if (buttons_pressed(BUTTON_RESET)) { reset_down_since = get_absolute_time(); reset_hold_done = false; }
+        if (!reset_hold_done && !buttons_down(BUTTON_RESET)) reset_hold_done = true;   // released early
+        if (!reset_hold_done && absolute_time_diff_us(reset_down_since, get_absolute_time()) > DIAL_CALIBRATE_HOLD_MS * 1000) {
+            reset_hold_done = true;
+            any_press = true;
+            if (dial_calibrate()) {
+                save_settings();
+                dial_dirty = false;
+                for (int i = 0; i < 3; i++) { led_off(); sleep_ms(150); led_on(); sleep_ms(150); }
+            } else {
+                led_rapid_blink();
+                led_on();
+            }
+        }
+#endif
 #endif
 
 #if HADISTORY_WITH_GPT
@@ -271,10 +297,14 @@ int main(void) {
         } else if (buttons_pressed(BUTTON_RESET)) {
             story_reset(&settings);
 #if HADISTORY_STORY_DIAL
-            dial_set_position(1);   // the ritual: wheel at the lower stop, RESET, turn to the story, GO
+            dial_set_position(1);   // KY-040, the ritual: wheel at the lower stop, RESET, turn to the story, GO
             dial_dirty = false;
             save_settings();
+#if HADISTORY_DIAL_AS5600
+            printf("Story reset, dial on %d: turn the wheel to a story, or press A for one at random\n", dial_position());
+#else
             puts("Story reset, dial re-armed at 1: turn the wheel to a story, or press A for one at random");
+#endif
 #else
             save_settings();
             puts("Story reset. Press button to launch a new one");
@@ -317,7 +347,13 @@ int main(void) {
             if (dial_dirty) { save_settings(); dial_dirty = false; }   // keep the wheel position across the sleep
 #endif
             led_off();
+#if HADISTORY_STORY_DIAL
+            dial_sleep();             // AS5600: sensor off while asleep
+#endif
             power_sleep();            // reboots on a button press, returns only on failure
+#if HADISTORY_STORY_DIAL
+            dial_init(dial_position(), dial_detents(), dial_zero());
+#endif
             led_on();
             idle_since = get_absolute_time();
         }

@@ -14,6 +14,18 @@
 #include "lwip/altcp_tls.h"
 #include "lwip/dns.h"
 #include "mbedtls/ssl.h"
+#include "mbedtls/version.h"
+
+// mbedtls 3 (Pico SDK 2.2 and later) asks the platform for a millisecond clock when
+// MBEDTLS_PLATFORM_MS_TIME_ALT is set (mbedtls_config.h); the SDK does not supply one. The TLS 1.2
+// client built here does not call it, this is there for the day an option that does gets
+// enabled. Weak: a definition from the SDK would take over.
+#if MBEDTLS_VERSION_MAJOR >= 3
+#include "mbedtls/platform_time.h"
+extern "C" __attribute__((weak)) mbedtls_ms_time_t mbedtls_ms_time(void) {
+    return (mbedtls_ms_time_t)to_ms_since_boot(get_absolute_time());
+}
+#endif
 
 #define HEADER_MAX 2048
 

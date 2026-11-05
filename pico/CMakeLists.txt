@@ -4,10 +4,12 @@ cmake_minimum_required(VERSION 3.13)
 # Build-time configuration
 #   cmake -S pico -B pico/build -DPICO_BOARD=pico2_w -DSTORAGE=SDCARD
 #   cmake -S pico -B pico/build -DPICO_BOARD=pimoroni_pico_plus2_rp2350 -DSTORAGE=FLASH
+#   cmake -S pico -B pico/build -DPICO_BOARD=waveshare_rp2350b_plus_w -DSTORAGE=FLASH   (16 MB flash; board header in pico/boards, SDK 2.1.1 or later)
 #   add -DEMBED_STORIES="story_1;story_2" to embed a selection only (FLASH), default is all of stories/
 #   add -DEMBED_QUALITY=70 to shrink the embedded JPEGs (FLASH), default 85
 #   add -DWITH_GPT=ON -DOPENAI_API_KEY=... -DWIFI_SSID=... -DWIFI_PASSWORD=... for the AI mode, or several networks
 #   with -DWIFI_NETWORKS="ssid1;password1;ssid2;password2" (tried in that order)
+#   add -DSTORY_DIAL=KY040 or -DSTORY_DIAL=AS5600 for the story dial (ON means KY040)
 #   add -DSTATUS_LED=ONBOARD to use the board's own LED instead of the external one
 #   add -DDEEP_SLEEP=OFF to keep the board awake (keeps the USB serial console alive, for debugging)
 #   add -DBATTERY_GAUGE=OFF to drop the battery bars (VSYS reading, see README "Battery gauge")
@@ -15,7 +17,8 @@ cmake_minimum_required(VERSION 3.13)
 # ------------------------------------------------------------------------------
 
 # Board must be chosen before the SDK is initialised.
-# Known to fit: pico2_w (RP2350A, wireless), pimoroni_pico_plus2_rp2350 (RP2350B, 16 MB flash, PSRAM, no wireless).
+# Known to fit: pico2_w (RP2350A, wireless), pimoroni_pico_plus2_rp2350 (RP2350B, 16 MB flash, PSRAM, no wireless),
+# waveshare_rp2350b_plus_w (RP2350B, 16 MB flash, wireless; header in pico/boards, SDK 2.1.1 or later).
 if(NOT PICO_BOARD)
     set(PICO_BOARD pico2_w)
 endif()
@@ -25,7 +28,8 @@ option(WITH_GPT "Build the AI mode (OpenAI over WiFi). Requires a board with wir
 option(TLS_NO_VERIFY "AI mode: skip the TLS certificate check of api.openai.com (debug only, exposes the API key)" OFF)
 option(DEEP_SLEEP "Power the core off between pages in story mode (RP2350 power manager), any button reboots the board." ON)
 option(BATTERY_GAUGE "Battery bars on each page from the VSYS reading, display only." ON)
-option(STORY_DIAL "Story dial: KY-040 rotary encoder choosing the story by number (RESET re-arms it at 1, GO starts the story under the arrow)." OFF)
+set(STORY_DIAL "OFF" CACHE STRING "Story dial choosing the story by number: OFF, KY040 (incremental encoder with detents and push button; ON means KY040) or AS5600 (absolute magnetic angle sensor on I2C)")
+set_property(CACHE STORY_DIAL PROPERTY STRINGS OFF KY040 AS5600)
 set(STATUS_LED "EXTERNAL" CACHE STRING "Status LED: EXTERNAL (LED_PIN in hadistory_config.h) or ONBOARD (the board's own LED)")
 set_property(CACHE STATUS_LED PROPERTY STRINGS EXTERNAL ONBOARD)
 set(STORAGE "SDCARD" CACHE STRING "Where the stories live: SDCARD (FAT microSD) or FLASH (embedded in the firmware)")
@@ -44,6 +48,9 @@ set(WIFI_PASSWORD "" CACHE STRING "WiFi password (AI mode)")
 set(WIFI_NETWORKS "" CACHE STRING "WiFi networks (AI mode), a list of ssid;password pairs tried in this order")
 set(OPENAI_API_KEY "" CACHE STRING "OpenAI API key (AI mode)")
 
+# Boards the SDK does not know: their headers live in pico/boards (waveshare_rp2350b_plus_w)
+list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
+
 # Include the Pico SDK initialization script
 include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
 include($ENV{PICO_SDK_PATH}/../pimoroni-pico/pimoroni_pico_import.cmake)
@@ -54,6 +61,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Initialize the Pico SDK
 pico_sdk_init()
+
+# The radio of the RP2350B-Plus-W is on GPIO36 to 39: SDK 2.1.0 only knows the Pico W pins
+if(PICO_BOARD STREQUAL "waveshare_rp2350b_plus_w" AND PICO_SDK_VERSION_STRING VERSION_LESS "2.1.1")
+    message(FATAL_ERROR "PICO_BOARD=waveshare_rp2350b_plus_w needs Pico SDK 2.1.1 or later (relocatable wireless pins), this one is ${PICO_SDK_VERSION_STRING}")
+endif()
 
 set(REPO_ROOT ${CMAKE_CURRENT_LIST_DIR}/..)
 
@@ -149,8 +161,20 @@ if(BATTERY_GAUGE)
 endif()
 
 # ---------------------------------------------------------------- story dial
-if(STORY_DIAL)
+string(TOUPPER "${STORY_DIAL}" STORY_DIAL_KIND)
+if(STORY_DIAL_KIND MATCHES "^(ON|TRUE|YES|Y|1|KY040|KY-040)$")
+    set(STORY_DIAL_KIND KY040)
     list(APPEND hadistory_SRC src/dial.cpp)
+    set(DIAL_DEFINES HADISTORY_STORY_DIAL=1 HADISTORY_DIAL_KY040=1 HADISTORY_DIAL_AS5600=0)
+elseif(STORY_DIAL_KIND STREQUAL "AS5600")
+    list(APPEND hadistory_SRC src/dial_as5600.cpp)
+    list(APPEND my_lib hardware_i2c)
+    set(DIAL_DEFINES HADISTORY_STORY_DIAL=1 HADISTORY_DIAL_KY040=0 HADISTORY_DIAL_AS5600=1)
+elseif(STORY_DIAL_KIND MATCHES "^(OFF|FALSE|NO|N|0|)$")
+    set(STORY_DIAL_KIND OFF)
+    set(DIAL_DEFINES HADISTORY_STORY_DIAL=0 HADISTORY_DIAL_KY040=0 HADISTORY_DIAL_AS5600=0)
+else()
+    message(FATAL_ERROR "STORY_DIAL must be OFF, KY040 (or ON) or AS5600 (got '${STORY_DIAL}')")
 endif()
 
 # ---------------------------------------------------------------- AI mode
@@ -215,8 +239,10 @@ hadistory_prompts_txt:
         # Verify the server against the roots in src/openai_roots.h, and fail if it does not match
         set(TLS_DEFINES HADISTORY_TLS_NO_VERIFY=0 ALTCP_MBEDTLS_AUTHMODE=MBEDTLS_SSL_VERIFY_REQUIRED)
     endif()
-    # Ignore a warning from lwip code
+    # Ignore a warning from lwip code: lwIP's own file (mbedtls 2.28, SDK 2.1.x) and the SDK's patched
+    # copy of it, which replaces it with mbedtls 3 (SDK 2.2 and later)
     set_source_files_properties(${PICO_LWIP_PATH}/src/apps/altcp_tls/altcp_tls_mbedtls.c
+                                ${PICO_SDK_PATH}/src/rp2_common/pico_lwip/altcp_tls_mbedtls.c
                                 PROPERTIES COMPILE_OPTIONS "-Wno-unused-result")
 endif()
 
@@ -238,7 +264,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     HADISTORY_WITH_GPT=$<BOOL:${WITH_GPT}>
     HADISTORY_DEEP_SLEEP=$<BOOL:${DEEP_SLEEP}>
     HADISTORY_BATTERY=$<BOOL:${BATTERY_GAUGE}>
-    HADISTORY_STORY_DIAL=$<BOOL:${STORY_DIAL}>
+    ${DIAL_DEFINES}
     ${STORAGE_DEFINE}
     ${LED_DEFINE}
     ${TLS_DEFINES}
@@ -254,7 +280,7 @@ target_link_libraries(${PROJECT_NAME} ${my_lib})
 # ---------------------------------------------------------------- summary
 # What this build is, so that the console of a cmake run says where it goes
 message(STATUS "hadistory build:")
-message(STATUS "  PICO_BOARD     ${PICO_BOARD}")
+message(STATUS "  PICO_BOARD     ${PICO_BOARD} (Pico SDK ${PICO_SDK_VERSION_STRING})")
 if(STORAGE STREQUAL "FLASH")
     if(EMBED_STORIES)
         set(EMBED_WHAT "${EMBED_STORIES}")
@@ -265,7 +291,7 @@ if(STORAGE STREQUAL "FLASH")
 else()
     message(STATUS "  STORAGE        SDCARD")
 endif()
-message(STATUS "  STORY_DIAL     ${STORY_DIAL}")
+message(STATUS "  STORY_DIAL     ${STORY_DIAL_KIND}")
 message(STATUS "  DEEP_SLEEP     ${DEEP_SLEEP}")
 message(STATUS "  BATTERY_GAUGE  ${BATTERY_GAUGE}")
 message(STATUS "  STATUS_LED     ${STATUS_LED}")
