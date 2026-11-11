@@ -22,7 +22,7 @@ Scope compared to the Pi version:
 | Battery gauge (`BATTERY_GAUGE=ON`) | Calibrated on the prototype (ADC scale and diode drop measured, 2026-10-21); bars to check against the cell voltage |
 | Mode LED and robot badge | Written, to be tested: green sphere on in AI mode, robot top-left of the AI pages |
 | Story dial (`STORY_DIAL=KY040`) | Working: KY-040 on Pico pins 9 to 13, story number in the page counter |
-| Story dial, magnetic (`STORY_DIAL=AS5600`) | Written, not tested on hardware (sensor on order): absolute angle over I2C on the same pins, read at boot, no ritual |
+| Story dial, magnetic (`STORY_DIAL=AS5600`) | Written, not tested on hardware (the sensor arrived in November 2026, not wired yet): absolute angle over I2C on the same pins, read at boot, no ritual |
 
 ## Use
 
@@ -212,7 +212,7 @@ Story dial, `STORY_DIAL=KY040` only. The KY-040 module's pins, in their order on
 
 3V3 OUT keeps its single wire to the HAT. Set `DIAL_PIN_VCC` to -1 to feed "+" from a real 3.3 V instead (HAT pin 17 is a free 3V3). The status LED moved from GP8 to GP15 (pin 20, GND on 18) to free pin 11 for this run.
 
-Story dial, `STORY_DIAL=AS5600` only (`img/wiring_as5600.png` is the same picture with this module). The same five Pico pins; the pads of the module are not in that order, so the wires go by name.
+Story dial, `STORY_DIAL=AS5600` only (`img/wiring_as5600.png` is the same picture with this module). The same five Pico pins; the pads of the module are not in that order, so the wires go by name. The pads are in two rows along two opposite edges of the board (DIR, SCL, SDA, GPO on one, VCC, OUT, GND on the other); in the case the board stands with these rows vertical, GPO and GND up, with a straight header soldered on each row on the back of the board (the side away from the chip), pins towards the inside, and the five housings plug on them (`case/README.md`).
 
 | AS5600 module pad | Pico | Pico pin |
 |---|---|---|
