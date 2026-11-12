@@ -26,7 +26,9 @@ Scope compared to the Pi version:
 
 ## Use
 
-At boot the firmware prints on the USB serial console (115200 baud), announces the current mode with the LED and waits with the LED on:
+### At boot
+
+The firmware prints on the USB serial console (115200 baud), announces the current mode with the LED and waits with the LED on:
 
 ```
 Welcome to hadistory !                 (or "Welcome back to hadistory !" after a deep sleep, with the button that woke it)
@@ -36,6 +38,8 @@ Starting on local story mode.
 Waiting for next button press...
 ```
 
+### Buttons
+
 | Button | Story mode | AI mode (`WITH_GPT=ON`) |
 |---|---|---|
 | A, execute | Next page; when none is running or the last page was shown, starts a story: at random (never the one just left), or, with `STORY_DIAL` and the wheel turned since the last RESET or story, the one under the arrow | Generates and shows a new page |
@@ -43,13 +47,53 @@ Waiting for next button press...
 | B, reset | Forgets the current story, the next A starts a new one. With `STORY_DIAL=KY040` the push button of the dial does the same, and both re-arm the dial at 1; with `STORY_DIAL=AS5600`, held 3 s with the 1 under the arrow, it calibrates the dial | Same |
 | C, change mode | Starts the WiFi connection if needed (status LED breathing, mode LED blinking): a scan, then the known networks in range joined in turn, 15 s each; then switches to AI mode: mode LED on; if none can be joined the switch is refused with the error blink and the mode LED goes off | Switches to story mode: mode LED off |
 
-Two sphere LEDs, one question each. Status LED (white, left of the chin): solid = waiting for a press, breathing (or 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel, 19 rapid blinks = error, off = asleep. Mode LED (green, right of the chin): on = AI mode, off = story mode, blinking = joining the WiFi after a press on C; it goes off again if the network cannot be joined (with the error blink on the status LED). Its steady state is the whole message; the bursts of the Pi version at a mode change (3 long for AI, 5 short for story) are kept behind `MODE_LED_BURSTS` in `hadistory_config.h`, off by default. The status LED never says anything about the mode. On the page itself, the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep. In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`); any button powers it up again, which is a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement. The AI mode stays awake to keep its WiFi link. The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot. Without `WITH_GPT`, button C only prints "AI mode not available in this build".
+Without `WITH_GPT`, button C only prints "AI mode not available in this build".
 
-Story dial, incremental (`STORY_DIAL=KY040`; `ON` means the same): a KY-040 rotary encoder on the left edge of the enclosure, wired on Pico pins 9 to 13 in the module's own pin order, a thumbwheel with the numbers 1 to 12 on its rim (`DIAL_POSITIONS`) and an arrow on the case, see `case/README.md`. Printed end stops limit the wheel to 11 steps; the firmware counts the steps by interrupt while awake and saturates at 1 and 12, so the stops are the reference of an otherwise incremental encoder. The KY-040 in use has 30 detents a turn and half a quadrature cycle per detent, so a step is two detents (`DIAL_DETENTS_PER_STEP`), 24 degrees, and the wheel is numbered that way (three quarters of a turn for the 12). The firmware counts every detent from the lower stop (`dial_detents` in the saved settings) and the number is the count halved, rounded down: the numbers sit on the even detents, an odd one keeps the number below, and a stray detent at the stop never shifts the numbers, neither the wheel held a few degrees past its detent against the stop when RESET is pressed (the spring-back is expected and not counted) nor a glitch of the lines when the wheel is pushed. The one case it cannot forgive is a wheel that stops short of the 1's detent (the first detent up then counts as a whole one and every number comes a detent late): the case model runs the groove 3 degrees past the end numbers (`stop_clear`) so that the wheel at the stop sits past the detent, not short of it, and the wheel must not turn on its D shaft by more than a few degrees (`wheel_bore_flat`). The first firmwares counted a step at one of the two rests of the lines only, chosen at RESET from the lines read at the stop: when that read fell between two rests, or on a glitch, the other rest was kept and every number sat a detent off the arrow, with the 12 out of reach. A 20-detent encoder of the same kind would need 396 degrees for two detents a step: there `DIAL_DETENTS_PER_STEP` 1 counts a step at every detent and the wheel is printed at 18 degrees (`wheel_step` in the case model, `case/README.md`). Nothing counts during the deep sleep, by choice (battery life), so the ritual re-arms it: turn the wheel down to the stop, press the wheel (or B), which wakes the board, forgets the story and sets the dial to 1, turn up to the number under the arrow, press A: that story starts at page 1, and its number is shown before the page counter top-left (`3: 1/9`). The wheel is an override, not an obligation: if it has not moved since the last RESET or since the current story started, A picks a story at random, never the one just left, so RESET then A gives a surprise and the number on the page tells where to find it on the wheel. While a story is being read the wheel changes nothing; at the end of a story, A starts the one under the arrow if the wheel was turned meanwhile, a random one otherwise. The "wheel moved" flag is saved with the settings, so a turn before the board falls asleep still counts after the wake-up. Each counted step blinks the status LED off for 20 ms (`DIAL_BLIP_MS`): no blink means the wheel is past a stop in the firmware's count, i.e. desynchronised, and the ritual fixes it. Stories are ordered by the number at the end of their folder name (`story_2` before `story_10`); a wheel position beyond the catalogue gives the last story. The push button of the dial takes the wake-up slot of button B, which then only works awake (the RP2350 has four wake-up slots). In AI mode the dial is ignored for now.
+### LEDs
 
-Story dial, magnetic (`STORY_DIAL=AS5600`): the same wheel and arrow, but the wheel turns on a printed axle whose inner end carries a small diametric magnet, over an AS5600 angle sensor (`src/dial_as5600.cpp`; the case variant is in `case/README.md`). The sensor gives the absolute angle, 12 bits a turn, over I2C: the firmware reads the wheel instead of counting it, at boot and every 30 ms while awake (`DIAL_POLL_MS`). What changes for the reader: no ritual. Turn the wheel to a number and press A, at any time, straight out of the deep sleep: the number is read at wake-up, and a wheel found on another number than the one saved before the sleep counts as turned. RESET (B) keeps its meaning (forget the story; the next A is random unless the wheel is turned again) but re-arms nothing. The number is the angle from the 1 divided by `DIAL_STEP_DEG` (24, the pitch of the wheel), rounded to the nearest, with `DIAL_HYST_DEG` (3) degrees of hysteresis so that a wheel left between two numbers does not flicker; past the printed stops the end numbers hold. The angle of the 1 depends on how the magnet sits in its pocket, so it is learnt once: put the 1 under the arrow and hold B for 3 s (`DIAL_CALIBRATE_HOLD_MS`). Three blinks of the status LED confirm, the error blink means no sensor or no magnet; the value is saved with the settings (`dial_zero`) and can also be built in (`DIAL_ZERO_RAW`). If the numbers run backwards, flip `DIAL_REVERSE` (nothing says it needs the value the KY-040 did). At boot the console tells whether the sensor answers and whether its magnet is detected, too weak (too far) or too strong (too close), with the gain. What is lost: the detents (the wheel turns freely, the firmware rounds) and the push button, so button B gets its wake-up slot back. Power: the module is fed by GP9 driven high (12 mA drive strength), runs in its 1.8 mA power mode (`DIAL_AS5600_PM`) and is switched off before the deep sleep (`dial_sleep()`), so it costs nothing asleep; fed from 3V3 instead (`DIAL_PIN_VCC` -1) it would draw 1.5 mA or more day and night. Without the sensor on the bus the firmware says so and picks the stories at random.
+Two sphere LEDs, one question each.
 
-Battery (`BATTERY_GAUGE=ON`): each page carries a battery symbol in its top-right corner, 4 bars when full, red with one bar or none when low, a lightning bolt when the USB is plugged. The gauge is informative only: the firmware never refuses an action, powers off or changes mode because of the level; when the cell is really empty the protection circuit of the battery module cuts the power. See "Battery gauge" under Power and battery.
+- **Status LED** (white, left of the chin): solid = waiting for a press; breathing (or a 1 Hz blink on the Pico 2 W onboard LED) = working, including the 30 s refresh of the panel; 19 rapid blinks = error; off = asleep. It never says anything about the mode.
+- **Mode LED** (green, right of the chin): on = AI mode, off = story mode, blinking = joining the WiFi after a press on C; it goes off again if the network cannot be joined (with the error blink on the status LED). Its steady state is the whole message: the bursts of the Pi version at a mode change (3 long for AI, 5 short for story) are kept behind `MODE_LED_BURSTS` in `hadistory_config.h`, off by default.
+- **On the page**: the story mode shows its page counter top-left and the AI mode a blue robot at the same place, so the mode is readable even with the board asleep.
+
+### Sleep and saved state
+
+- In story mode the core is powered off 20 seconds after the last press (`DEEP_SLEEP=ON`, the default, `IDLE_BEFORE_SLEEP_MS`). Any button powers it up again, a reboot of about a second, and the firmware then acts on that button without the start-up delay and announcement.
+- The AI mode stays awake to keep its WiFi link.
+- The current story, page and mode are saved after each action, in `/currently.txt` on the card or in the last flash sector, and restored at boot.
+
+### Story dial, incremental (`STORY_DIAL=KY040`)
+
+`ON` means the same. A KY-040 rotary encoder on the left edge of the enclosure, wired on Pico pins 9 to 13 in the module's own pin order, a thumbwheel with the numbers 1 to 12 on its rim (`DIAL_POSITIONS`) and an arrow on the case, see `case/README.md`.
+
+- **Steps and stops**: printed end stops limit the wheel to 11 steps; the firmware counts the steps by interrupt while awake and saturates at 1 and 12, so the stops are the reference of an otherwise incremental encoder.
+- **Detents**: the KY-040 in use has 30 detents a turn and half a quadrature cycle per detent, so a step is two detents (`DIAL_DETENTS_PER_STEP`), 24 degrees, and the wheel is numbered that way (three quarters of a turn for the 12). The firmware counts every detent from the lower stop (`dial_detents` in the saved settings) and the number is the count halved, rounded down: the numbers sit on the even detents, an odd one keeps the number below.
+- **What it forgives**: a stray detent at the stop never shifts the numbers, neither the wheel held a few degrees past its detent against the stop when RESET is pressed (the spring-back is expected and not counted) nor a glitch of the lines when the wheel is pushed.
+- **What it cannot forgive**: a wheel that stops short of the 1's detent (the first detent up then counts as a whole one and every number comes a detent late). The case model runs the groove 3 degrees past the end numbers (`stop_clear`) so that the wheel at the stop sits past the detent, not short of it, and the wheel must not turn on its D shaft by more than a few degrees (`wheel_bore_flat`).
+- **Why it counts that way**: the first firmwares counted a step at one of the two rests of the lines only, chosen at RESET from the lines read at the stop: when that read fell between two rests, or on a glitch, the other rest was kept and every number sat a detent off the arrow, with the 12 out of reach.
+- **Other encoders**: a 20-detent encoder of the same kind would need 396 degrees for two detents a step: there `DIAL_DETENTS_PER_STEP` 1 counts a step at every detent and the wheel is printed at 18 degrees (`wheel_step` in the case model, `case/README.md`).
+- **The ritual**: nothing counts during the deep sleep, by choice (battery life), so the ritual re-arms it: turn the wheel down to the stop, press the wheel (or B), which wakes the board, forgets the story and sets the dial to 1, turn up to the number under the arrow, press A: that story starts at page 1, and its number is shown before the page counter top-left (`3: 1/9`).
+- **An override, not an obligation**: if the wheel has not moved since the last RESET or since the current story started, A picks a story at random, never the one just left, so RESET then A gives a surprise and the number on the page tells where to find it on the wheel. While a story is being read the wheel changes nothing; at the end of a story, A starts the one under the arrow if the wheel was turned meanwhile, a random one otherwise. The "wheel moved" flag is saved with the settings, so a turn before the board falls asleep still counts after the wake-up.
+- **Blip**: each counted step blinks the status LED off for 20 ms (`DIAL_BLIP_MS`). No blink means the wheel is past a stop in the firmware's count, i.e. desynchronised, and the ritual fixes it.
+- **Order of the stories**: by the number at the end of their folder name (`story_2` before `story_10`); a wheel position beyond the catalogue gives the last story.
+- **Wake-up slot**: the push button of the dial takes the wake-up slot of button B, which then only works awake (the RP2350 has four wake-up slots).
+- **AI mode**: the dial is ignored there for now.
+
+### Story dial, magnetic (`STORY_DIAL=AS5600`)
+
+The same wheel and arrow, but the wheel turns on a printed axle whose inner end carries a small diametric magnet, over an AS5600 angle sensor (`src/dial_as5600.cpp`; the case variant is in `case/README.md`). The sensor gives the absolute angle, 12 bits a turn, over I2C: the firmware reads the wheel instead of counting it, at boot and every 30 ms while awake (`DIAL_POLL_MS`).
+
+- **No ritual**: turn the wheel to a number and press A, at any time, straight out of the deep sleep: the number is read at wake-up, and a wheel found on another number than the one saved before the sleep counts as turned. RESET (B) keeps its meaning (forget the story; the next A is random unless the wheel is turned again) but re-arms nothing.
+- **Number from the angle**: the angle from the 1 divided by `DIAL_STEP_DEG` (24, the pitch of the wheel), rounded to the nearest, with `DIAL_HYST_DEG` (3) degrees of hysteresis so that a wheel left between two numbers does not flicker; past the printed stops the end numbers hold.
+- **Calibration**: the angle of the 1 depends on how the magnet sits in its pocket, so it is learnt once: put the 1 under the arrow and hold B for 3 s (`DIAL_CALIBRATE_HOLD_MS`). Three blinks of the status LED confirm, the error blink means no sensor or no magnet; the value is saved with the settings (`dial_zero`) and can also be built in (`DIAL_ZERO_RAW`). If the numbers run backwards, flip `DIAL_REVERSE` (nothing says it needs the value the KY-040 did).
+- **At boot** the console tells whether the sensor answers and whether its magnet is detected, too weak (too far) or too strong (too close), with the gain. Without the sensor on the bus the firmware says so and picks the stories at random.
+- **What is lost**: the detents (the wheel turns freely, the firmware rounds) and the push button, so button B gets its wake-up slot back.
+- **Power**: the module is fed by GP9 driven high (12 mA drive strength), runs in its 1.8 mA power mode (`DIAL_AS5600_PM`) and is switched off before the deep sleep (`dial_sleep()`), so it costs nothing asleep; fed from 3V3 instead (`DIAL_PIN_VCC` -1) it would draw 1.5 mA or more day and night.
+
+### Battery (`BATTERY_GAUGE=ON`)
+
+Each page carries a battery symbol in its top-right corner, 4 bars when full, red with one bar or none when low, a lightning bolt when the USB is plugged. The gauge is informative only: the firmware never refuses an action, powers off or changes mode because of the level; when the cell is really empty the protection circuit of the battery module cuts the power. See "Battery gauge" under Power and battery.
 
 ## Layout
 
@@ -95,7 +139,14 @@ Orientation: `DISPLAY_ROTATION` in `hadistory_config.h` (`ROTATE_0` or `ROTATE_1
 
 ## Build
 
-Requirements: Pico SDK 2.x with `PICO_SDK_PATH` set, [`pimoroni-pico`](https://github.com/pimoroni/pimoroni-pico) checked out next to it (the CMake finds it there), `cmake`, `arm-none-eabi-gcc`, `picotool`.
+### Requirements
+
+- Pico SDK 2.x with `PICO_SDK_PATH` set: 2.1.1 or later for the Waveshare board, 2.3.1 is what runs now (see "Pico SDK version" below).
+- [`pimoroni-pico`](https://github.com/pimoroni/pimoroni-pico) checked out next to the SDK: the CMake finds it there.
+- `cmake`, `arm-none-eabi-gcc`, `picotool` (the SDK's version, 2.3.1 with SDK 2.3.1, else the SDK builds its own).
+- `python3` with Pillow for `STORAGE=FLASH`: the pages are prepared at build time.
+
+### Configure and build
 
 ```bash
 # Story mode, pages on microSD, Pico 2 W
@@ -118,25 +169,16 @@ make -C pico/build-gpt -j8
 
 Each `cmake` run ends with a summary of the build it configured: board, storage (and what is embedded, at which quality), dial, deep sleep, gauge, LED, and for the AI mode whether `secrets.cmake` was found, whether the key is set and the WiFi networks in their order (names only). Check it before `make` when several build directories are around.
 
-Flashing: put the board in BOOTSEL mode (hold BOOTSEL while plugging the USB, or on the Pico Plus 2 hold BOOT, press RESET, release both) and copy `hadistory.uf2` to the `RP2350` volume, or use `picotool load -f -x pico/build/hadistory.uf2` from application mode: `-f` reboots the running firmware into BOOTSEL over USB, the only way once the board is in its case. The board must be awake (in the deep sleep its USB is off: press a button first, the sleep comes 20 s after the last press, `IDLE_BEFORE_SLEEP_MS`), switched on, and no serial monitor may hold the port: close minicom first.
+### Flashing
 
-Waveshare RP2350B-Plus-W (written from its documentation, not tested on the board): an RP2350B with 16 MB of flash, the Pico 2 W's outline and a Radio Module 2 for the WiFi. Same 520 KB of RAM as the Pico 2 W and no PSRAM: what it brings is flash, four times the Pico 2 W's, so `STORAGE=FLASH` holds more stories or the same at a higher `EMBED_QUALITY`. No version of the Pico SDK has a board header for it (checked up to 2.3.1 and the develop branch), so the project carries one, `pico/boards/waveshare_rp2350b_plus_w.h`, which CMake finds through `PICO_BOARD_HEADER_DIRS`. The SDK itself must be 2.1.1 or later: the radio sits on GPIO36 to 39 and 2.1.0 only drives the Pico W's pins (the configuration stops with a message otherwise). See "Pico SDK version" below for the move to a newer SDK, already done on the Pico 2 W. Header pins 1 to 29 carry the same GPIOs as on the Pico 2 W, which is all the wiring uses: nothing moves. Differences that matter: pins 31, 32 and 34 are GP40 to GP42 instead of GP26 to GP28 (unused here); VSYS is sensed on GP46 (ADC6), a pin of its own, so the battery gauge no longer borrows the wireless clock (its 3:1 divider is assumed, check the reading against a multimeter and redo `BATTERY_CAL_METER_MV` / `BATTERY_CAL_CONSOLE_MV`); the board has a plain LED on GP23, so `STATUS_LED=ONBOARD` breathes for real.
+- **BOOTSEL mode**: hold BOOTSEL while plugging the USB (on the Pico Plus 2: hold BOOT, press RESET, release both) and copy `hadistory.uf2` to the `RP2350` volume.
+- **From application mode**: `picotool load -f -x pico/build/hadistory.uf2`. `-f` reboots the running firmware into BOOTSEL over USB, the only way once the board is in its case. The board must be awake (in the deep sleep its USB is off: press a button first, the sleep comes 20 s after the last press, `IDLE_BEFORE_SLEEP_MS`), switched on, and no serial monitor may hold the port: close minicom first.
 
-Pico SDK version: the firmware was written against 2.1.0 and now builds with 2.3.1; on the Pico 2 W the AI mode (WiFi, TLS to `api.openai.com`, story and picture) was run with 2.3.1 in November 2026. What changes between the two for this project is the TLS library under the AI mode, mbedtls 2.28 up to 2.1.1 and 3.6 from 2.2: `src/mbedtls_config.h` now serves both. With 3.6, SHA-384 is an option of its own (`MBEDTLS_SHA384_C`; without it the chain of `api.openai.com`, signed with SHA-384, fails to verify), the millisecond clock must be declared as the platform's (`MBEDTLS_PLATFORM_MS_TIME_ALT`, with a weak `mbedtls_ms_time()` in `https.cpp`), and the SDK compiles its own patched copy of lwIP's TLS glue. One more change is not about TLS: from SDK 2.2 the board headers hold `pico_board_cmake_set()` lines that only `pico.h` defines away, and `hadistory_config.h`, force-included in every source, includes `pico/config.h` directly, so it now defines those two macros itself first (without them the first build with 2.3.1 failed in every file, on line 17 of `pico2_w.h`). The configuration was checked against the headers of mbedtls 3.6.6 and 2.28.8 on the host. To install a second SDK beside the first (the Pimoroni libraries are looked for next to the SDK, so keep them in the same folder) and build with it in a fresh build directory:
+### Console
 
-```bash
-cd ~/Code/pico
-git clone --branch 2.3.1 https://github.com/raspberrypi/pico-sdk.git pico-sdk-2.3.1
-cd pico-sdk-2.3.1 && git submodule update --init
-env PICO_SDK_PATH=$HOME/Code/pico/pico-sdk-2.3.1 cmake -S pico -B pico/build-sdk231 -DPICO_BOARD=pico2_w -DSTORAGE=FLASH -DWITH_GPT=ON
-make -C pico/build-sdk231 -j8
-```
+USB serial, 115200 baud, e.g. `minicom -b 115200 -o -D /dev/tty.usbmodem*`. Messages printed before the monitor is attached are lost: the boot does not wait for it (the 2 s wait of the bring-up was removed), so attach the monitor before resetting the board, or build with `-DDEEP_SLEEP=OFF` and read the lines printed at each press.
 
-The Pimoroni libraries (`pimoroni-pico`, next to the SDK) can be updated at the same time with a `git pull` in their folder: between the copy this was developed with (commit `a90abba9`, January 2025) and `main` of November 2026, the display driver (`uc8159`), the JPEG decoder and the import script have not changed, and `pico_graphics` only gained an optional `layers` argument and a return value on `set_font()`, which the calls made here accept as they are; `git checkout a90abba9` goes back. The summary at the end of `cmake` names the SDK in use. picotool should be the SDK's version (2.3.1 with SDK 2.3.1), else the SDK builds its own.
-
-Console: USB serial, 115200 baud, e.g. `minicom -b 115200 -o -D /dev/tty.usbmodem*`. Messages printed before the monitor is attached are lost: the boot does not wait for it (the 2 s wait of the bring-up was removed), so attach the monitor before resetting the board, or build with `-DDEEP_SLEEP=OFF` and read the lines printed at each press.
-
-Build-time options:
+### Build-time options
 
 | CMake variable | Effect |
 |---|---|
@@ -152,6 +194,37 @@ Build-time options:
 | `OPENAI_API_KEY` | OpenAI key for the AI mode, via `-D` or `secrets.cmake`. |
 | `WIFI_NETWORKS` | Known networks for the AI mode, a list of name / password pairs tried in that order (`"home;pw1;grandparents;pw2"` on the command line, pairs on separate lines in `secrets.cmake`; a semicolon inside one is written `\;`). `WIFI_SSID` / `WIFI_PASSWORD`, the older single-network form, still work and come first. CMake writes them to `build/generated/wifi_networks.h`; changing `secrets.cmake` reconfigures. See "AI mode" for the join order. |
 | `TLS_NO_VERIFY` | AI mode: `ON` skips the certificate check of `api.openai.com`. Debug only, it exposes the API key to anyone on the path. Default `OFF`: the server must chain to one of the roots in `src/openai_roots.h`. |
+
+### Waveshare RP2350B-Plus-W
+
+Written from its documentation, not tested on the board: an RP2350B with 16 MB of flash, the Pico 2 W's outline and a Radio Module 2 for the WiFi.
+
+- **What it brings**: the same 520 KB of RAM as the Pico 2 W and no PSRAM, but four times its flash, so `STORAGE=FLASH` holds more stories or the same at a higher `EMBED_QUALITY`.
+- **Board header**: no version of the Pico SDK has one for it (checked up to 2.3.1 and the develop branch), so the project carries `pico/boards/waveshare_rp2350b_plus_w.h`, which CMake finds through `PICO_BOARD_HEADER_DIRS`.
+- **SDK 2.1.1 or later**: the radio sits on GPIO36 to 39 and 2.1.0 only drives the Pico W's pins (the configuration stops with a message otherwise). See "Pico SDK version" below for the move to a newer SDK, already done on the Pico 2 W.
+- **Wiring**: header pins 1 to 29 carry the same GPIOs as on the Pico 2 W, which is all the wiring uses: nothing moves. Pins 31, 32 and 34 are GP40 to GP42 instead of GP26 to GP28 (unused here).
+- **Battery gauge**: VSYS is sensed on GP46 (ADC6), a pin of its own, so the gauge no longer borrows the wireless clock. Its 3:1 divider is assumed: check the reading against a multimeter and redo `BATTERY_CAL_METER_MV` / `BATTERY_CAL_CONSOLE_MV`.
+- **LED**: a plain LED on GP23, so `STATUS_LED=ONBOARD` breathes for real.
+
+### Pico SDK version
+
+The firmware was written against 2.1.0 and now builds with 2.3.1; on the Pico 2 W the AI mode (WiFi, TLS to `api.openai.com`, story and picture) was run with 2.3.1 in November 2026. What changes between the two for this project:
+
+- **TLS library** under the AI mode: mbedtls 2.28 up to 2.1.1, 3.6 from 2.2; `src/mbedtls_config.h` now serves both. With 3.6, SHA-384 is an option of its own (`MBEDTLS_SHA384_C`; without it the chain of `api.openai.com`, signed with SHA-384, fails to verify), the millisecond clock must be declared as the platform's (`MBEDTLS_PLATFORM_MS_TIME_ALT`, with a weak `mbedtls_ms_time()` in `https.cpp`), and the SDK compiles its own patched copy of lwIP's TLS glue. The configuration was checked against the headers of mbedtls 3.6.6 and 2.28.8 on the host.
+- **Board headers**: from SDK 2.2 they hold `pico_board_cmake_set()` lines that only `pico.h` defines away, and `hadistory_config.h`, force-included in every source, includes `pico/config.h` directly, so it now defines those two macros itself first (without them the first build with 2.3.1 failed in every file, on line 17 of `pico2_w.h`).
+
+To install a second SDK beside the first (the Pimoroni libraries are looked for next to the SDK, so keep them in the same folder) and build with it in a fresh build directory:
+
+```bash
+cd ~/Code/pico
+git clone --branch 2.3.1 https://github.com/raspberrypi/pico-sdk.git pico-sdk-2.3.1
+cd pico-sdk-2.3.1 && git submodule update --init
+env PICO_SDK_PATH=$HOME/Code/pico/pico-sdk-2.3.1 cmake -S pico -B pico/build-sdk231 -DPICO_BOARD=pico2_w -DSTORAGE=FLASH -DWITH_GPT=ON
+make -C pico/build-sdk231 -j8
+```
+
+- **Pimoroni libraries** (`pimoroni-pico`, next to the SDK): they can be updated at the same time with a `git pull` in their folder. Between the copy this was developed with (commit `a90abba9`, January 2025) and `main` of November 2026, the display driver (`uc8159`), the JPEG decoder and the import script have not changed, and `pico_graphics` only gained an optional `layers` argument and a return value on `set_font()`, which the calls made here accept as they are; `git checkout a90abba9` goes back.
+- The summary at the end of `cmake` names the SDK in use.
 
 ## Wiring (default mapping in `hadistory_config.h`, Pico 2 W and Pico Plus 2)
 
