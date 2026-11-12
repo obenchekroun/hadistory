@@ -29,13 +29,14 @@
 // Printed parts:  front (bezel), back (shell), cap (bump style), key (x4), wheel (story dial),
 //                 plate (key labels, glued on the top edge), swplate (ON / OFF, glued on the left edge over the switch opening),
 //                 stories (the list of the stories, glued on the back), swbar (screwed behind the switch, holds it down);
-//                 with dial_sensor = "as5600": axle (carries the wheel and the magnet), pocket (closes the floor under the sensor)
+//                 with dial_sensor = "as5600": axle (carries the wheel and the magnet), pocket (closes the floor under the sensor),
+//                 spring (PETG leaf spring of the detent, between the ribs)
 // Render:  openscad -D 'part="back"' -o stl/ky040/back.stl hadistory_case.scad   (see README.md for the whole set; -D 'style="box"'
 //          is the v7 box, kept in the model but no longer exported: its last STL files are in stl/old_design/box)
 // Units: mm. Printing grid 0.4 mm nozzle / 0.2 mm layers: heights on multiples of 0.2,
 // thin features on multiples of 0.4; smaller adjustments are not reproduced.
 
-part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "plate" | "swplate" | "stories" | "swbar" | "axle" | "pocket" (AS5600) | "assembly" | "closed" (all parts, opaque, for pictures)
+part = "assembly";   // "front" | "back" | "cap" | "key" | "wheel" | "plate" | "swplate" | "stories" | "swbar" | "axle" | "pocket" | "spring" (AS5600) | "assembly" | "closed" (all parts, opaque, for pictures)
                      // | "section" (assembly cut at x = section_x, section_w thick, seen from +X)
 section_x = 85.6;    // through the HAT header strip and the cap
 section_w = 1000;    // slab thickness kept beyond section_x (e.g. 30 with section_x = 2: the left wall seen from inside)
@@ -186,29 +187,56 @@ as_hole_edge   =   3.5;    // mounting holes, centre to the two near edges: 16 m
                            // are used. The two rows of pads run along two opposite edges on the holes' lines; the board
                            // stands with those edges at its ends (the rows vertical) so that straight headers on its back
                            // take Dupont housings along X. The DIR / SCL / SDA / GPO row is off centre: DIR 2.9 mm from
-                           // its hole, GPO 4.9; VCC and GND 5.4 and 5.6 from theirs. GPO goes up: at the upper hole of
-                           // that edge the screw head (6 mm at most, no washer) is then 0.6 clear of the header's plastic
-as_row_off     = [2.9, 5.4];   // first pad of a row from the lower hole's centre: DIR row, VCC row (the rows' pitch is 2.54)
+                           // its hole, GPO 5.5; VCC and GND 5.4 and 5.6 from theirs. v11c had GPO up, to keep the screw
+                           // head off the header at that corner, but the lowest pin was then out of reach in the pocket:
+                           // the board went in DIR up (v11d), and that corner is held by a lip instead of a screw
+as_row_off     = [2.9, 5.4];   // first pad of a row from the upper hole's centre: DIR row, VCC row (the rows' pitch is 2.54)
+as_lip         =   1.0;    // v11d: a lip on each head wraps the board's upper corner, over its back face: the board slides down
+                           // into these two grooves and is held without screws (the DIR header leaves no room for a screw
+                           // head at its corner, and a screw head would sit on the lip at either). 0: v11c heads and screws
+as_lip_w       =   1.2;    // the lip over the back face, from the board's end edge: the header plastic starts 2.2 in
 as_hdr         =   2.54;   // header plastic, square, on the back of the board; the Dupont housings are as wide and 14 long
 as_hole_d      =   4.0;    // measured: an M3 floats in it, its head (5.5 or more) clamps the board on the ring left around the hole
 as_head_below  =   2.5;    // the heads reach this far below the hole centres (the SMD parts nearest the upper holes are 3.5 mm
                            // off along the edge)
-as_hole_pilot  =   2.5;    // pilot holes in the ribs, M3 self-tapping; 2.0 for M2.5 holes
+as_hole_pilot  =   2.5;    // pilot holes in the ribs, M3 self-tapping; 2.0 for M2.5 holes. Only without the lips (as_lip 0):
+                           // with them a screw head, 6 mm wide 3.5 mm from the board's edge, would sit on the lip
 as_boss_l      =   4.0;    // boss behind the notch wall: with the wall a 6 mm bearing
 as_journal_d   =   7.0;    // axle journal: the diameter of the KY-040 bushing, same 7.4 bore, same wheel
 as_axle_play   =   0.3;    // end play of the axle: the flange sits between the boss face and the tab of the pocket, this
                            // much longer than the flange (the pocket itself can move 0.2 in the slot)
 as_flange_d    =  10.0;    // inner flange: keeps the axle in, holds the magnet; 0.5 clear of the ribs, which stand 5.5 off the axis
 as_flange_t    =   3.2;
-as_magnet_d    =   6.0;    // diametric magnet supplied with the module (6 x 2.5 usually), pressed into the flange face
-as_magnet_h    =   2.5;
+as_magnet_d    =   4.0;    // diametric magnet supplied with the module: 4 mm across (measured, v11d; the kit was assumed to
+                           // hold the usual 6 x 2.5), glued in a recess of the flange face
+as_magnet_h    =   2.5;    // (it filled the 2.7 mm recess of the v11c axle); the recess is as_magnet_proud shallower than this
+as_magnet_proud=   0.5;    // the magnet stands this far out of the flange face: with the 4 mm magnet the first print read
+                           // "too weak" at the top of the 3.3 V gain range (128) with the magnet flush, 1.6 mm from the chip
+as_fb_play     =   0.15;   // radial play of the flange in its bearing, a second bore between the ribs (v11d: on the first print
+                           // the axle rocked in the 6 mm bore of the wall, the wheel being 20 mm out on it)
+// Detent (v11d): the AS5600 has no detents, the user wants the click back, printed. The flange rim gets a notch
+// per number and a PETG leaf spring (part "spring"), lying in a groove of each rib above the flange bearing, drops
+// a tooth through the bearing's roof into the notch under the arrow. It rests in a notch unloaded (no creep) and
+// bends as_notch_d on each crest: about 1.3 N there with a 0.6 strip, a third of that at the wheel's rim. The
+// grooves run along X and open on the heads' faces: the strip slides in from the board's side, tooth down, and
+// the board then closes the grooves. (A first draft had it bowed into blind slots: 13.6 mm into 11 would need
+// 7 percent of strain, PETG breaks at 3.) The grooves sit just above the pilot holes of the heads.
+as_detent      = true;
+as_spring_t    =   0.6;    // strip thickness: the click's hardness (0.8 is twice as hard)
+as_spring_w    =   2.2;    // strip width, along X over the flange
+as_tooth_t     =   1.0;    // tooth thickness, along Y; its tip is a half round
+as_notch_r     =   0.7;    // notch: a cylinder of this radius, cut as_notch_d deep into the rim, 1.3 mm wide at the rim
+as_notch_d     =   0.5;
+as_detent_phase=   0;      // degrees: turns the notches about the D flat, as wheel_phase turns the numbers; they are placed
+                           // on the numbers by the model, measure the offset on the print and set it here
 as_play        =  [0.8, 3.0, 0.3];   // pocket around the board's lower edge: chip side (pin ends cut flush), back (the headers'
                            // plastic, which comes down to 0.5 mm above the floor on the DIR row), ends
 as_notch_w     =   4.0;    // notches in the pocket's back wall and band, one on each row, for the lowest Dupont housing
 as_flange_z    =   3.0;    // the pocket's band on the floor, flush with the top of its walls: tall enough for the tab that
                            // stops the axle's flange (flange d 10 on an axis 8.9 up: 1.1 mm of its rim above the band's base)
-as_shaft_fit   =   0.2;    // the axle's D is this much thinner than the KY-040's 6 mm, half of it on the flat: a steel shaft
-                           // slides in the wheel's bore, the printed one was too tight
+as_shaft_fit   =   0.1;    // the axle's D is this much thinner than the KY-040's 6 mm, half of it on the flat: a steel shaft
+                           // slides in the wheel's bore, the printed one was too tight at 0; friction on the D is all that
+                           // holds the wheel on, so it must stay firm (0.2 was the first guess, brought back to 0.1 unprinted)
 as_pocket_wall =   1.2;
 as_pocket_gap  =   0.2;    // board's lower edge to the bottom of the pocket: all the pocket can move
 as_rib_top0    =  16.0;    // the ribs are this tall at the notch wall end and rise at 45 degrees to the board's top edge:
@@ -406,6 +434,14 @@ function as_in_y()  = [dial_y - as_pcb/2 - as_play[2], dial_y + as_pcb/2 + as_pl
 function as_out_y() = [as_in_y()[0] - as_pocket_wall, as_in_y()[1] + as_pocket_wall];
 function as_pocket_z0() = as_pcb_z0() - as_pocket_gap - as_pocket_wall;                    // -4.0 | -1.3: proud of the back face
 function as_tab_hw() = as_pcb/2 - as_hole_edge - enc_post_w/2 - 1.0;                       // 4.5: the tab's half width, 1 mm off the ribs
+function as_fb_x1() = as_flange_x()[1] - 0.1;                                              // 13.9: the flange bearing, boss face to 0.1 short of the flange face
+function as_ribs_in()  = as_pcb/2 - as_hole_edge - enc_post_w/2;                            // 5.5: the ribs' inner faces off the axis
+function as_fb_apex()  = dial_z + (as_flange_d/2 + as_fb_play)*sqrt(2);                     // 16.2: apex of the bearing's teardrop
+function as_spring_z() = as_holes()[0][1] + as_hole_pilot/2 + 0.3;                         // 18.45: underside of the strip, over the pilot holes
+function as_fb_top()   = as_fb_apex() + 1.0;                                               // 17.2: the bearing block's top, under the strip
+function as_spring_x() = [as_flange_x()[1] - as_spring_w, as_flange_x()[1]];               // 11.8 to 14.0, over the flange, to its face
+function as_spring_l() = 2*(as_ribs_in() + 1.5) - 0.4;                                     // 13.6: 1.5 into each rib, 0.2 short
+function as_tooth_l()  = as_spring_z() - (dial_z + as_flange_d/2 - as_notch_d);            // 5.05: strip underside to the notch bottom
 function as_rows_y() = [for (sy = [-1, 1]) dial_y + sy*(as_pcb/2 - as_hole_edge)];          // 68, 84: the pad rows, on the holes' lines
 notch_l  = wheel_d + 6;                              // 24.4: notch length along the edge
 function enc_boss_x1() = dial_notch_d + enc_bush_h - enc_bush_out;   // 13.1: face of the boss, the encoder body against it
@@ -489,7 +525,7 @@ module back() {
             tp_lip();
             switch_seat();
             notch_wall();
-            if (as5600) { as_boss(); as_ribs(); } else { enc_boss(); enc_posts(); }
+            if (as5600) { as_boss(); as_ribs(); as_flange_bearing(); } else { enc_boss(); enc_posts(); }
             for (p = led_positions()) led_tube(p);
         }
         for (b = bosses()) translate([b[0], b[1], 2]) cylinder(d = screw_pilot, h = rim_z);
@@ -505,8 +541,17 @@ module back() {
         if (as5600) {
             // AS5600: the axle's bore through wall and boss, the slot of the floor the pocket drops into, the pilot holes in the ribs
             translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(as_boss_x1() - dial_notch_d + 1.01) teardrop2d(as_journal_d + 0.4);
+            translate([as_boss_x1(), dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(as_fb_x1() - as_boss_x1() + 1) teardrop2d(as_flange_d + 2*as_fb_play);   // flange bearing
             translate([as_out_x()[0] - 0.2, as_out_y()[0] - 0.2, -1]) cube([as_out_x()[1] - as_out_x()[0] + 0.4, as_out_y()[1] - as_out_y()[0] + 0.4, wall + 2]);
-            for (h = as_holes()) translate([as_pcb_x() - as_pilot_l, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = as_hole_pilot, h = as_pilot_l + 1);
+            if (as_lip == 0) for (h = as_holes()) translate([as_pcb_x() - as_pilot_l, h[0], h[1]]) rotate([0, 90, 0]) cylinder(d = as_hole_pilot, h = as_pilot_l + 1);
+            // the board's way down into the lips: its own thickness and 0.2, 0.3 beyond its end edge
+            if (as_lip > 0) for (h = as_holes()) let(s = h[0] > dial_y ? 1 : -1, e = dial_y + s*as_pcb/2)
+                translate([as_pcb_x(), min(e + s*0.3, e - s*(as_lip_w + 1)), h[1] - as_head_below - 4]) cube([as_pcb_t + 0.2, as_lip_w + 1.3, as_pcb]);
+            if (as_detent) {
+                for (sy = [-1, 1]) translate([as_spring_x()[0] - 0.2, dial_y + sy*(as_ribs_in() + 0.45) - 1.05, as_spring_z()])
+                    cube([as_pcb_x() - as_spring_x()[0] + 0.4, 2.1, as_spring_t + 0.2]);                           // grooves of the strip, 1.5 into each rib, open on the heads' faces
+                translate([as_spring_x()[0] - 0.2, dial_y - as_tooth_t/2 - 0.3, dial_z]) cube([as_spring_w + 0.4, as_tooth_t + 0.6, 20]);   // the tooth's way through the roof
+            }
         } else {
         translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(enc_bush_h - enc_bush_out + 1.01) teardrop2d(enc_bush_d + 0.4);
         translate([enc_x() - enc_recess_play[0], enc_y0() - enc_recess_play[1], wall - enc_floor_recess])
@@ -704,14 +749,22 @@ module enc_boss() {
     }
 }
 // AS5600: the boss is only a bearing, wall plus boss 6 mm long, 6 mm above the axis
+// AS5600 flange bearing (v11d): a block between the ribs, from the boss face to just short of the flange face, bored
+// to the flange: the axle then turns on its journal in the wall and on its flange here, 9 mm of bearing in all,
+// instead of rocking on the 6 mm of the wall. The bore is a teardrop, it prints lying like the journal's.
+module as_flange_bearing() {
+    hw = as_pcb/2 - as_hole_edge - enc_post_w/2 + 0.5;                                                 // 6: into the ribs
+    translate([as_boss_x1() - 0.01, dial_y - hw, 0]) cube([as_fb_x1() - as_boss_x1() + 0.01, 2*hw, as_fb_top()]);
+}
 module as_boss() {
     translate([dial_notch_d + wall - 0.01, dial_y - enc_boss_w/2, 0]) cube([as_boss_x1() - dial_notch_d - wall + 0.01, enc_boss_w, dial_z + enc_boss_w/2]);
 }
 // AS5600 axle, as printed: flange down, the magnet pocket open on the bed. Flange, journal (the KY-040
 // bushing's diameter and reach, 3.4 mm into the wheel), then the D the wheel is pressed on, as_shaft_fit
 // thinner than the KY-040's, 0.3 longer than the shaft kept on the KY-040: pressed home, the wheel sits
-// 0.5 off the notch wall, and comes 0.3 closer when the axle is pushed in. The magnet is glued flush in
-// the flange face. The flange turns between the boss face and the tab of the pocket, as_axle_play free.
+// 0.5 off the notch wall, and comes 0.3 closer when the axle is pushed in. The magnet is glued in the flange
+// face, as_magnet_proud out of it. The flange turns in its bearing, between the boss face and the tab of the
+// pocket, as_axle_play free.
 function axle_journal_l() = as_flange_x()[0] - (dial_notch_d - enc_bush_out);   // 9.7
 function axle_shaft_l()   = shaft_keep + 0.3;                                   // 8.1
 module dial_axle() {
@@ -728,7 +781,11 @@ module dial_axle() {
                 cylinder(d1 = ds + 2*ls - 0.8, d2 = ds - 0.8, h = ls);   // 0.4 chamfer on the tip
             }
         }
-        translate([0, 0, -0.01]) cylinder(d = as_magnet_d + 0.1, h = as_magnet_h + 0.2);
+        translate([0, 0, -0.01]) cylinder(d = as_magnet_d + 0.1, h = as_magnet_h - as_magnet_proud + 0.01);   // the magnet bottoms, as_magnet_proud out
+        // detent notches on the rim, one per number, on the numbers: the wheel's local frame is this one turned over
+        // about Y (local +X here is the case's up, where the arrow and the tooth are), so the angles change sign
+        if (as_detent) for (k = [0 : wheel_numbers + 2]) rotate([0, 0, -wheel_phase + as_detent_phase - k*wheel_step])
+            translate([as_flange_d/2 - as_notch_d + as_notch_r, 0, -1]) cylinder(r = as_notch_r, h = as_flange_t + 2, $fn = 24);
     }
 }
 module dial_axle_in_place() { translate([as_flange_x()[1], dial_y, dial_z]) rotate([0, -90, 0]) dial_axle(); }
@@ -746,8 +803,23 @@ module as_ribs() {
             polygon([[x0, 0], [x0, as_rib_top0], [x0 + top - as_rib_top0, top], [xb, top], [xb, z1], [x1, z1 - (xb - x1)], [x1, 0]]);
         s = h[0] > dial_y ? 1 : -1;                                  // web to the boss
         translate([x0, min(dial_y + s*enc_boss_w/2, h[0] - s*w/2) - 0.01, 0]) cube([as_boss_x1() - x0, abs(h[0] - s*w/2 - dial_y - s*enc_boss_w/2) + 0.02, dial_z + enc_boss_w/2]);
+        // the lip: the head goes on past the board's end edge and comes back over its back face, 45 degrees under it
+        e = dial_y + s*as_pcb/2; xl = xb + as_pcb_t + 0.2 + as_lip;
+        if (as_lip > 0) translate([0, max(e + s*1.0, e - s*as_lip_w), 0]) rotate([90, 0, 0]) linear_extrude(as_lip_w + 1.0)
+            polygon([[xb - 0.01, top], [xl, top], [xl, z1 - (xl - xb)], [xb - 0.01, z1]]);
     }
 }
+// The detent's leaf spring, as printed: the strip on the bed, the tooth up (PETG). In the case it lies tooth down
+// in the grooves of the ribs, over the flange bearing, the tooth through the bearing's roof on the flange rim.
+module dial_spring() {
+    l = as_spring_l(); w = as_spring_w; t = as_spring_t; tl = as_tooth_l();
+    translate([-w/2, -l/2, 0]) cube([w, l, t]);
+    hull() {
+        translate([-w/2 + 0.1, -as_tooth_t/2, t - 0.01]) cube([w - 0.2, as_tooth_t, 0.02]);
+        translate([-w/2 + 0.1, 0, t + tl - as_tooth_t/2]) rotate([0, 90, 0]) cylinder(d = as_tooth_t, h = w - 0.2, $fn = 24);   // tl below the strip's underside
+    }
+}
+module dial_spring_in_place() { translate([as_spring_x()[0] + as_spring_w/2, dial_y, as_spring_z() + as_spring_t]) rotate([180, 0, 0]) dial_spring(); }
 // AS5600 pocket, in the case frame: it closes the slot of the floor under the board's lower edge, proud of the
 // back face as the cap is. Dropped in from inside before the board (the axle in, held pulled out), its band on
 // the floor on three sides (not towards the ribs); the board's lower edge, as_pocket_gap above its bottom, then
@@ -768,11 +840,12 @@ module dial_pocket() {
 module as5600_preview() {
     color("#6a1b9a") translate([as_pcb_x(), dial_y - as_pcb/2, as_pcb_z0()]) cube([as_pcb_t, as_pcb, as_pcb]);
     color("Black") translate([as_pcb_x() - as_chip_h, dial_y - 2.5, dial_z - 2]) cube([as_chip_h, 5, 4]);
-    color("Silver") translate([as_flange_x()[1] - as_magnet_h, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = as_magnet_d, h = as_magnet_h + 0.02);
+    color("Silver") translate([as_flange_x()[1] - as_magnet_h + as_magnet_proud, dial_y, dial_z]) rotate([0, 90, 0]) cylinder(d = as_magnet_d, h = as_magnet_h);
     color("Gainsboro") dial_axle_in_place();   // drawn pushed in, flange on the tab
     color("SteelBlue") dial_pocket();
-    // headers on the back, the DIR row (4 pins) at -Y, the VCC row (3) at +Y, GPO and GND up; Dupont housings on them
-    for (s = [-1, 1]) let(y = dial_y + s*(as_pcb/2 - as_hole_edge), n = s < 0 ? 4 : 3, z0 = as_pcb_z0() + as_hole_edge + as_row_off[s < 0 ? 0 : 1] - as_hdr/2) {
+    if (as_detent) color("Orange") dial_spring_in_place();
+    // headers on the back, the DIR row (4 pins) at +Y, the VCC row (3) at -Y, DIR and VCC up; Dupont housings on them
+    for (s = [-1, 1]) let(y = dial_y + s*(as_pcb/2 - as_hole_edge), n = s > 0 ? 4 : 3, z0 = as_pcb_z0() + as_pcb - as_hole_edge - as_row_off[s > 0 ? 0 : 1] + as_hdr/2 - n*as_hdr) {
         color("Black")   translate([as_pcb_x() + as_pcb_t, y - as_hdr/2, z0]) cube([as_hdr, as_hdr, n*as_hdr]);
         color("DimGray") translate([as_pcb_x() + as_pcb_t + as_hdr, y - as_hdr/2, z0]) cube([14, as_hdr, n*as_hdr]);
     }
@@ -970,6 +1043,7 @@ else if (part == "stories") story_plate();   // flat, text up
 else if (part == "swbar") sw_bar();   // flat
 else if (part == "axle") dial_axle();   // AS5600: flange down
 else if (part == "pocket") translate([-as_flange_x()[1], as_out_y()[1] + 2.5, wall + as_flange_z]) rotate([180, 0, 0]) dial_pocket();   // AS5600: band down
+else if (part == "spring") dial_spring();   // AS5600: PETG, strip on the bed
 else if (part == "closed") {
     back();
     if (style == "bump") color("SteelBlue") cap();
@@ -1005,11 +1079,13 @@ else {
          wheel_travel_deg = (wheel_numbers - 1)*wheel_step + 2*stop_half, hat_module_to_encoder_pcb_mm = enc_y0() - (hat_mod_box()[0][1] + hat_mod[3]),
          hat_module_to_dial_housings_mm = enc_housings_y()[0] - (hat_mod_box()[0][1] + hat_mod[3]), dial_housings_y = enc_housings_y(), tp_y = [tp_pos()[1], tp_pos()[1] + tp_l],
          enc_pcb_y = [enc_y0(), enc_y0() + enc_pcb_l], enc_pcb_x = enc_x(), sw_to_notch_wall_mm = (dial_y - notch_l/2 - wall) - (sw_y + sw_ear_len/2));
-    if (as5600) echo(as5600 = "v11c", dial_z = dial_z, wheel_under_back_mm = wheel_d/2 - dial_z, board_x = [as_pcb_x(), as_pcb_x() + as_pcb_t], board_y = [dial_y - as_pcb/2, dial_y + as_pcb/2],
+    if (as5600) echo(as5600 = "v11d", dial_z = dial_z, wheel_under_back_mm = wheel_d/2 - dial_z, board_x = [as_pcb_x(), as_pcb_x() + as_pcb_t], board_y = [dial_y - as_pcb/2, dial_y + as_pcb/2],
          board_z = [as_pcb_z0(), as_pcb_z0() + as_pcb], board_top_under_hat_mm = shelf_z - as_pcb_z0() - as_pcb, pocket_proud_of_back_mm = -as_pocket_z0(), pocket_x = as_out_x(), pocket_y = as_out_y(),
-         magnet_gap_mm = [as_gap, as_gap + as_axle_play], axle_len = as_flange_t + axle_journal_l() + axle_shaft_l(), axle_d = enc_shaft_d - as_shaft_fit, holes = as_holes(), hole_d = as_hole_d,
+         magnet_gap_mm = [as_gap - as_magnet_proud, as_gap - as_magnet_proud + as_axle_play], flange_bearing_x = [as_boss_x1(), as_fb_x1()], axle_len = as_flange_t + axle_journal_l() + axle_shaft_l(), axle_d = enc_shaft_d - as_shaft_fit, holes = as_holes(), hole_d = as_hole_d,
          ribs_x = [enc_rib_x0, as_rib_x1(), as_pcb_x()], ribs_off_axis_mm = as_pcb/2 - as_hole_edge - enc_post_w/2, tab = [as_flange_x()[1], as_out_x()[0], dial_y - as_tab_hw(), dial_y + as_tab_hw(), wall + as_flange_z],
-         rows_y = as_rows_y(), lowest_housing_above_floor_mm = as_pcb_z0() + as_hole_edge + as_row_off[0] - as_hdr/2 - wall,
-         screw_head_to_header_mm = (as_pcb - 2*as_hole_edge - as_row_off[0] - 3*2.54) - as_hdr/2 - 3.0, pocket_to_tp_mm = tp_pos()[1] - (as_out_y()[1] + 2.5));
+         rows_y = as_rows_y(), lowest_housing_above_floor_mm = as_pcb_z0() + as_pcb - as_hole_edge - as_row_off[1] - 2*2.54 - as_hdr/2 - wall,
+         lip_to_header_mm = (as_hole_edge - as_hdr/2) - as_lip_w, spring = [as_spring_l(), as_spring_w, as_spring_t, as_tooth_l()], spring_z = as_spring_z(),
+         groove_over_pilot_mm = as_spring_z() - (as_holes()[0][1] + as_hole_pilot/2), rib_over_groove_mm = as_rib_top0 + (as_spring_x()[0] - 0.2 - enc_rib_x0) - (as_spring_z() + as_spring_t + 0.2),
+         pocket_to_tp_mm = tp_pos()[1] - (as_out_y()[1] + 2.5));
     echo(out = [out_w, out_h, rim_z + bezel_t], shelf_z = shelf_z, key_z0 = key_z0, key_h = key_h, header_strip = hdr_strip(), flex_y = fpc_y(), keys = [for (i = [0:3]) btn_x(i)], pico_holes = pico_holes());
 }
