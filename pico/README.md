@@ -101,6 +101,7 @@ Each page carries a battery symbol in its top-right corner, 4 bars when full, re
 pico/
 ├── CMakeLists.txt          build configuration and options
 ├── main.cpp                button loop and mode switching (port of the Python main loop)
+├── WALKTHROUGH.md          the code explained, from the build to the deep sleep, with snippets
 ├── secrets.cmake.example   OpenAI key and WiFi networks template (copy to secrets.cmake, ignored by git)
 ├── img/                    wiring diagram (wiring.py generates wiring.svg, and wiring_as5600.svg with the argument as5600; rendered to PNG with rsvg-convert)
 └── src/
@@ -136,6 +137,10 @@ pico/
 Everything that reaches the panel goes through `display.cpp`: a `PicoGraphics_Pen3Bit` frame buffer (100 KB, allocated once) and the Pimoroni `UC8159` driver, which converts it to the panel format on the fly. Pages, from the storage or from the AI mode, are composed by `render.cpp` into that frame buffer: the text is wrapped and drawn with the `bitmap8` font at scale 2 (accents supported), the JPEG illustration is decoded by Pimoroni's `jpegdec`, resampled into the square left above the text and dithered to the 7 colours with Floyd-Steinberg error diffusion, strip by strip as the decoder delivers the blocks, with the inky palette blend used by the Pi version (the ordered dithering of PicoGraphics was tried first and gave a woven look). The layout is the one of `pi/hadistory.py`: portrait page, illustration on top, text below, rotated 90 degrees onto the landscape panel; the font is drawn rotated by PicoGraphics so no intermediate buffer exists. One 160 KB buffer holds the current JPEG (`IMAGE_MAX_BYTES`). Changing to another Pimoroni panel means swapping the driver class and the geometry in `display.cpp` / `hadistory_config.h`.
 
 Orientation: `DISPLAY_ROTATION` in `hadistory_config.h` (`ROTATE_0` or `ROTATE_180`) is passed to the driver, which flips the scan directions of the UC8159 in hardware. `ROTATE_180` is the default: it puts the display HAT buttons at the top with the pages as rendered by the tool. Nothing is rotated in software.
+
+## Code walkthrough
+
+[`WALKTHROUGH.md`](WALKTHROUGH.md) follows the code from the build to the deep sleep, with the real snippets and the reasons behind the odd lines: options and macros, boot, the loop, a page of a story, the two storages, the rendering and its dithering, the LEDs on timers, the deep sleep, the two dials, the AI mode (WiFi state machine, HTTPS on lwIP callbacks, the streaming sinks), the battery, and a memory map. It is meant to be enough on its own to understand the subtleties without opening the sources.
 
 ## Build
 
