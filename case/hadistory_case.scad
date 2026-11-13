@@ -215,15 +215,21 @@ as_magnet_proud=   0.5;    // the magnet stands this far out of the flange face:
 as_fb_play     =   0.15;   // radial play of the flange in its bearing, a second bore between the ribs (v11d: on the first print
                            // the axle rocked in the 6 mm bore of the wall, the wheel being 20 mm out on it)
 // Detent (v11d): the AS5600 has no detents, the user wants the click back, printed. The flange rim gets a notch
-// per number and a PETG leaf spring (part "spring"), lying in a groove of each rib above the flange bearing, drops
-// a tooth through the bearing's roof into the notch under the arrow. It rests in a notch unloaded (no creep) and
-// bends as_notch_d on each crest: about 1.3 N there with a 0.6 strip, a third of that at the wheel's rim. The
-// grooves run along X and open on the heads' faces: the strip slides in from the board's side, tooth down, and
-// the board then closes the grooves. (A first draft had it bowed into blind slots: 13.6 mm into 11 would need
-// 7 percent of strain, PETG breaks at 3.) The grooves sit just above the pilot holes of the heads.
+// per number and a PETG leaf spring (part "spring"), lying across the ribs above the flange bearing, drops a
+// tooth through the bearing's roof into the notch under the arrow. It rests in a notch unloaded (no creep) and
+// bends as_notch_d on each crest. v11e: the first print took a set (0.5 mm over an 11 mm span is 1.5 percent of
+// strain, too much for PETG every click) and its 0.8 mm grooves closed up at the print (bridged roofs sag). Now
+// the strip rests at the bottom of a pocket dug into each rib, as_spring_seat short of the rib's outer face, so
+// the span is 18.6 mm and the strain 0.9 percent with a 1 mm strip, about 1.5 N at the rim, a third of that under
+// the finger; and the pockets are 1.6 mm tall, L-shaped in X: open at the top over the slide length, roofed over
+// the rest. The strip drops in from above, tooth down, then slides as_spring_slide towards the wall under the
+// roofs; the tooth, in the slot of the bearing's roof, then stops it sliding back, and the roofs stop it lifting.
+// (A first draft had it bowed into blind slots: 13.6 mm into 11 would need 7 percent of strain, PETG breaks at 3.)
 as_detent      = true;
-as_spring_t    =   0.6;    // strip thickness: the click's hardness (0.8 is twice as hard)
-as_spring_w    =   2.2;    // strip width, along X over the flange
+as_spring_t    =   1.0;    // strip thickness: the click's hardness (0.8 is half as hard, 1.2 nearly twice)
+as_spring_w    =   2.6;    // strip width, along X over the flange
+as_spring_seat =   1.0;    // rib wall left beyond the pockets, towards the lips
+as_spring_slide=   1.7;    // the strip slides this far under the roofs of its pockets, from where it dropped in
 as_tooth_t     =   1.0;    // tooth thickness, along Y; its tip is a half round
 as_notch_r     =   0.7;    // notch: a cylinder of this radius, cut as_notch_d deep into the rim, 1.3 mm wide at the rim
 as_notch_d     =   0.5;
@@ -437,11 +443,12 @@ function as_tab_hw() = as_pcb/2 - as_hole_edge - enc_post_w/2 - 1.0;            
 function as_fb_x1() = as_flange_x()[1] - 0.1;                                              // 13.9: the flange bearing, boss face to 0.1 short of the flange face
 function as_ribs_in()  = as_pcb/2 - as_hole_edge - enc_post_w/2;                            // 5.5: the ribs' inner faces off the axis
 function as_fb_apex()  = dial_z + (as_flange_d/2 + as_fb_play)*sqrt(2);                     // 16.2: apex of the bearing's teardrop
-function as_spring_z() = as_holes()[0][1] + as_hole_pilot/2 + 0.3;                         // 18.45: underside of the strip, over the pilot holes
 function as_fb_top()   = as_fb_apex() + 1.0;                                               // 17.2: the bearing block's top, under the strip
-function as_spring_x() = [as_flange_x()[1] - as_spring_w, as_flange_x()[1]];               // 11.8 to 14.0, over the flange, to its face
-function as_spring_l() = 2*(as_ribs_in() + 1.5) - 0.4;                                     // 13.6: 1.5 into each rib, 0.2 short
-function as_tooth_l()  = as_spring_z() - (dial_z + as_flange_d/2 - as_notch_d);            // 5.05: strip underside to the notch bottom
+function as_spring_z() = as_lip > 0 ? as_fb_top() + 0.2 : as_holes()[0][1] + as_hole_pilot/2 + 0.3;   // 17.4: underside of the strip (over the pilot holes if any)
+function as_spring_x() = [as_flange_x()[1] - as_spring_w + 0.2, as_flange_x()[1] + 0.2];   // 11.6 to 14.2, over the flange, 0.2 past its face
+function as_pocket_y1() = as_ribs_in() + enc_post_w - as_spring_seat;                      // 9.5: the pockets' far ends off the axis, the strip's seats
+function as_spring_l() = 2*as_pocket_y1() - 0.4;                                           // 18.6: 0.2 short of each pocket's end
+function as_tooth_l()  = as_spring_z() - (dial_z + as_flange_d/2 - as_notch_d);            // 4.0: strip underside to the notch bottom
 function as_rows_y() = [for (sy = [-1, 1]) dial_y + sy*(as_pcb/2 - as_hole_edge)];          // 68, 84: the pad rows, on the holes' lines
 notch_l  = wheel_d + 6;                              // 24.4: notch length along the edge
 function enc_boss_x1() = dial_notch_d + enc_bush_h - enc_bush_out;   // 13.1: face of the boss, the encoder body against it
@@ -547,10 +554,12 @@ module back() {
             // the board's way down into the lips: its own thickness and 0.2, 0.3 beyond its end edge
             if (as_lip > 0) for (h = as_holes()) let(s = h[0] > dial_y ? 1 : -1, e = dial_y + s*as_pcb/2)
                 translate([as_pcb_x(), min(e + s*0.3, e - s*(as_lip_w + 1)), h[1] - as_head_below - 4]) cube([as_pcb_t + 0.2, as_lip_w + 1.3, as_pcb]);
-            if (as_detent) {
-                for (sy = [-1, 1]) translate([as_spring_x()[0] - 0.2, dial_y + sy*(as_ribs_in() + 0.45) - 1.05, as_spring_z()])
-                    cube([as_pcb_x() - as_spring_x()[0] + 0.4, 2.1, as_spring_t + 0.2]);                           // grooves of the strip, 1.5 into each rib, open on the heads' faces
-                translate([as_spring_x()[0] - 0.2, dial_y - as_tooth_t/2 - 0.3, dial_z]) cube([as_spring_w + 0.4, as_tooth_t + 0.6, 20]);   // the tooth's way through the roof
+            if (as_detent) for (sy = [-1, 1]) let(yl = as_pocket_y1() - as_ribs_in() + 0.3, y0 = dial_y + (sy > 0 ? as_ribs_in() - 0.3 : -as_pocket_y1())) {
+                // the strip's pockets in the ribs, from 0.3 inside their faces to the seats: roofed where the strip ends up,
+                // open at the top where it drops in; and the tooth's way through the roof of the flange bearing
+                translate([as_spring_x()[0] - 0.2, y0, as_spring_z()]) cube([as_spring_slide + 0.2, yl, as_spring_t + 0.6]);
+                translate([as_spring_x()[0] - 0.2 + as_spring_slide, y0, as_spring_z()]) cube([as_spring_w + 0.4, yl, 10]);
+                translate([as_spring_x()[0] - 0.2, dial_y - as_tooth_t/2 - 0.3, dial_z]) cube([as_spring_w + 0.4, as_tooth_t + 0.6, 20]);
             }
         } else {
         translate([dial_notch_d - 1, dial_y, dial_z]) rotate([0, 90, 0]) linear_extrude(enc_bush_h - enc_bush_out + 1.01) teardrop2d(enc_bush_d + 0.4);
@@ -810,13 +819,14 @@ module as_ribs() {
     }
 }
 // The detent's leaf spring, as printed: the strip on the bed, the tooth up (PETG). In the case it lies tooth down
-// in the grooves of the ribs, over the flange bearing, the tooth through the bearing's roof on the flange rim.
+// across the ribs, its ends at the bottom of their pockets, over the flange bearing, the tooth through the
+// bearing's roof on the flange rim. The tooth is 0.2 narrower than the strip on each side: over the flange only.
 module dial_spring() {
     l = as_spring_l(); w = as_spring_w; t = as_spring_t; tl = as_tooth_l();
     translate([-w/2, -l/2, 0]) cube([w, l, t]);
     hull() {
-        translate([-w/2 + 0.1, -as_tooth_t/2, t - 0.01]) cube([w - 0.2, as_tooth_t, 0.02]);
-        translate([-w/2 + 0.1, 0, t + tl - as_tooth_t/2]) rotate([0, 90, 0]) cylinder(d = as_tooth_t, h = w - 0.2, $fn = 24);   // tl below the strip's underside
+        translate([-w/2 + 0.2, -as_tooth_t/2, t - 0.01]) cube([w - 0.4, as_tooth_t, 0.02]);
+        translate([-w/2 + 0.2, 0, t + tl - as_tooth_t/2]) rotate([0, 90, 0]) cylinder(d = as_tooth_t, h = w - 0.4, $fn = 24);   // tl below the strip's underside
     }
 }
 module dial_spring_in_place() { translate([as_spring_x()[0] + as_spring_w/2, dial_y, as_spring_z() + as_spring_t]) rotate([180, 0, 0]) dial_spring(); }
@@ -1085,7 +1095,7 @@ else {
          ribs_x = [enc_rib_x0, as_rib_x1(), as_pcb_x()], ribs_off_axis_mm = as_pcb/2 - as_hole_edge - enc_post_w/2, tab = [as_flange_x()[1], as_out_x()[0], dial_y - as_tab_hw(), dial_y + as_tab_hw(), wall + as_flange_z],
          rows_y = as_rows_y(), lowest_housing_above_floor_mm = as_pcb_z0() + as_pcb - as_hole_edge - as_row_off[1] - 2*2.54 - as_hdr/2 - wall,
          lip_to_header_mm = (as_hole_edge - as_hdr/2) - as_lip_w, spring = [as_spring_l(), as_spring_w, as_spring_t, as_tooth_l()], spring_z = as_spring_z(),
-         groove_over_pilot_mm = as_spring_z() - (as_holes()[0][1] + as_hole_pilot/2), rib_over_groove_mm = as_rib_top0 + (as_spring_x()[0] - 0.2 - enc_rib_x0) - (as_spring_z() + as_spring_t + 0.2),
+         spring_span_mm = 2*as_pocket_y1(), spring_strain_pct = 600*as_spring_t*as_notch_d/pow(2*as_pocket_y1(), 2), rib_over_pocket_mm = as_rib_top0 + (as_spring_x()[0] - 0.2 - enc_rib_x0) - (as_spring_z() + as_spring_t + 0.6),
          pocket_to_tp_mm = tp_pos()[1] - (as_out_y()[1] + 2.5));
     echo(out = [out_w, out_h, rim_z + bezel_t], shelf_z = shelf_z, key_z0 = key_z0, key_h = key_h, header_strip = hdr_strip(), flex_y = fpc_y(), keys = [for (i = [0:3]) btn_x(i)], pico_holes = pico_holes());
 }
