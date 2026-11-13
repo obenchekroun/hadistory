@@ -234,7 +234,7 @@ for lbl, n in dpins:
     wire([(x, y), (KX + KW, y)], C["GND"] if lbl == "GND" else C["DIAL"])
 text(KX + KW / 2, KY1 + 14, caption, 6.5, "middle", "#555")
 DIAL_NAME = "AS5600" if DIAL == "as5600" else "KY-040"
-DIAL_ROW = (("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "AS5600 SDA (GP6) / SCL (GP7) / DIR (GP8 à 0) / VCC (GP9 à 1)", "option STORY_DIAL=AS5600 : numéro d'histoire, angle absolu ; alimenté par GP9, éteint en veille")
+DIAL_ROW = (("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "AS5600 SDA / SCL / DIR / VCC (GP6 à GP9)", "option STORY_DIAL=AS5600 : numéro d'histoire, angle absolu ; alimenté par GP9, éteint en veille")
             if DIAL == "as5600" else
             ("DIAL", "cadran", "Pico 9 / 10 / 11 / 12", "KY-040 CLK (GP6) / DT (GP7) / SW (GP8) / + (GP9 à 1)", "option STORY_DIAL=KY040 : numéro d'histoire ; le poussoir vaut RESET"))
 

@@ -370,7 +370,7 @@
 <line x1="40" y1="1163" x2="70" y2="1163" stroke="#3949ab" stroke-width="4" stroke-linecap="round"/>
 <text x="80" y="1167" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="Helvetica, Arial, sans-serif">cadran</text>
 <text x="150" y="1167" font-size="10" text-anchor="start" fill="#222" font-weight="normal" font-family="Helvetica, Arial, sans-serif">Pico 9 / 10 / 11 / 12</text>
-<text x="280" y="1167" font-size="10" text-anchor="start" fill="#222" font-weight="normal" font-family="Helvetica, Arial, sans-serif">→  AS5600 SDA (GP6) / SCL (GP7) / DIR (GP8 à 0) / VCC (GP9 à 1)</text>
+<text x="280" y="1167" font-size="10" text-anchor="start" fill="#222" font-weight="normal" font-family="Helvetica, Arial, sans-serif">→  AS5600 SDA / SCL / DIR / VCC (GP6 à GP9)</text>
 <text x="560" y="1167" font-size="10" text-anchor="start" fill="#555" font-weight="normal" font-family="Helvetica, Arial, sans-serif">option STORY_DIAL=AS5600 : numéro d'histoire, angle absolu ; alimenté par GP9, éteint en veille</text>
 <line x1="40" y1="1179" x2="70" y2="1179" stroke="#e8711a" stroke-width="4" stroke-linecap="round"/>
 <text x="80" y="1183" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="Helvetica, Arial, sans-serif">VBUS</text>
